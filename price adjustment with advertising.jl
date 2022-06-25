@@ -663,6 +663,56 @@ end
 scatter(getindex.(getindex.(ex5_eqQ,1),1), getindex.(ex5_eqQ,2), smooth=true)
 scatter!(getindex.(getindex.(ex5_dfQ,1),1), getindex.(ex5_dfQ,2), smooth = true)
 
+##############
+
+price_strategy_qd = []
+
+for r in LinRange(0:0.1:0.5)
+    for rc in LinRange(0:0.1:0.5)
+        println((r,rc))
+        for iter in 1:50
+            ps_res = TO_GO(4, 250, 250, 0.25, 0.25, 0.25, 0.0; q = [1.40, 1.20, 1.0, 0.80], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [r, rc, rc, rc], num_links = 500) 
+            my_r = getindex(ps_res.function_args.r, 1)
+            comp_r = getindex(ps_res.function_args.r, 2)
+            profit = sum.(calculate_profit_history.(ps_res.sellers,0.05,250))[1]
+            push!(price_strategy_qd, (my_r, comp_r, profit))
+        end
+    end
+end
+
+my_r = getindex.(price_strategy_qd, 1)
+comp_r = getindex.(price_strategy_qd, 2)
+profit = getindex.(price_strategy_qd, 3)
+
+profit_matrix_qd = [mean(profit[(my_r .== r) .& (comp_r .== rc)]) for r in sort(unique(my_r)), rc in sort(unique(comp_r))]
+
+gr()
+heatmap(sort(unique(my_r)), sort(unique(comp_r)), profit_matrix_qd', xlabel = "High-quality producer's agressiveness", ylabel = "Competitors' agressiveness")
+
+price_strategy_qe = []
+
+for r in LinRange(0:0.1:0.5)
+    for rc in LinRange(0:0.1:0.5)
+        println((r,rc))
+        for iter in 1:50
+            ps_res = TO_GO(4, 250, 250, 0.25, 0.25, 0.25, 0.0; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [r, rc, rc, rc], num_links = 500) 
+            my_r = getindex(ps_res.function_args.r, 1)
+            comp_r = getindex(ps_res.function_args.r, 2)
+            profit = sum.(calculate_profit_history.(ps_res.sellers,0.05,250))[1]
+            push!(price_strategy_qe, (my_r, comp_r, profit))
+        end
+    end
+end
+
+my_r = getindex.(price_strategy_qe, 1)
+comp_r = getindex.(price_strategy_qe, 2)
+profit = getindex.(price_strategy_qe, 3)
+
+profit_matrix_qe = [mean(profit[(my_r .== r) .& (comp_r .== rc)]) for r in sort(unique(my_r)), rc in sort(unique(comp_r))]
+
+gr()
+heatmap(sort(unique(my_r)), sort(unique(comp_r)), profit_matrix_qe', xlabel = "High-quality producer's agressiveness", ylabel = "Competitors' agressiveness")
+
 #### Experiments plans
 
 # popracować nad ekperymentem z elastyznością cenową popytu
