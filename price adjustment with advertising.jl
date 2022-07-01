@@ -145,7 +145,7 @@ end
 
 ############################################ MAIN SIM FUNCTION #####################################################
 
-function TO_GO(num_sellers, num_buyers, max_iter, λ_ind, λ_wom, λ_ad, λ_fgt; q = fill(1.0, num_sellers), c = fill(0.8, num_sellers), m = fill(0.2, num_sellers), a = fill(0.05, num_sellers), r = fill(0.05, num_sellers), ϵ = fill(1/3, num_sellers), q_init = fill(1.0, num_sellers), num_links = 200, δ = 0.05, γ = 0.050)
+function TO_GO(num_sellers, num_buyers, max_iter, λ_ind, λ_wom, λ_ad, λ_fgt; q = fill(1.0, num_sellers), c = fill(0.8, num_sellers), m = fill(0.2, num_sellers), a = fill(0.05, num_sellers), r = fill(0.05, num_sellers), ϵ = fill(1/3, num_sellers), q_init = fill(1.0, num_sellers), num_links = 200, δ = 0.025, γ = 0.050)
 
     function_args = (num_sellers = num_sellers, num_buyers = num_buyers, max_iter = max_iter, λ_ind = λ_ind, λ_wom = λ_wom, λ_ad = λ_ad, q = q, c = c, m = m, a = a, r = r, ϵ = ϵ, q_init = q_init, num_links = num_links, δ = δ, γ = γ)
 
@@ -155,8 +155,6 @@ function TO_GO(num_sellers, num_buyers, max_iter, λ_ind, λ_wom, λ_ad, λ_fgt;
 
     buyers_network = create_network("random", num_buyers = num_buyers, num_links = num_links)
     buyers = create_buyers(num_buyers, num_sellers, buyers_network, q_init)
-
-    high_quality = getfield.(sellers, :quality) .>= 1.0
 
     # utlity function definition
 
@@ -186,11 +184,14 @@ function TO_GO(num_sellers, num_buyers, max_iter, λ_ind, λ_wom, λ_ad, λ_fgt;
                 # margin has to be in tha range between cost of production & 2
 
                 margin_ub = 2 - _seller.quality * _seller.average_cost
+                margin_ub = 10e10
                 change_margin = sample([-1,0,1], Weights(fill(1/3,3)))
 
                 margin_lb = _seller.advertising * γ + δ
 
-                new_margin = in_boundaries(_seller.margin + change_margin * rand() * δ, margin_lb, margin_ub)
+                new_margin = _seller.margin + change_margin * rand() * δ
+
+                new_margin = in_boundaries(new_margin, margin_lb, margin_ub)
 
                 _seller.margin = new_margin
                 push!(_seller.margin_history, _seller.margin)
@@ -218,20 +219,20 @@ function TO_GO(num_sellers, num_buyers, max_iter, λ_ind, λ_wom, λ_ad, λ_fgt;
                 
                 if profit_change > 0
                     if rand() <= _seller.risk_decisions
-                        new_margin = _seller.margin + margin_change * rand() * δ * step_length
+                        new_margin = _seller.margin + margin_change * rand() * δ #* step_length
                     else
                         new_margin = _seller.margin
                     end
                 elseif profit_change < 0
                     if rand() <= _seller.risk_decisions
-                        new_margin = _seller.margin_history[end-1] + (-1) * margin_change * rand() * δ * step_length
+                        new_margin = _seller.margin_history[end-1] + (-1) * margin_change * rand() * δ #* step_length
                     else
                         new_margin = _seller.margin_history[end-1]
                     end
                 elseif profit_change == 0
                     if rand() <= _seller.risk_decisions
                         margin_change = sample([-1,0,1], Weights(fill(1/3,3)))
-                        new_margin = _seller.margin + margin_change * rand() * δ * step_length
+                        new_margin = _seller.margin + margin_change * rand() * δ #* step_length
                     else
                         new_margin = _seller.margin
                     end
@@ -240,12 +241,20 @@ function TO_GO(num_sellers, num_buyers, max_iter, λ_ind, λ_wom, λ_ad, λ_fgt;
                 if iter >= 6
 
                     if all((_seller.margin_history[(end-4):end] .* _seller.quantity_history[(end-4):end]) .<= 0)
-                        new_margin = _seller.margin - rand() * δ * step_length
+                        new_margin = _seller.margin - rand() * δ #* step_length
+                    end
+
+                    if all(calculate_profit_history(_seller, γ, num_buyers)[(end-4):end] .< 0)
+                        new_margin = _seller.margin + δ
                     end
 
                 end
 
-                _seller.margin = in_boundaries(new_margin, margin_lb, margin_ub)
+
+
+                new_margin = in_boundaries(new_margin, margin_lb, margin_ub)
+
+                _seller.margin = new_margin
                 push!(_seller.margin_history, _seller.margin)
 
             end
@@ -371,7 +380,7 @@ function plot_quality_expectation(sim_res)
     plot([getindex.(mean(getfield.(sim_res.buyers, :quality_expectation_history)),x) for x in 1:sim_res.function_args.num_sellers], label = reshape("Producer " .* string.(1:sim_res.function_args.num_sellers), 1, sim_res.function_args.num_sellers))
 end
 
-sim_with_obs_11 = TO_GO(4, 500, 10000, 1.0, 0.0, 0.0, 0.0; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0],r = [0.4, 0.4, 0.4, 0.4], num_links = 0)
+sim_with_obs_11 = TO_GO(4, 500, 10000, 1.0, 0.0, 0.0, 0.0; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0],r = [0.4, 0.4, 0.4, 0.4], num_links = 0, δ = 0.01)
 
 plot_margin(sim_with_obs_11)
 plot_quantity(sim_with_obs_11)
@@ -379,11 +388,12 @@ plot_quality_expectation(sim_with_obs_11)
 
 # Przykład bez zapominania, zostaje na rynku jeden producent
 
-sim_with_obs_12 = TO_GO(4, 500, 10000, 1.0, 0.0, 0.0, 0.0; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.7,0.7,0.7,0.7], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0],r = [0.4, 0.4, 0.4, 0.4], num_links = 0)
+sim_with_obs_12 = TO_GO(4, 500, 1000, 1.0, 0.0, 0.0, 0.0; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.7,0.7,0.7,0.7], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0],r = [0.4, 0.4, 0.4, 0.4], num_links = 0)
 
 plot_margin(sim_with_obs_12)
 plot_quantity(sim_with_obs_12)
 plot_quality_expectation(sim_with_obs_12)
+calculate_total_surplus(sim_with_obs_12)
 
 sim_with_obs_13 = TO_GO(4, 500, 10000, 1.0, 0.0, 0.0, 0.0; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0],r = [0.4, 0.4, 0.4, 0.4], q_init = [1.6, 1.3, 1.0, 0.7], num_links = 0)
 
@@ -412,6 +422,18 @@ plot_margin(sim_with_obs_21)
 plot_quantity(sim_with_obs_21)
 plot_quality_expectation(sim_with_obs_21)
 
+function calculate_total_surplus(sim_res)
+
+    producer_surplus = sum(sum(calculate_profit_history.(sim_res.sellers, sim_res.function_args.γ, sim_res.function_args.num_buyers)))
+    consumer_surplus = sum(sum(getfield.(sim_res.buyers, :surplus)))
+    total_surplus = producer_surplus + consumer_surplus
+
+    return total_surplus
+
+end
+
+calculate_total_surplus(sim_with_obs_21)
+
 # Przykład bez zapominania, z e(q) = q̂. Producent o najwyższej jakości istnieje
 
 sim_with_obs_22 = TO_GO(4, 500, 1000, 0.25, 0.25, 0.0, 0.0; q = [1.6, 1.2, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.7,0.7,0.7,0.7], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], q_init = [1.6, 1.2, 1.0, 1.0], num_links = 1000)
@@ -437,11 +459,13 @@ plot!(twinx(), getindex.(reduce(+,getfield.(sim_with_obs_23.buyers, :unit_bought
 
 # Przykład bez zapominania, wstępnie e(q) = 1.0. Producent dobra o najwyższej jakości istnieje na rynku
 
-sim_with_obs_31 = TO_GO(4, 500, 500, 0.25, 0.25, 0.25, 0.; q = [1.5, 1.2, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.7,0.6,0.5,0.4], ϵ = [0.33,0.33,0.33,0.33], a = [0.01, 0.01, 0.01, 0.01], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000)
+sim_with_obs_31 = TO_GO(4, 500, 1000, 0.25, 0.25, 0.25, 0.; q = [1.6, 1.2, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.7,0.7,0.7,0.7], ϵ = [0.33,0.33,0.33,0.33], a = [0.01, 0.01, 0.01, 0.01], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000)
 
 plot_margin(sim_with_obs_31)
 plot_quantity(sim_with_obs_31)
 plot_quality_expectation(sim_with_obs_31)
+
+calculate_total_surplus(sim_with_obs_31)
 
 plot(getindex.(mean(getfield.(sim_with_obs_31.buyers, :quality_expectation_history)),1), ylim = (1,1.5),color = "black", legend = nothing)
 plot!(twinx(),getindex.(reduce(+,getfield.(sim_with_obs_31.buyers, :ad_received_history)),1), color = RGBA(1,0,0,0.5), legend = nothing)
@@ -498,7 +522,7 @@ ex2_quantity_without_ads = []
 
 for i in 1:100
 
-    if mod(i,25) == 0
+    if (mod(i,10) == 0) | (i == 1)
         println(i)
     end
 
@@ -523,14 +547,14 @@ for i in 1:100
     push!(ex2_quantity_without_ads, getfield.(sim_without_ads.sellers, :quantity_history))
 end
 
-ex1_p = plot(sort(ex1_surplus_with_ads), (1:length(ex1_surplus_with_ads))./length(ex1_surplus_with_ads), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "market with ads", legend=:bottomright)
+ex1_p = plot(sort(ex1_surplus_with_ads), (1:length(ex1_surplus_with_ads))./length(ex1_surplus_with_ads), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality, market with ads", legend=:bottomright)
 
-plot!(sort(ex1_surplus_without_ads), (1:length(ex1_surplus_without_ads))./length(ex1_surplus_without_ads), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "market without ads")
+plot!(sort(ex1_surplus_without_ads), (1:length(ex1_surplus_without_ads))./length(ex1_surplus_without_ads), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality, market without ads")
 
-plot!(sort(ex2_surplus_with_ads), (1:length(ex2_surplus_with_ads))./length(ex2_surplus_with_ads), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "market with ads", legend=:bottomright)
+plot!(sort(ex2_surplus_with_ads), (1:length(ex2_surplus_with_ads))./length(ex2_surplus_with_ads), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "non-equal quality, market with ads", legend=:bottomright)
 
-plot!(sort(ex2_surplus_without_ads), (1:length(ex2_surplus_without_ads))./length(ex2_surplus_without_ads), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "market without ads")
-savefig(ex1_p, "SD, Market with equal Q")
+plot!(sort(ex2_surplus_without_ads), (1:length(ex2_surplus_without_ads))./length(ex2_surplus_without_ads), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality, market without ads")
+savefig(ex1_p, "SD, Market with equal and non-equal Q")
 
 p = plot(mean(ex1_price_with_ads), 
     xlabel = "T", ylabel = "Price", 
@@ -600,9 +624,9 @@ EqualVarianceTTest(avg_quantity[quality_diff .== 1], avg_quantity[quality_diff .
 
 using GLM, DataFrames
 
-sim_with_obs_41 = TO_GO(4, 500, 1000, 0.25, 0.25, 0.25; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.01, 0.01, 0.01, 0.01], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000)
+sim_with_obs_41 = TO_GO(4, 500, 1000, 0.25, 0.25, 0.25, 0.0; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.01, 0.01, 0.01, 0.01], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000)
 
-sim_with_obs_42 = TO_GO(4, 500, 1000, 0.25, 0.25, 0.25; q = [1.4, 1.2, 1.0, 0.8], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.01, 0.01, 0.01, 0.01], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000)
+sim_with_obs_42 = TO_GO(4, 500, 1000, 0.25, 0.25, 0.25, 0.0; q = [1.4, 1.2, 1.0, 0.8], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.01, 0.01, 0.01, 0.01], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000)
 
 function plot_demand_curve(sellers)
     p = plot()
@@ -634,23 +658,20 @@ plot_demand_curve(sim_with_obs_42.sellers)
 ex5_eqQ = []
 ex5_dfQ = []
 
-for iter in 1:100
+for iter in 1:400
     println(iter)
 
     a = rand() * 0.05
 
-    sim_with_obs_51 = TO_GO(4, 500, 500, 0.25, 0.25, 0.25; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.7,0.7,0.7,0.7], ϵ = [0.33,0.33,0.33,0.33], a = [a, a, a, a], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000)
+    sim_with_obs_51 = TO_GO(4, 500, 250, 0.25, 0.25, 0.25, 0.0; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.7,0.7,0.7,0.7], ϵ = [0.33,0.33,0.33,0.33], a = [a, a, a, a], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000)
 
     push!(ex5_eqQ, (sim_with_obs_51.function_args.a, calculate_price_elasticity.(sim_with_obs_51.sellers)[1]))
 
-    sim_with_obs_52 = TO_GO(4, 500, 500, 0.25, 0.25, 0.25; q = [1.6, 1.2, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.7,0.7,0.7,0.7], ϵ = [0.33,0.33,0.33,0.33], a = [a, a, a, a], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000)
+    sim_with_obs_52 = TO_GO(4, 500, 250, 0.25, 0.25, 0.25, 0.0; q = [1.6, 1.2, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.7,0.7,0.7,0.7], ϵ = [0.33,0.33,0.33,0.33], a = [a, a, a, a], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000)
 
     push!(ex5_dfQ, (sim_with_obs_52.function_args.a, calculate_price_elasticity.(sim_with_obs_52.sellers)[1]))
 
 end
-
-using GLM
-using DataFrames
 
 function calculate_price_elasticity(_seller)
     y = _seller.quantity_history
@@ -663,9 +684,12 @@ end
 scatter(getindex.(getindex.(ex5_eqQ,1),1), getindex.(ex5_eqQ,2), smooth=true)
 scatter!(getindex.(getindex.(ex5_dfQ,1),1), getindex.(ex5_dfQ,2), smooth = true)
 
+
+
 ##############
 
 price_strategy_qd = []
+price_strategy_qe = []
 
 for r in LinRange(0:0.1:0.5)
     for rc in LinRange(0:0.1:0.5)
@@ -674,27 +698,8 @@ for r in LinRange(0:0.1:0.5)
             ps_res = TO_GO(4, 250, 250, 0.25, 0.25, 0.25, 0.0; q = [1.40, 1.20, 1.0, 0.80], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [r, rc, rc, rc], num_links = 500) 
             my_r = getindex(ps_res.function_args.r, 1)
             comp_r = getindex(ps_res.function_args.r, 2)
-            profit = sum.(calculate_profit_history.(ps_res.sellers,0.05,250))[1]
+            profit = sum.(calculate_profit_history.(ps_res.sellers, 0.05, 250))[1]
             push!(price_strategy_qd, (my_r, comp_r, profit))
-        end
-    end
-end
-
-my_r = getindex.(price_strategy_qd, 1)
-comp_r = getindex.(price_strategy_qd, 2)
-profit = getindex.(price_strategy_qd, 3)
-
-profit_matrix_qd = [mean(profit[(my_r .== r) .& (comp_r .== rc)]) for r in sort(unique(my_r)), rc in sort(unique(comp_r))]
-
-gr()
-heatmap(sort(unique(my_r)), sort(unique(comp_r)), profit_matrix_qd', xlabel = "High-quality producer's agressiveness", ylabel = "Competitors' agressiveness")
-
-price_strategy_qe = []
-
-for r in LinRange(0:0.1:0.5)
-    for rc in LinRange(0:0.1:0.5)
-        println((r,rc))
-        for iter in 1:50
             ps_res = TO_GO(4, 250, 250, 0.25, 0.25, 0.25, 0.0; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [r, rc, rc, rc], num_links = 500) 
             my_r = getindex(ps_res.function_args.r, 1)
             comp_r = getindex(ps_res.function_args.r, 2)
@@ -704,19 +709,19 @@ for r in LinRange(0:0.1:0.5)
     end
 end
 
-my_r = getindex.(price_strategy_qe, 1)
-comp_r = getindex.(price_strategy_qe, 2)
-profit = getindex.(price_strategy_qe, 3)
+my_r_qd = getindex.(price_strategy_qd, 1)
+comp_r_qd = getindex.(price_strategy_qd, 2)
+profit_qd = getindex.(price_strategy_qd, 3)
+profit_matrix_qd = [mean(profit_qd[(my_r_qd .== r) .& (comp_r_qd .== rc)]) for r in sort(unique(my_r_qd)), rc in sort(unique(comp_r_qd))]
+p_qd = heatmap(sort(unique(my_r_qd)), sort(unique(comp_r_qd)), profit_matrix_qd', xlabel = "High-quality producer's agressiveness", ylabel = "Competitors' agressiveness", levels=8,clim = (0,4000))
 
-profit_matrix_qe = [mean(profit[(my_r .== r) .& (comp_r .== rc)]) for r in sort(unique(my_r)), rc in sort(unique(comp_r))]
-
-gr()
-heatmap(sort(unique(my_r)), sort(unique(comp_r)), profit_matrix_qe', xlabel = "High-quality producer's agressiveness", ylabel = "Competitors' agressiveness")
-
+my_r_qe = getindex.(price_strategy_qe, 1)
+comp_r_qe = getindex.(price_strategy_qe, 2)
+profit_qe = getindex.(price_strategy_qe, 3)
+profit_matrix_qe = [mean(profit[(my_r_qe .== r) .& (comp_r_qe .== rc)]) for r in sort(unique(my_r_qe)), rc in sort(unique(comp_r_qe))]
+p_qe = heatmap(sort(unique(my_r_qe)), sort(unique(comp_r_qe)), profit_matrix_qe', xlabel = "High-quality producer's agressiveness", ylabel = "Competitors' agressiveness", levels=8,clim = (0,4000))
 #### Experiments plans
 
 # popracować nad ekperymentem z elastyznością cenową popytu
 # Cel: quality diff vs. advertising -> profit
 # Cel: quality diff -> when does product starts to sell?
-
-([2,3,4,5] .>= 4) .* 10
