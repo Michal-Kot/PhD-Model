@@ -609,7 +609,7 @@ ex2_quantity_dq = []
 ex2_advertising_dq = []
 ex2_advertising_highest = []
 
-for i in 1:100
+for i in 1:500
 
     if (mod(i,10) == 0) | (i == 1)
         println(i)
@@ -644,6 +644,9 @@ plot!(sort(ex2_consumer_surplus_dq), (1:length(ex2_consumer_surplus_dq))./length
 
 plot(sort(mean.(ex1_price_eq)), (1:length(ex1_price_eq))./length(ex1_price_eq), xlabel = "Price", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality", legend=:bottomright)
 plot!(sort(mean.(ex2_price_dq)), (1:length(ex2_price_dq))./length(ex2_price_dq), xlabel = "Price", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "non-equal quality", legend=:bottomright)
+
+plot(sort(mean.(ex1_quantity_eq)), (1:length(ex1_quantity_eq))./length(ex1_quantity_eq), xlabel = "Quaniity", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality", legend=:bottomright)
+plot!(sort(mean.(ex2_quantity_dq)), (1:length(ex2_quantity_dq))./length(ex2_quantity_dq), xlabel = "Quantity", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "non-equal quality", legend=:bottomright)
 
 plot(sort(mean.(ex1_advertising_eq)), (1:length(ex1_advertising_eq))./length(ex1_advertising_eq), xlabel = "Advertising", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality", legend=:bottomright)
 plot!(sort(mean.(ex2_advertising_dq)), (1:length(ex2_advertising_dq))./length(ex2_advertising_dq), xlabel = "Advertising", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "non-equal quality", legend=:bottomright)
