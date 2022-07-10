@@ -66,12 +66,12 @@ mutable struct buyer
     id::Int64
     neighbours::Vector{Int64} 
     std_reservation_price::Float64
+    quality_seeking::Float64
     quality_expectation::Vector{Float64}
+    quality_expectation_history::Vector{Vector{Float64}}
     unit_bought::Vector{Bool}
     unit_bought_history::Vector{Vector{Bool}}
     quality_of_unit_bought::Float64
-    quality_seeking::Float64
-    quality_expectation_history::Vector{Vector{Float64}}
     quality_of_unit_bought_history::Vector{Vector{Float64}}
     ad_received::Vector{Bool}
     ad_received_history::Vector{Vector{Bool}}
@@ -82,7 +82,7 @@ function create_buyers(num_buyers::Int64, num_sellers::Int64, network::SimpleGra
     buyers_vector = []
     for b in 1:num_buyers
         my_neighbours = neighbors(network, b)
-        new_buyer = buyer(b, my_neighbours, 2*rand(), initial_quality_expectation, fill(false, num_sellers), [], 0.0, rand(Uniform(0,1)), [], [], [], [], [])
+        new_buyer = buyer(b, my_neighbours, 2*rand(), rand(Uniform(0,1)), initial_quality_expectation, [], fill(false, num_sellers), [], 0.0, [], [], [], [])
         push!(buyers_vector, new_buyer)
     end
     return buyers_vector
@@ -152,6 +152,28 @@ function create_bool_purchase(n::Int64,k::Int64)::Vector{Bool}
     x = fill(false, n)
     x[k] = true
     return x
+end
+
+function calculate_total_surplus(sim_res, return_type::String = "total")
+
+    producer_surplus = sum(sum(calculate_profit_history.(sim_res.sellers, sim_res.function_args.γ, sim_res.function_args.num_buyers)))
+    consumer_surplus = sum(sum(getfield.(sim_res.buyers, :surplus)))
+    total_surplus = producer_surplus + consumer_surplus
+
+    if return_type == "total"
+
+        return total_surplus
+
+    elseif return_type == "producer"
+
+        return producer_surplus
+
+    elseif return_type == "consumer"
+
+        return consumer_surplus
+
+    end
+
 end
 
 function plot_quantity(sim_res)
@@ -356,9 +378,9 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
             end
         end
 
-        for _buyer in buyers
+        prices = calculate_price.(sellers)
 
-            prices = calculate_price.(sellers)
+        for _buyer in buyers
 
             wtp_advertising = 1 .+ _buyer.ad_received .* p
 
@@ -396,7 +418,7 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
 
                 push!(_buyer.quality_of_unit_bought_history, _buyer.unit_bought .*  _buyer.quality_of_unit_bought)
 
-                buyer_surplus = _buyer.quality_expectation[chosen_product] * _buyer.std_reservation_price - sellers[chosen_product].margin - sellers[chosen_product].average_cost * sellers[chosen_product].quality
+                buyer_surplus = _buyer.quality_expectation[chosen_product] * _buyer.std_reservation_price * wtp_advertising[chosen_product] - prices[chosen_product]
 
                 push!(_buyer.surplus, buyer_surplus)
             
@@ -419,7 +441,7 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
             if length(_buyer.neighbours) > 0
                 average_quality_neighbours = reduce(+,getfield.(buyers[_buyer.neighbours], :quality_of_unit_bought) .* getfield.(buyers[_buyer.neighbours], :unit_bought)) ./ reduce(+, getfield.(buyers[_buyer.neighbours], :unit_bought))
                 bought_neighbours = .!isnan.(average_quality_neighbours)
-                average_quality_neighbours[isnan.(average_quality_neighbours)] .= 0
+                average_quality_neighbours[.!bought_neighbours] .= 0
             else
                 bought_neighbours = fill(0, num_sellers)
                 average_quality_neighbours = fill(0, num_sellers)
@@ -468,25 +490,126 @@ plot_advertising(sim_with_obs_11)
 plot_quantity(sim_with_obs_11)
 plot_quality_expectation(sim_with_obs_11)
 
+####################### EXPERIMENT 1, EQUAL QUALITIES ############################################
+
+# Cel 1: Weryfikacja hipotezy, że rynki gdzie występuje zróżnicowanie jakości produktów są bardziej efektywne niż pozostałe. 
+# Cel 2: Sprawdzić, czy komunikacja reklamowa zwiększa efektywność rynku w przypadku, jeśli jakość produktów jest "równa" (EX1) oraz jakość produktów jest różna - istnieje firma dominująca pozostałe pod względem jakości oferowanego produktu (EX2)
+
+# Efekt 1: różnicowanie jakości produktu powoduje, że rynek jest bardziej efektywny - suma nadwyżek producentów i konsumentów jest wyższa
+# Efekt 2: w przypadku rynku z różnicowaniem produktu, komunikacja reklamowa pozwala istotnie zwiększyć efektywność, podczas gdy na rynku z jednakową jakością produktu efekt nie jest obserwowany
+
+ex1_total_surplus_eq = []
+ex1_producer_surplus_eq = []
+ex1_consumer_surplus_eq = []
+ex1_price_eq = []
+ex1_quantity_eq = []
+ex1_advertising_eq = []
+
+ex2_total_surplus_dq = []
+ex2_producer_surplus_dq = []
+ex2_consumer_surplus_dq = []
+ex2_price_dq = []
+ex2_quantity_dq = []
+ex2_advertising_dq = []
+ex2_advertising_highest = []
+
+for i in 1:100
+
+    if (mod(i,10) == 0) | (i == 1)
+        println(i)
+    end
+
+    sim_with_ads = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000)
+    push!(ex1_total_surplus_eq, calculate_total_surplus(sim_with_ads, "total"))
+    push!(ex1_producer_surplus_eq, calculate_total_surplus(sim_with_ads, "producer"))
+    push!(ex1_consumer_surplus_eq, calculate_total_surplus(sim_with_ads, "consumer"))
+    push!(ex1_price_eq, mean(calculate_price_history.(sim_with_ads.sellers)))
+    push!(ex1_quantity_eq, mean(getfield.(sim_with_ads.sellers, :quantity_history)))
+    push!(ex1_advertising_eq, mean(getfield.(sim_with_ads.sellers, :advertising_history)))
+
+    sim_with_ads = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000, q_init = [1.6, 1.3, 1.0, 0.7])
+    push!(ex2_total_surplus_dq, calculate_total_surplus(sim_with_ads, "total"))
+    push!(ex2_producer_surplus_dq, calculate_total_surplus(sim_with_ads, "producer"))
+    push!(ex2_consumer_surplus_dq, calculate_total_surplus(sim_with_ads, "consumer"))
+    push!(ex2_price_dq, mean(calculate_price_history.(sim_with_ads.sellers)))
+    push!(ex2_quantity_dq, mean(getfield.(sim_with_ads.sellers, :quantity_history)))
+    push!(ex2_advertising_dq, mean(getfield.(sim_with_ads.sellers, :advertising_history)))
+
+end
+
+ex1_p1 = plot(sort(ex1_total_surplus_eq), (1:length(ex1_total_surplus_eq))./length(ex1_total_surplus_eq), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality", legend=:bottomright)
+plot!(sort(ex2_total_surplus_dq), (1:length(ex2_total_surplus_dq))./length(ex2_total_surplus_dq), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "non-equal quality")
+
+ex1_p2 = plot(sort(ex1_producer_surplus_eq), (1:length(ex1_producer_surplus_eq))./length(ex1_producer_surplus_eq), xlabel = "Producer surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality", legend=:bottomright)
+plot!(sort(ex2_producer_surplus_dq), (1:length(ex2_producer_surplus_dq))./length(ex2_producer_surplus_dq), xlabel = "Producer surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "non-equal quality")
+
+ex1_p3 = plot(sort(ex1_consumer_surplus_eq), (1:length(ex1_consumer_surplus_eq))./length(ex1_consumer_surplus_eq), xlabel = "Consumer surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality", legend=:bottomright)
+plot!(sort(ex2_consumer_surplus_dq), (1:length(ex2_consumer_surplus_dq))./length(ex2_consumer_surplus_dq), xlabel = "Consumer surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "non-equal quality")
+
+plot(sort(mean.(ex1_price_eq)), (1:length(ex1_price_eq))./length(ex1_price_eq), xlabel = "Price", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality", legend=:bottomright)
+plot!(sort(mean.(ex2_price_dq)), (1:length(ex2_price_dq))./length(ex2_price_dq), xlabel = "Price", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "non-equal quality", legend=:bottomright)
+
+plot(sort(mean.(ex1_advertising_eq)), (1:length(ex1_advertising_eq))./length(ex1_advertising_eq), xlabel = "Advertising", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality", legend=:bottomright)
+plot!(sort(mean.(ex2_advertising_dq)), (1:length(ex2_advertising_dq))./length(ex2_advertising_dq), xlabel = "Advertising", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "non-equal quality", legend=:bottomright)
+
+p = plot(mean(ex1_price_eq), 
+    xlabel = "T", ylabel = "Price", 
+    title = "Average price", label = "equal quality", legend=:topright)
+
+plot!(mean(ex2_price_dq), 
+    xlabel = "T", ylabel = "Price", 
+    title = "Average price", label = "not equal quality", legend=:topright)
+
+EqualVarianceTTest(mean(ex1_price_eq), mean(ex2_price_dq))
+
+p = plot(mean(ex1_quantity_eq), 
+    xlabel = "T", ylabel = "Quantity", 
+    title = "Average quantity", label = "equal quality", legend=:bottomright)
+    
+plot!(mean(ex2_quantity_dq), 
+    xlabel = "T", ylabel = "Quantity", 
+    title = "Average quantity", label = "non-equal quality")
+
+EqualVarianceTTest(mean(ex1_quantity_eq), mean(ex2_quantity_dq))
+
+p = plot(mean(ex1_advertising_eq), 
+    xlabel = "T", ylabel = "Advertising", 
+    title = "Average advertising", label = "equal quality", legend=:bottomright)
+    
+plot!(mean(ex2_advertising_dq), 
+    xlabel = "T", ylabel = "Advertising", 
+    title = "Average advertising", label = "non-equal quality")
+
+EqualVarianceTTest(mean(ex1_advertising_eq), mean(ex2_advertising_dq))
+
 # Cel: weryfikacja jak persuasiveness reklamy wpływa na wybory konsumentów
 
 persuasiveness = LinRange(0.05:0.05:0.25)
 max_iter = 50
-persuasiveness_sensitivity = []
+persuasiveness_sensitivity_eq = []
+persuasiveness_sensitivity_dq = []
 
 for p in persuasiveness
     for iter in 1:max_iter
         println((p, iter))
-        sim_with_obs_13 = TO_GO(4, 250, 500, 0.25, 0.25, "deterministic"; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.7,0.7,0.7,0.7], ϵ = [0.33,0.33,0.33,0.33], a = [0.01, 0.01, 0.01, 0.01], r = [0.4, 0.4, 0.4, 0.4], p = [p, 0.05, 0.05, 0.05], num_links = 1000)
-        push!(persuasiveness_sensitivity, (price = calculate_price_history.(sim_with_obs_13.sellers), quantity = getfield.(sim_with_obs_13.sellers, :quantity_history), profit = calculate_profit_history.(sim_with_obs_13.sellers, sim_with_obs_13.function_args.γ, sim_with_obs_13.function_args.num_buyers), advertising = getfield.(sim_with_obs_13.sellers, :advertising_history)))
+        sim_with_obs_13 = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.6, 0.6, 0.6, 0.6], ϵ = [0.33, 0.33, 0.33, 0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], p = [p, p, p, p], q_init = [1.0, 1.0, 1.0, 1.0], num_links = 1000)
+        push!(persuasiveness_sensitivity_eq, (price = calculate_price_history.(sim_with_obs_13.sellers), quantity = getfield.(sim_with_obs_13.sellers, :quantity_history), profit = calculate_profit_history.(sim_with_obs_13.sellers, sim_with_obs_13.function_args.γ, sim_with_obs_13.function_args.num_buyers), advertising = getfield.(sim_with_obs_13.sellers, :advertising_history), surplus = calculate_total_surplus(sim_with_obs_13)))
+        sim_with_obs_13 = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], p = [p, p, p, p], q_init = [1.6, 1.3, 1.0, 0.7], num_links = 1000)
+        push!(persuasiveness_sensitivity_dq, (price = calculate_price_history.(sim_with_obs_13.sellers), quantity = getfield.(sim_with_obs_13.sellers, :quantity_history), profit = calculate_profit_history.(sim_with_obs_13.sellers, sim_with_obs_13.function_args.γ, sim_with_obs_13.function_args.num_buyers), advertising = getfield.(sim_with_obs_13.sellers, :advertising_history), surplus = calculate_total_surplus(sim_with_obs_13)))
     end
 end
 
 persuasiveness_unique = repeat(collect(persuasiveness), inner = max_iter)
-plot([getindex(mean(getfield.(persuasiveness_sensitivity, :price)[persuasiveness_unique .∈ upu]),1) for upu in unique(persuasiveness_unique)])
-plot([getindex(mean(getfield.(persuasiveness_sensitivity, :advertising)[persuasiveness_unique .∈ upu]),1) for upu in unique(persuasiveness_unique)])
-plot([getindex(mean(getfield.(persuasiveness_sensitivity, :quantity)[persuasiveness_unique .∈ upu]),1)[2:end] for upu in unique(persuasiveness_unique)])
-plot([getindex(mean(getfield.(persuasiveness_sensitivity, :profit)[persuasiveness_unique .∈ upu]),1)[2:end] for upu in unique(persuasiveness_unique)])
+
+plot(collect(persuasiveness), [mean(mean(mean(getfield.(persuasiveness_sensitivity_eq, :price)[persuasiveness_unique .∈ upu]))) for upu in unique(persuasiveness_unique)], label = "eq", ylabel = "price")
+plot!(collect(persuasiveness), [mean(mean(mean(getfield.(persuasiveness_sensitivity_dq, :price)[persuasiveness_unique .∈ upu]))) for upu in unique(persuasiveness_unique)])
+
+plot(collect(persuasiveness), [mean(mean(mean(getfield.(persuasiveness_sensitivity_eq, :quantity)[persuasiveness_unique .∈ upu]))) for upu in unique(persuasiveness_unique)], label = "eq", ylabel = "price")
+plot!(collect(persuasiveness), [mean(mean(mean(getfield.(persuasiveness_sensitivity_dq, :quantity)[persuasiveness_unique .∈ upu]))) for upu in unique(persuasiveness_unique)])
+
+plot(collect(persuasiveness), [mean(mean(mean(getfield.(persuasiveness_sensitivity_eq, :surplus)[persuasiveness_unique .∈ upu]))) for upu in unique(persuasiveness_unique)], label = "eq", ylabel = "price")
+plot!(collect(persuasiveness), [mean(mean(mean(getfield.(persuasiveness_sensitivity_dq, :surplus)[persuasiveness_unique .∈ upu]))) for upu in unique(persuasiveness_unique)])
+
 
 # Cel: czy punkt startowy m = 0.2 ma znaczenie? Czy wynik symulacji jest niezależny od punktu startowego?
 
@@ -586,7 +709,7 @@ plot([getindex(mean(getfield.(quality_diff_on_advertising, :profit)[quality_best
 
 # Przykład bez zapominania, zostaje na rynku jeden producent
 
-sim_with_obs_12 = TO_GO(4, 500, 2000, 0.25, 0.25, "deterministic"; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.7,0.6,0.5,0.4], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], q_init = [1.6, 1.3, 1.0, 0.7], num_links = 1000)
+sim_with_obs_12 = TO_GO(4, 500, 5000, 0.25, 0.25, "deterministic"; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], q_init = [1.6, 1.3, 1.0, 0.7], num_links = 1000)
 
 plot_margin(sim_with_obs_12)
 plot_advertising(sim_with_obs_12)
@@ -595,7 +718,7 @@ plot_quality_expectation(sim_with_obs_12)
 plot_profit_history(sim_with_obs_12)
 calculate_total_surplus(sim_with_obs_12)
 
-sim_with_obs_13 = TO_GO(4, 500, 10000, 1.0, 0.0, 0.0, 0.0; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0],r = [0.4, 0.4, 0.4, 0.4], q_init = [1.6, 1.3, 1.0, 0.7], num_links = 0)
+sim_with_obs_13 = TO_GO(4, 500, 10000, 1.0, 0.0, "deterministic"; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0],r = [0.4, 0.4, 0.4, 0.4], q_init = [1.6, 1.3, 1.0, 0.7], num_links = 0)
 
 plot_margin(sim_with_obs_13)
 plot_quantity(sim_with_obs_13)
@@ -624,15 +747,7 @@ plot_quality_expectation(sim_with_obs_21)
 plot_profit_history(sim_with_obs_21)
 
 
-function calculate_total_surplus(sim_res)
 
-    producer_surplus = sum(sum(calculate_profit_history.(sim_res.sellers, sim_res.function_args.γ, sim_res.function_args.num_buyers)))
-    consumer_surplus = sum(sum(getfield.(sim_res.buyers, :surplus)))
-    total_surplus = producer_surplus + consumer_surplus
-
-    return total_surplus
-
-end
 
 calculate_total_surplus(sim_with_obs_21)
 
@@ -697,103 +812,7 @@ sum(getfield(sim_with_obs_33.sellers[1], :quantity_history))
 
 groupedbar(reduce(hcat,[getfield.(sim_with_obs_33.sellers, :quantity_history)[x] for x in 1:length(sim_with_obs_33.sellers)]),linecolor=nothing, bar_position = :stack)
 
-####################### EXPERIMENT 1, EQUAL QUALITIES ############################################
 
-# Cel: pokazać, w jaki sposób komunikacja reklamowa działa w przypadku rynków, gdzie jakość produktów jest "równa" (EX1) oraz jakość produktów jest różna - istnieje firma dominująca pozostałe pod względem jakości oferowanego produktu (EX2)
-
-# Efekt 1: różnicowanie jakości produktu powoduje, że rynek jest bardziej efektywny - suma nadwyżek producentów i konsumentów jest wyższa
-# Efekt 2: w przypadku rynku z różnicowaniem produktu, komunikacja reklamowa pozwala istotnie zwiększyć efektywność, podczas gdy na rynku z jednakową jakością produktu efekt nie jest obserwowany
-
-ex1_surplus_with_ads = []
-ex1_surplus_without_ads = []
-
-ex1_price_with_ads = []
-ex1_price_without_ads = []
-
-ex1_quantity_with_ads = []
-ex1_quantity_without_ads = []
-
-ex2_surplus_with_ads = []
-ex2_surplus_without_ads = []
-
-ex2_price_with_ads = []
-ex2_price_without_ads = []
-
-ex2_quantity_with_ads = []
-ex2_quantity_without_ads = []
-
-for i in 1:100
-
-    if (mod(i,10) == 0) | (i == 1)
-        println(i)
-    end
-
-    sim_with_ads = TO_GO(4, 500, 250, 0.25, 0.25, 0.25, 0.0; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.01, 0.01, 0.01, 0.01], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000)
-    push!(ex1_surplus_with_ads, sum(sum(calculate_profit_history.(sim_with_ads.sellers, sim_with_ads.function_args.γ, sim_with_ads.function_args.num_buyers)) .+ reduce(+,getfield.(sim_with_ads.buyers, :surplus))))
-    push!(ex1_price_with_ads, mean(calculate_price_history.(sim_with_ads.sellers)))
-    push!(ex1_quantity_with_ads, mean(getfield.(sim_with_ads.sellers, :quantity_history)))
-
-    sim_with_ads = TO_GO(4, 500, 250, 0.25, 0.25, 0.25, 0.0; q = [1.5, 1.2, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.01, 0.01, 0.01, 0.01], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000)
-    push!(ex2_surplus_with_ads, sum(sum(calculate_profit_history.(sim_with_ads.sellers, sim_with_ads.function_args.γ, sim_with_ads.function_args.num_buyers)) .+ reduce(+,getfield.(sim_with_ads.buyers, :surplus))))
-    push!(ex2_price_with_ads, calculate_price_history.(sim_with_ads.sellers))
-    push!(ex2_quantity_with_ads, getfield.(sim_with_ads.sellers, :quantity_history))
-
-    sim_without_ads = TO_GO(4, 500, 250, 0.25, 0.25, 0.0, 0.0; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000)
-    push!(ex1_surplus_without_ads, sum(sum(calculate_profit_history.(sim_without_ads.sellers, sim_without_ads.function_args.γ, sim_without_ads.function_args.num_buyers)) .+ reduce(+,getfield.(sim_without_ads.buyers, :surplus))))
-    push!(ex1_price_without_ads, mean(calculate_price_history.(sim_without_ads.sellers)))
-    push!(ex1_quantity_without_ads, mean(getfield.(sim_without_ads.sellers, :quantity_history)))
-
-    sim_without_ads = TO_GO(4, 500, 250, 0.25, 0.25, 0.0, 0.0; q = [1.5, 1.2, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000)
-    push!(ex2_surplus_without_ads, sum(sum(calculate_profit_history.(sim_without_ads.sellers, sim_without_ads.function_args.γ, sim_without_ads.function_args.num_buyers)) .+ reduce(+,getfield.(sim_without_ads.buyers, :surplus))))
-    push!(ex2_price_without_ads, calculate_price_history.(sim_without_ads.sellers))
-    push!(ex2_quantity_without_ads, getfield.(sim_without_ads.sellers, :quantity_history))
-end
-
-ex1_p = plot(sort(ex1_surplus_with_ads), (1:length(ex1_surplus_with_ads))./length(ex1_surplus_with_ads), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality, market with ads", legend=:bottomright)
-
-plot!(sort(ex1_surplus_without_ads), (1:length(ex1_surplus_without_ads))./length(ex1_surplus_without_ads), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality, market without ads")
-
-plot!(sort(ex2_surplus_with_ads), (1:length(ex2_surplus_with_ads))./length(ex2_surplus_with_ads), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "non-equal quality, market with ads", legend=:bottomright)
-
-plot!(sort(ex2_surplus_without_ads), (1:length(ex2_surplus_without_ads))./length(ex2_surplus_without_ads), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality, market without ads")
-savefig(ex1_p, "SD, Market with equal and non-equal Q")
-
-p = plot(mean(ex1_price_with_ads), 
-    xlabel = "T", ylabel = "Price", 
-    title = "Average price", label = "market with ads", legend=:topright)
-    
-plot!(mean(ex1_price_without_ads), 
-    xlabel = "T", ylabel = "Price", 
-    title = "Average price", label = "market without ads")
-
-plot!(mean(mean(ex2_price_with_ads)), 
-    xlabel = "T", ylabel = "Price", 
-    title = "Average price", label = "market with ads", legend=:topright)
-    
-plot!(mean(mean(ex2_price_without_ads)), 
-    xlabel = "T", ylabel = "Price", 
-    title = "Average price", label = "market without ads")
-
-EqualVarianceTTest(mean(price_with_ads), mean(price_without_ads))
-
-p = plot(mean(ex1_quantity_with_ads), 
-    xlabel = "T", ylabel = "Quantity", 
-    title = "Average quantity", label = "market with ads", legend=:topright)
-    
-plot!(mean(ex1_quantity_without_ads), 
-    xlabel = "T", ylabel = "Quantity", 
-    title = "Average quantity", label = "market without ads")
-
-plot!(mean(mean(ex2_quantity_with_ads)), 
-    xlabel = "T", ylabel = "Quantity", 
-    title = "Average quantity", label = "market with ads", legend=:topright)
-    
-plot!(mean(mean(ex2_quantity_without_ads)), 
-    xlabel = "T", ylabel = "Quantity", 
-    title = "Average quantity", label = "market without ads")
-
-EqualVarianceTTest(mean(ex1_quantity_with_ads), mean(ex1_quantity_without_ads))
-EqualVarianceTTest(mean(mean(ex2_quantity_with_ads)), mean(mean(ex2_quantity_without_ads)))
 
 ####################### EXPERIMENT 2 ############################################
 
