@@ -27,6 +27,7 @@ p - price of product, q - quantity of sales, c - function of cost, linear on q, 
 mutable struct seller
     id::Int64
     quality::Float64
+    durability::Int64
     average_cost::Float64
     margin::Float64
     quantity_history::Vector{Float64}
@@ -38,7 +39,7 @@ mutable struct seller
     persuasiveness::Float64
 end
 
-function create_sellers(num_sellers::Int64,q::Vector{Float64},c::Vector{Float64},m::Vector{Float64},a::Vector{Float64},r::Vector{Float64},p::Vector{Float64})::Vector{seller}
+function create_sellers(num_sellers::Int64,q::Vector{Float64},c::Vector{Float64},m::Vector{Float64},a::Vector{Float64},r::Vector{Float64},p::Vector{Float64},d::Vector{Int64})::Vector{seller}
     @assert length(q) == num_sellers
     @assert length(c) == num_sellers
     @assert length(m) == num_sellers
@@ -47,7 +48,7 @@ function create_sellers(num_sellers::Int64,q::Vector{Float64},c::Vector{Float64}
     @assert length(p) == num_sellers
     sellers_vector = []
     for s in 1:num_sellers
-        new_seller = seller(s, q[s], c[s], m[s], [], [], false, a[s], [], r[s], p[s])
+        new_seller = seller(s, q[s], d[s], c[s], m[s], [], [], false, a[s], [], r[s], p[s])
         push!(sellers_vector, new_seller)
     end
     return sellers_vector
@@ -69,12 +70,16 @@ mutable struct buyer
     quality_seeking::Float64
     quality_expectation::Vector{Float64}
     quality_expectation_history::Vector{Vector{Float64}}
+    durability_expectation::Vector{Float64}
+    durability_expectation_history::Vector{Vector{Float64}}
     unit_bought::Vector{Bool}
     unit_bought_history::Vector{Vector{Bool}}
+    unit_bought_time::Int64
     quality_of_unit_bought::Float64
     quality_of_unit_bought_history::Vector{Vector{Float64}}
     ad_received::Vector{Bool}
     ad_received_history::Vector{Vector{Bool}}
+    broken_product::Bool
     surplus::Vector{Float64}
 end
 
@@ -82,7 +87,7 @@ function create_buyers(num_buyers::Int64, num_sellers::Int64, network::SimpleGra
     buyers_vector = []
     for b in 1:num_buyers
         my_neighbours = neighbors(network, b)
-        new_buyer = buyer(b, my_neighbours, 2*rand(), rand(Uniform(0,1)), initial_quality_expectation, [], fill(false, num_sellers), [], 0.0, [], [], [], [])
+        new_buyer = buyer(b, my_neighbours, 2*rand(), rand(Uniform(0,1)), initial_quality_expectation, [], fill(false, num_sellers), [], 0, 0.0, [], [], [], true, [])
         push!(buyers_vector, new_buyer)
     end
     return buyers_vector
@@ -364,8 +369,12 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
         # REKLAMY
 
         advertising_intensity = getfield.(sellers, :advertising)
+        prices = calculate_price.(sellers)
 
         for _buyer in buyers
+
+            # Advertising
+
             if rand() < sum(advertising_intensity)
                 firm_ad_seen = sample(1:num_sellers, Weights(advertising_intensity))
                 advertising_bool = fill(false, num_sellers)
@@ -376,11 +385,22 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
                 _buyer.ad_received = fill(false, num_sellers)
                 push!(_buyer.ad_received_history, _buyer.ad_received)
             end
-        end
 
-        prices = calculate_price.(sellers)
+            # Product usage -> if broken
 
-        for _buyer in buyers
+            if iter >= 2
+
+                product_durability = sellers[_buyer.unit_bought].durability
+                product_amortization = iter - _buyer.unit_bought_time
+                probability_to_break = 0.5 / product_durability * product_amortization
+
+                if rand() < probability_to_break
+                    _buyer.broken_product = true
+                end
+
+            end
+
+
 
             wtp_advertising = 1 .+ _buyer.ad_received .* p
 
