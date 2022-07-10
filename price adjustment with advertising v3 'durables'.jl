@@ -81,7 +81,7 @@ mutable struct buyer
     quality_of_unit_bought_history::Vector{Vector{Float64}}
     ad_received::Vector{Bool}
     ad_received_history::Vector{Vector{Bool}}
-    surplus::Vector{Float64}
+    surplus_history::Vector{Float64}
 end
 
 function create_buyers(num_buyers::Int64, num_sellers::Int64, network::SimpleGraph{Int64}, initial_quality_expectation::Vector{Float64}=fill(1.0, num_sellers), initial_duration_expectation::Vector{Float64}=fill(5.0, num_sellers))::Vector{buyer}
@@ -104,7 +104,7 @@ function create_buyers(num_buyers::Int64, num_sellers::Int64, network::SimpleGra
             [], #quality_of_unit_bought_history
             [], #ad_received
             [], #ad_received_history
-            []) #surplus
+            []) #surplus_history
         push!(buyers_vector, new_buyer)
     end
     return buyers_vector
@@ -134,13 +134,18 @@ function in_boundaries(x::Float64,lb::Float64,ub::Float64)::Float64
     return max(min(x,ub),lb)
 end
 
+function calculate_cost(_seller::seller)::Float64
+    cost = _seller.durability * _seller.quality * _seller.average_cost
+    return cost
+end
+
 function calculate_price(_seller::seller)::Float64
-    price = _seller.durability * _seller.quality * _seller.average_cost + _seller.margin
+    price = calculate_cost(_seller) * (1 + _seller.margin)
     return price
 end
 
 function calculate_price_history(_seller::seller)::Vector{Float64}
-    price = _seller.durability * _seller.quality * _seller.average_cost .+ _seller.margin_history
+    price = calculate_cost(_seller) .* (1 .+ _seller.margin_history)
     return price
 end
 
@@ -153,7 +158,7 @@ function u2w(u::Vector{Float64}, p_min::Float64 = 0.1)::Vector{Float64}
 end
 
 function calculate_profit_history(_seller::seller, γ::Float64, num_buyers::Int64)::Vector{Float64}
-    _seller.quantity_history .* calculate_price_history(_seller) .- _seller.average_cost .* _seller.quality .* _seller.durability .* _seller.quantity_history .- γ * num_buyers * _seller.advertising_history
+    (calculate_price_history(_seller) .- calculate_cost(_seller)) .* _seller.quantity_history .- γ * num_buyers * _seller.advertising_history
 end
 
 function plot_phasediagram(_seller::seller, function_args::Vector)
@@ -179,7 +184,7 @@ end
 function calculate_total_surplus(sim_res, return_type::String = "total")
 
     producer_surplus = sum(sum(calculate_profit_history.(sim_res.sellers, sim_res.function_args.γ, sim_res.function_args.num_buyers)))
-    consumer_surplus = sum(sum(getfield.(sim_res.buyers, :surplus)))
+    consumer_surplus = sum(sum(getfield.(sim_res.buyers, :surplus_history)))
     total_surplus = producer_surplus + consumer_surplus
 
     if return_type == "total"
@@ -303,18 +308,18 @@ function seller_price_advertising_adjustment(sellers, iter, δ, α, γ, num_buye
 
             if iter >= 6
 
-                if all((_seller.margin_history[(end-4):end] .* _seller.quantity_history[(end-4):end]) .<= 0) & (_seller.margin > 0)
+                if all((_seller.margin_history[(end-4):end] .* _seller.quantity_history[(end-4):end]) .<= 0) #& (_seller.margin > 0)
                     new_margin = _seller.margin - rand() * δ
                 end
 
                 if (all(calculate_profit_history(_seller, γ, num_buyers)[(end-4):end] .< 0)) & (_seller.margin < 0)
-                    new_margin = 0 #_seller.margin + δ
+                    new_margin = _seller.margin + δ
                 end
 
             end
 
             if !allow_negative_margin
-                new_margin = in_boundaries(new_margin, 0, 10)
+                new_margin = in_boundaries(new_margin, 0, 2)
             end
 
             _seller.margin = new_margin
@@ -360,7 +365,7 @@ end
 
 function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::Float64, λ_wom::Float64, consumer_behaviour::String; q::Vector{Float64} = fill(1.0, num_sellers), c::Vector{Float64} = fill(0.8, num_sellers), m::Vector{Float64} = fill(0.2, num_sellers), a::Vector{Float64} = fill(0.05, num_sellers), r::Vector{Float64} = fill(0.05, num_sellers), ϵ::Vector{Float64} = fill(1/3, num_sellers), q_init::Vector{Float64} = fill(1.0, num_sellers), p::Vector{Float64} = fill(0.05, num_sellers), d::Vector{Int64} = fill(5, num_sellers), d_init::Vector{Float64} = fill(5.0, num_sellers), num_links::Int64 = 200, δ::Float64 = 0.05, γ::Float64 = 0.050, α::Float64 = 0.005, variant_advertising::Bool = true, allow_negative_margin::Bool = true)
 
-    function_args = (num_sellers = num_sellers, num_buyers = num_buyers, max_iter = max_iter, λ_ind = λ_ind, λ_wom = λ_wom, q = q, c = c, m = m, a = a, r = r, ϵ = ϵ, q_init = q_init, num_links = num_links, δ = δ, γ = γ, α=α)
+    function_args = (num_sellers = num_sellers, num_buyers = num_buyers, max_iter = max_iter, λ_ind = λ_ind, λ_wom = λ_wom, q = q, c = c, m = m, a = a, r = r, ϵ = ϵ, q_init = q_init, p=p, d=d, d_init=d_init, num_links = num_links, δ = δ, γ = γ, α=α)
 
     # create sellers and buyers
 
@@ -445,7 +450,7 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
             if _buyer.broken_product | all(_buyer.unit_bought .== false)
 
                 wtp_advertising = 1 .+ _buyer.ad_received .* p
-                available_products = prices .<= _buyer.std_reservation_price .* _buyer.quality_expectation .* wtp_advertising # 🍎 rozspisać
+                available_products = prices .<= _buyer.std_reservation_price .* _buyer.quality_expectation .* _buyer.durability_expectation .* wtp_advertising # 🍎 rozspisać
 
                 if any(available_products)
 
@@ -505,16 +510,11 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
                 for idn in _buyer.neighbours
                     buyers[idn].quality_expectation = buyers[idn].quality_expectation .+ λ_wom .* _buyer.unit_bought .* (_buyer.quality_of_unit_bought .- buyers[idn].quality_expectation)
                 end
-
-                buyer_surplus = _buyer.quality_expectation[chosen_product] * _buyer.std_reservation_price - prices[chosen_product] # 🍎
-
-                push!(_buyer.surplus, buyer_surplus)
             
             else
 
                 _buyer.quality_of_unit_bought = 0.0
                 push!(_buyer.quality_of_unit_bought_history, fill(0.0, num_sellers))
-                push!(_buyer.surplus, 0.0)
 
             end
 
@@ -535,6 +535,19 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
             #end
 
             #_buyer.quality_expectation = _buyer.quality_expectation .+ λ_ind .* _buyer.unit_bought .* (_buyer.quality_of_unit_bought .- _buyer.quality_expectation) .+ λ_wom .* bought_neighbours .* (average_quality_neighbours .- _buyer.quality_expectation)
+
+            if any(_buyer.unit_bought)
+                chosen_product = argmax(_buyer.unit_bought)
+                wtp_advertising = 1 .+ _buyer.ad_received .* p
+
+                buyer_surplus = _buyer.quality_expectation[chosen_product] * _buyer.std_reservation_price * wtp_advertising[chosen_product] * _buyer.durability_expectation[chosen_product] - prices[chosen_product] # 🍎
+                push!(_buyer.surplus_history, buyer_surplus)
+
+            else
+
+                push!(_buyer.surplus_history, 0.0)
+
+            end
 
             push!(_buyer.quality_expectation_history, _buyer.quality_expectation)
             push!(_buyer.durability_expectation_history, _buyer.durability_expectation)
@@ -574,10 +587,9 @@ plot_advertising(sim_with_obs_11)
 plot_quantity(sim_with_obs_11)
 plot_quality_expectation(sim_with_obs_11)
 
-####################### EXPERIMENT 1, EQUAL QUALITIES ############################################
+####################### EXPERIMENT 1, IMPACT OF QUALITY DIFFERENCES ON MARKET EFFECTIVENESS ############################################
 
 # Cel 1: Weryfikacja hipotezy, że rynki gdzie występuje zróżnicowanie jakości produktów są bardziej efektywne niż pozostałe. 
-# Cel 2: Sprawdzić, czy komunikacja reklamowa zwiększa efektywność rynku w przypadku, jeśli jakość produktów jest "równa" (EX1) oraz jakość produktów jest różna - istnieje firma dominująca pozostałe pod względem jakości oferowanego produktu (EX2)
 
 # Efekt 1: różnicowanie jakości produktu powoduje, że rynek jest bardziej efektywny - suma nadwyżek producentów i konsumentów jest wyższa
 # Efekt 2: w przypadku rynku z różnicowaniem produktu, komunikacja reklamowa pozwala istotnie zwiększyć efektywność, podczas gdy na rynku z jednakową jakością produktu efekt nie jest obserwowany
@@ -603,7 +615,7 @@ for i in 1:100
         println(i)
     end
 
-    sim_with_ads = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000)
+    sim_with_ads = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [1,1,1,1], d_init = [1.,1.,1.,1.], num_links = 1000)
     push!(ex1_total_surplus_eq, calculate_total_surplus(sim_with_ads, "total"))
     push!(ex1_producer_surplus_eq, calculate_total_surplus(sim_with_ads, "producer"))
     push!(ex1_consumer_surplus_eq, calculate_total_surplus(sim_with_ads, "consumer"))
@@ -611,7 +623,7 @@ for i in 1:100
     push!(ex1_quantity_eq, mean(getfield.(sim_with_ads.sellers, :quantity_history)))
     push!(ex1_advertising_eq, mean(getfield.(sim_with_ads.sellers, :advertising_history)))
 
-    sim_with_ads = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], num_links = 1000, q_init = [1.6, 1.3, 1.0, 0.7])
+    sim_with_ads = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [1,1,1,1], d_init = [1.,1.,1.,1.,], num_links = 1000, q_init = [1.6, 1.3, 1.0, 0.7])
     push!(ex2_total_surplus_dq, calculate_total_surplus(sim_with_ads, "total"))
     push!(ex2_producer_surplus_dq, calculate_total_surplus(sim_with_ads, "producer"))
     push!(ex2_consumer_surplus_dq, calculate_total_surplus(sim_with_ads, "consumer"))
@@ -665,6 +677,47 @@ plot!(mean(ex2_advertising_dq),
     title = "Average advertising", label = "non-equal quality")
 
 EqualVarianceTTest(mean(ex1_advertising_eq), mean(ex2_advertising_dq))
+
+####################################### OPTIMAL PRODUCT DURATION FOR HIGH QUALITY PRODUCER ######
+
+duration_test = collect(1:1:10)
+max_iter = 1000
+duration_sensitivity_eq = []
+duration_sensitivity_dq = []
+
+for iter in 1:max_iter
+    println(iter)
+    d1 = sample(duration_test)
+    d2 = sample(duration_test)
+    sim_with_obs_13 = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [1.0, 1.0], m = [0.2, 0.2], c = [0.6, 0.6], ϵ = [0.33, 0.33], a = [0.0, 0.0], r = [0.4, 0.4], q_init = [1.0, 1.0], d = [d1,d2], d_init = [Float64(d1),Float64(d2)], num_links = 1000)
+    push!(duration_sensitivity_eq, (d = getfield(getfield(sim_with_obs_13, :function_args), :d), profit = sum.(calculate_profit_history.(sim_with_obs_13.sellers, sim_with_obs_13.function_args.γ, sim_with_obs_13.function_args.num_buyers))))
+
+    sim_with_obs_13 = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [1.3, 0.7], m = [0.2, 0.2], c = [0.6, 0.6], ϵ = [0.33,0.33], a = [0.0, 0.0], r = [0.4, 0.4], q_init = [1.3, 0.7], d = [d1,d2], d_init = [Float64(d1),Float64(d2)], num_links = 1000)
+    push!(duration_sensitivity_dq, (d = getfield(getfield(sim_with_obs_13, :function_args), :d), profit = sum.(calculate_profit_history.(sim_with_obs_13.sellers, sim_with_obs_13.function_args.γ, sim_with_obs_13.function_args.num_buyers))))
+end
+
+d_eq = getfield.(duration_sensitivity_eq, :d)
+p_eq = getfield.(duration_sensitivity_eq, :profit)
+
+heatmap([mean(getindex.(p_eq, 1)[d_eq .== fill([d1,d2], length(d_eq))]) for d1 in collect(1:1:10), d2 in collect(1:1:10)]')
+heatmap([mean(getindex.(p_eq, 2)[d_eq .== fill([d1,d2], length(d_eq))]) for d1 in collect(1:1:10), d2 in collect(1:1:10)]')
+
+d_dq = getfield.(duration_sensitivity_dq, :d)
+p_dq = getfield.(duration_sensitivity_dq, :profit)
+
+heatmap([mean(getindex.(p_dq, 1)[d_dq .== fill([d1,d2], length(d_dq))]) for d1 in collect(1:1:10), d2 in collect(1:1:10)]')
+heatmap([mean(getindex.(p_dq, 2)[d_dq .== fill([d1,d2], length(d_dq))]) for d1 in collect(1:1:10), d2 in collect(1:1:10)]')
+
+duration = repeat(collect(duration_best), inner = max_iter)
+
+plot([mean(mean(mean(getfield.(duration_sensitivity_eq, :price)[duration .∈ du]))) for du in unique(duration)], label = "eq", ylabel = "price")
+plot!([mean(mean(mean(getfield.(duration_sensitivity_dq, :price)[duration .∈ du]))) for du in unique(duration)], label = "eq", ylabel = "price")
+mean(getindex.(getnique(field.(duration_sensitivity_eq, :profit),1)))
+
+plot([mean(mean(getindex.(getfield.(duration_sensitivity_eq, :profit),1)[duration .∈ du])) for du in unique(duration)])
+
+
+[calculate_profit_history.(sim_res) for sim_res in duration_sensitivity_eq]
 
 # Cel: weryfikacja jak persuasiveness reklamy wpływa na wybory konsumentów
 
@@ -800,8 +853,8 @@ plot_advertising(sim_with_obs_12)
 plot_quantity(sim_with_obs_12)
 plot_quality_expectation(sim_with_obs_12)
 plot_profit_history(sim_with_obs_12)
-plot_price(sim_)
-calculate_total_surplus(sim_with_obs_12)
+plot_price(sim_with)
+calculate_total_surplus(sim_with_obs_12, "consumer")
 
 plot(calculate_price_history.(sim_with_obs_12.sellers))
 
