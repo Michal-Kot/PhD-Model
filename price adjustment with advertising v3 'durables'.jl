@@ -569,9 +569,6 @@ end
 
 __precompile__()
 
-sim_with_obs_12 = TO_GO(4, 500, 500, 0.25, 0.25, "deterministic"; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], q_init = [1.6, 1.3, 1.0, 0.7], num_links = 1000)
-
-
 # DEAD MARKET, no comms, no p2p comms
 
 # Cel: pokazać zbieżność proponowanego modelu z modelem Izquierdo, który w identycznej sytuacji prowadzi do tej samej konkluzji. Brak komunikacji pomiędzy agentami prowadzi, w długim terminie do zaniku rynku, czyli braku popytu na produkty.
@@ -615,7 +612,7 @@ for i in 1:500
         println(i)
     end
 
-    sim_with_ads = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [1,1,1,1], d_init = [1.,1.,1.,1.], num_links = 1000)
+    sim_with_ads = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.0, 1.0, 1.0, 1.0], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [1,1,1,1], d_init = [1.,1.,1.,1.], q_init = [1., 1., 1., 1.], num_links = 1000)
     push!(ex1_total_surplus_eq, calculate_total_surplus(sim_with_ads, "total"))
     push!(ex1_producer_surplus_eq, calculate_total_surplus(sim_with_ads, "producer"))
     push!(ex1_consumer_surplus_eq, calculate_total_surplus(sim_with_ads, "consumer"))
@@ -623,7 +620,7 @@ for i in 1:500
     push!(ex1_quantity_eq, mean(getfield.(sim_with_ads.sellers, :quantity_history)))
     push!(ex1_advertising_eq, mean(getfield.(sim_with_ads.sellers, :advertising_history)))
 
-    sim_with_ads = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [1,1,1,1], d_init = [1.,1.,1.,1.,], num_links = 1000, q_init = [1.6, 1.3, 1.0, 0.7])
+    sim_with_ads = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.5, 1.25, 0.75, 0.50], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [1,1,1,1], d_init = [1.,1.,1.,1.,], num_links = 1000, q_init = [1.5, 1.25, 0.75, 0.50])
     push!(ex2_total_surplus_dq, calculate_total_surplus(sim_with_ads, "total"))
     push!(ex2_producer_surplus_dq, calculate_total_surplus(sim_with_ads, "producer"))
     push!(ex2_consumer_surplus_dq, calculate_total_surplus(sim_with_ads, "consumer"))
@@ -633,23 +630,23 @@ for i in 1:500
 
 end
 
-ex1_p1 = plot(sort(ex1_total_surplus_eq), (1:length(ex1_total_surplus_eq))./length(ex1_total_surplus_eq), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality", legend=:bottomright)
-plot!(sort(ex2_total_surplus_dq), (1:length(ex2_total_surplus_dq))./length(ex2_total_surplus_dq), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "non-equal quality")
+ex1_p1 = plot(sort(ex1_total_surplus_eq), (1:length(ex1_total_surplus_eq))./length(ex1_total_surplus_eq), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
+plot!(sort(ex2_total_surplus_dq), (1:length(ex2_total_surplus_dq))./length(ex2_total_surplus_dq), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality")
 
-ex1_p2 = plot(sort(ex1_producer_surplus_eq), (1:length(ex1_producer_surplus_eq))./length(ex1_producer_surplus_eq), xlabel = "Producer surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality", legend=:bottomright)
-plot!(sort(ex2_producer_surplus_dq), (1:length(ex2_producer_surplus_dq))./length(ex2_producer_surplus_dq), xlabel = "Producer surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "non-equal quality")
+ex1_p2 = plot(sort(ex1_producer_surplus_eq), (1:length(ex1_producer_surplus_eq))./length(ex1_producer_surplus_eq), xlabel = "Producer surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
+plot!(sort(ex2_producer_surplus_dq), (1:length(ex2_producer_surplus_dq))./length(ex2_producer_surplus_dq), xlabel = "Producer surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality")
 
-ex1_p3 = plot(sort(ex1_consumer_surplus_eq), (1:length(ex1_consumer_surplus_eq))./length(ex1_consumer_surplus_eq), xlabel = "Consumer surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality", legend=:bottomright)
-plot!(sort(ex2_consumer_surplus_dq), (1:length(ex2_consumer_surplus_dq))./length(ex2_consumer_surplus_dq), xlabel = "Consumer surplus", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "non-equal quality")
+ex1_p3 = plot(sort(ex1_consumer_surplus_eq), (1:length(ex1_consumer_surplus_eq))./length(ex1_consumer_surplus_eq), xlabel = "Consumer surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
+plot!(sort(ex2_consumer_surplus_dq), (1:length(ex2_consumer_surplus_dq))./length(ex2_consumer_surplus_dq), xlabel = "Consumer surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality")
 
-plot(sort(mean.(ex1_price_eq)), (1:length(ex1_price_eq))./length(ex1_price_eq), xlabel = "Price", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality", legend=:bottomright)
-plot!(sort(mean.(ex2_price_dq)), (1:length(ex2_price_dq))./length(ex2_price_dq), xlabel = "Price", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "non-equal quality", legend=:bottomright)
+plot(sort(mean.(ex1_price_eq)), (1:length(ex1_price_eq))./length(ex1_price_eq), xlabel = "Price", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
+plot!(sort(mean.(ex2_price_dq)), (1:length(ex2_price_dq))./length(ex2_price_dq), xlabel = "Price", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality", legend=:bottomright)
 
-plot(sort(mean.(ex1_quantity_eq)), (1:length(ex1_quantity_eq))./length(ex1_quantity_eq), xlabel = "Quaniity", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality", legend=:bottomright)
-plot!(sort(mean.(ex2_quantity_dq)), (1:length(ex2_quantity_dq))./length(ex2_quantity_dq), xlabel = "Quantity", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "non-equal quality", legend=:bottomright)
+plot(sort(mean.(ex1_quantity_eq)), (1:length(ex1_quantity_eq))./length(ex1_quantity_eq), xlabel = "Quaniity", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
+plot!(sort(mean.(ex2_quantity_dq)), (1:length(ex2_quantity_dq))./length(ex2_quantity_dq), xlabel = "Quantity", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality", legend=:bottomright)
 
-plot(sort(mean.(ex1_advertising_eq)), (1:length(ex1_advertising_eq))./length(ex1_advertising_eq), xlabel = "Advertising", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "equal quality", legend=:bottomright)
-plot!(sort(mean.(ex2_advertising_dq)), (1:length(ex2_advertising_dq))./length(ex2_advertising_dq), xlabel = "Advertising", ylabel = "Probability", title = "Empirical Cumluative Distribution", label = "non-equal quality", legend=:bottomright)
+plot(sort(mean.(ex1_advertising_eq)), (1:length(ex1_advertising_eq))./length(ex1_advertising_eq), xlabel = "Advertising", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
+plot!(sort(mean.(ex2_advertising_dq)), (1:length(ex2_advertising_dq))./length(ex2_advertising_dq), xlabel = "Advertising", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality", legend=:bottomright)
 
 p = plot(mean(ex1_price_eq), 
     xlabel = "T", ylabel = "Price", 
@@ -683,8 +680,10 @@ EqualVarianceTTest(mean(ex1_advertising_eq), mean(ex2_advertising_dq))
 
 ####################################### OPTIMAL PRODUCT DURATION FOR HIGH QUALITY PRODUCER ######
 
-duration_test = collect(1:1:10)
-max_iter = 1000
+# Cel: weryfikacja, czy wyższa jakość pozwala producentowi oferować niższe duration, bez spadku profitu
+
+duration_test = collect(1:1:25)
+max_iter = 10000
 duration_sensitivity_eq = []
 duration_sensitivity_dq = []
 
@@ -701,26 +700,60 @@ end
 
 d_eq = getfield.(duration_sensitivity_eq, :d)
 p_eq = getfield.(duration_sensitivity_eq, :profit)
-
-heatmap([mean(getindex.(p_eq, 1)[d_eq .== fill([d1,d2], length(d_eq))]) for d1 in collect(1:1:10), d2 in collect(1:1:10)]')
-heatmap([mean(getindex.(p_eq, 2)[d_eq .== fill([d1,d2], length(d_eq))]) for d1 in collect(1:1:10), d2 in collect(1:1:10)]')
-
 d_dq = getfield.(duration_sensitivity_dq, :d)
 p_dq = getfield.(duration_sensitivity_dq, :profit)
 
-heatmap([mean(getindex.(p_dq, 1)[d_dq .== fill([d1,d2], length(d_dq))]) for d1 in collect(1:1:10), d2 in collect(1:1:10)]')
-heatmap([mean(getindex.(p_dq, 2)[d_dq .== fill([d1,d2], length(d_dq))]) for d1 in collect(1:1:10), d2 in collect(1:1:10)]')
+d_eq_firm1 = [mean(getindex.(p_eq, 1)[d_eq .== fill([d1,d2], length(d_eq))]) for d1 in duration_test, d2 in duration_test]
+d_eq_firm2 = [mean(getindex.(p_eq, 2)[d_eq .== fill([d1,d2], length(d_eq))]) for d1 in duration_test, d2 in duration_test]
+d_dq_firm1 = [mean(getindex.(p_dq, 1)[d_dq .== fill([d1,d2], length(d_dq))]) for d1 in duration_test, d2 in duration_test]
+d_dq_firm2 = [mean(getindex.(p_dq, 2)[d_dq .== fill([d1,d2], length(d_dq))]) for d1 in duration_test, d2 in duration_test]
 
-duration = repeat(collect(duration_best), inner = max_iter)
+plot([argmax(c) for c in eachcol(d_dq_firm1)], duration_test, label = "BR firm 1, eq. K", xlabel = "Duration of firm 1", ylabel = "Duration of firm 2", xlim = (0,25), xticks = 0:1:25, yticks = 0:1:25, aspect_ratio = :equal)
+plot!(duration_test, [argmax(c) for c in eachrow(d_dq_firm2)], label = "BR firm 2, eq. K")
+plot!([argmax(c) for c in eachcol(d_eq_firm1)], duration_test, label = "BR firm 1, df. K")
+plot!(duration_test, [argmax(c) for c in eachrow(d_eq_firm2)], label = "BR firm 2, df. K")
 
-plot([mean(mean(mean(getfield.(duration_sensitivity_eq, :price)[duration .∈ du]))) for du in unique(duration)], label = "eq", ylabel = "price")
-plot!([mean(mean(mean(getfield.(duration_sensitivity_dq, :price)[duration .∈ du]))) for du in unique(duration)], label = "eq", ylabel = "price")
-mean(getindex.(getnique(field.(duration_sensitivity_eq, :profit),1)))
+sing_min = minimum([minimum(mtr) for mtr in (d_eq_firm1, d_eq_firm2, d_dq_firm1, d_dq_firm2)])
+sing_max = maximum([maximum(mtr) for mtr in (d_eq_firm1, d_eq_firm2, d_dq_firm1, d_dq_firm2)])
 
-plot([mean(mean(getindex.(getfield.(duration_sensitivity_eq, :profit),1)[duration .∈ du])) for du in unique(duration)])
+dbl_min = minimum([minimum(mtr) for mtr in (d_eq_firm1 .+ d_eq_firm2, d_dq_firm1 .+ d_dq_firm2)])
+dbl_max = maximum([maximum(mtr) for mtr in (d_eq_firm1 .+ d_eq_firm2, d_dq_firm1 .+ d_dq_firm2)])
 
+heatmap(d_eq_firm1', xlabel = "Firm 1 duration", ylabel = "Firm 2 duration", title = "Profit of firm 1", clim=(sing_min,sing_max))
+heatmap(d_eq_firm2', xlabel = "Firm 1 duration", ylabel = "Firm 2 duration", title = "Profit of firm 2", clim=(sing_min,sing_max))
+heatmap((d_eq_firm1 .+ d_eq_firm2)', xlabel = "Firm 1 duration", ylabel = "Firm 2 duration", title = "Profit of firm 2",clim=(dbl_min, dbl_max))
 
-[calculate_profit_history.(sim_res) for sim_res in duration_sensitivity_eq]
+heatmap(d_dq_firm1', xlabel = "Firm 1 duration", ylabel = "Firm 2 duration", title = "Profit of firm 1", clim=(sing_min,sing_max))
+heatmap(d_dq_firm2', xlabel = "Firm 1 duration", ylabel = "Firm 2 duration", title = "Profit of firm 2", clim=(sing_min,sing_max))
+heatmap((d_dq_firm1 .+ d_dq_firm2)', xlabel = "Firm 1 duration", ylabel = "Firm 2 duration", title = "Profit of firm 2",clim=(dbl_min, dbl_max))
+
+#################### DURATION TO QUALITY RELATION
+
+duration_test = collect(1:1:25)
+max_iter = 10000
+duration_quality_sensitivity_eq = []
+
+for iter in 1:max_iter
+    println(iter)
+    qd = sample(collect(-0.5:0.1:0.5))
+    q1 = 1 + qd
+    q2 = 1 - qd
+    d1 = sample(duration_test)
+    d2 = sample(duration_test)
+    sim_with_obs_13 = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [q1, q2], m = [0.2, 0.2], c = [0.6, 0.6], ϵ = [0.33, 0.33], a = [0.0, 0.0], r = [0.4, 0.4], q_init = [q1, q2], d = [d1,d2], d_init = [Float64(d1),Float64(d2)], num_links = 1000)
+    push!(duration_quality_sensitivity_eq, (d = getfield(getfield(sim_with_obs_13, :function_args), :d), q = getfield(getfield(sim_with_obs_13, :function_args), :q), profit = sum.(calculate_profit_history.(sim_with_obs_13.sellers, sim_with_obs_13.function_args.γ, sim_with_obs_13.function_args.num_buyers))))
+
+end
+
+d = getfield.(duration_quality_sensitivity_eq, :d)
+q = getfield.(duration_quality_sensitivity_eq, :q)
+p = getfield.(duration_quality_sensitivity_eq, :profit)
+
+d_eq_firm1 = [mean(getindex.(p, 1)[(getindex.(d,1) .== d1) .& (getindex.(q,1) .== q1)]) for d1 in duration_test, q1 in 1 .+ collect(-0.5:0.1:0.5)]
+
+heatmap(d_eq_firm1', xlabel = "Durability", ylabel = "Quality", yticks = (1:11, 0.5:0.1:1.5), xticks = (1:25))
+
+################# OPTIMAL DURATION FOR 
 
 # Cel: weryfikacja jak persuasiveness reklamy wpływa na wybory konsumentów
 
