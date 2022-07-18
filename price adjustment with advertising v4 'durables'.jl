@@ -731,6 +731,8 @@ plot([getindex(mean(getfield.(quality_diff_on_advertising, :profit)[quality_best
 
 sim_with_obs_12 = TO_GO(4, 500, 5000, 0.25, 0.25, "deterministic"; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], q_init = [1.6, 1.3, 1.0, 0.7], num_links = 1000)
 
+[getindex.(mean(getfield.(sim_with_obs_12.buyers, :quality_expectation_history)),x) for x in 1:sim_with_obs_12.function_args.num_sellers]
+
 plot_margin(sim_with_obs_12)
 plot_advertising(sim_with_obs_12)
 plot_quantity(sim_with_obs_12)
