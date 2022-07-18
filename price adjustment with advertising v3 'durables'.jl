@@ -91,7 +91,7 @@ function create_buyers(num_buyers::Int64, num_sellers::Int64, network::SimpleGra
         new_buyer = buyer(b, #id
             my_neighbours, #neighbours
             true, #broken_product
-            2*rand(), #std_reservation_price
+            rand(Uniform(0,1)), #std_reservation_price
             rand(Uniform(0,1)), #quality_seeking
             initial_quality_expectation, #quality_expectation
             [], #quality_expectation_history
@@ -181,23 +181,47 @@ function create_bool_purchase(n::Int64,k::Int64)::Vector{Bool}
     return x
 end
 
-function calculate_total_surplus(sim_res, return_type::String = "total")
+function calculate_total_surplus(sim_res, return_type::String = "total", cumulated::Bool = true)
 
-    producer_surplus = sum(sum(calculate_profit_history.(sim_res.sellers, sim_res.function_args.γ, sim_res.function_args.num_buyers)))
-    consumer_surplus = sum(sum(getfield.(sim_res.buyers, :surplus_history)))
-    total_surplus = producer_surplus + consumer_surplus
+    producer_surplus = sum(calculate_profit_history.(sim_res.sellers, sim_res.function_args.γ, sim_res.function_args.num_buyers))
+    consumer_surplus = sum(getfield.(sim_res.buyers, :surplus_history))
+    total_surplus = producer_surplus .+ consumer_surplus
 
     if return_type == "total"
 
-        return total_surplus
+        if cumulated 
+
+            return sum(total_surplus)
+
+        else
+
+            return total_surplus
+
+        end
 
     elseif return_type == "producer"
 
-        return producer_surplus
+        if cumulated 
+
+            return sum(producer_surplus)
+
+        else
+
+            return producer_surplus
+
+        end
 
     elseif return_type == "consumer"
 
-        return consumer_surplus
+        if cumulated 
+
+            return sum(consumer_surplus)
+
+        else
+
+            return consumer_surplus
+
+        end
 
     end
 
@@ -449,14 +473,17 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
 
             if _buyer.broken_product | all(_buyer.unit_bought .== false)
 
-                wtp_advertising = 1 .+ _buyer.ad_received .* p
-                available_products = prices .<= _buyer.std_reservation_price .* _buyer.quality_expectation .* _buyer.durability_expectation .* wtp_advertising # 🍎 rozspisać
+                wtp_advertising = 1 .+ (_buyer.ad_received .* p)
+
+                buyer_wtp = _buyer.std_reservation_price .* _buyer.quality_expectation .* _buyer.durability_expectation .* wtp_advertising 
+
+                available_products = prices .<= buyer_wtp # 🍎 rozspisać
 
                 if any(available_products)
 
                     utility = u.(_buyer.quality_expectation, _buyer.durability_expectation, prices; β = _buyer.quality_seeking)
 
-                    push!(utility_history, (id=_buyer.id, qs=_buyer.quality_seeking, qe=_buyer.quality_expectation, p=prices, ap=available_products, u=utility))
+                    push!(utility_history, (id=_buyer.id, qs=_buyer.quality_seeking, qe=_buyer.quality_expectation, p=prices, ap=available_products, u=utility, wtp = buyer_wtp, ad = _buyer.ad_received, de=_buyer.durability_expectation,srp = _buyer.std_reservation_price))
 
                     if consumer_behaviour == "deterministic"
 
@@ -473,21 +500,29 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
                         chosen_product = sample(1:num_sellers, Weights(weight))
 
                     end
-                
+
                     _buyer.unit_bought = create_bool_purchase(num_sellers, chosen_product)
                     _buyer.broken_product = false
                     _buyer.unit_bought_time = iter
 
                     push!(_buyer.unit_bought_history, _buyer.unit_bought)
                     push!(demand, chosen_product)
+    
+                    buyer_surplus = _buyer.quality_expectation[chosen_product] * _buyer.std_reservation_price * _buyer.durability_expectation[chosen_product]  * wtp_advertising[chosen_product] - prices[chosen_product]# 🍎
+                    push!(_buyer.surplus_history, buyer_surplus)
 
                 else
 
                     _buyer.unit_bought = fill(false, num_sellers)
                     _buyer.broken_product = false
                     push!(_buyer.unit_bought_history, _buyer.unit_bought)
+                    push!(_buyer.surplus_history, 0.0)
 
                 end
+
+            else
+
+                push!(_buyer.surplus_history, 0.0)
 
             end
 
@@ -523,31 +558,6 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
         # kupujący weryfikują oczekiwaną jakość produktów
 
         for _buyer in buyers
-
-            #if length(_buyer.neighbours) > 0
-            #    # weryfikacja jakości
-            #    average_quality_neighbours = reduce(+,getfield.(buyers[_buyer.neighbours], :quality_of_unit_bought) .* getfield.(buyers[_buyer.neighbours], :unit_bought)) ./ reduce(+, getfield.(buyers[_buyer.neighbours], :unit_bought))
-            #    bought_neighbours = .!isnan.(average_quality_neighbours)
-            #    average_quality_neighbours[.!bought_neighbours] .= 0
-            #else
-            #    bought_neighbours = fill(0, num_sellers)
-            #    average_quality_neighbours = fill(0, num_sellers)
-            #end
-
-            #_buyer.quality_expectation = _buyer.quality_expectation .+ λ_ind .* _buyer.unit_bought .* (_buyer.quality_of_unit_bought .- _buyer.quality_expectation) .+ λ_wom .* bought_neighbours .* (average_quality_neighbours .- _buyer.quality_expectation)
-
-            if any(_buyer.unit_bought)
-                chosen_product = argmax(_buyer.unit_bought)
-                wtp_advertising = 1 .+ _buyer.ad_received .* p
-
-                buyer_surplus = _buyer.quality_expectation[chosen_product] * _buyer.std_reservation_price * wtp_advertising[chosen_product] * _buyer.durability_expectation[chosen_product] - prices[chosen_product] # 🍎
-                push!(_buyer.surplus_history, buyer_surplus)
-
-            else
-
-                push!(_buyer.surplus_history, 0.0)
-
-            end
 
             push!(_buyer.quality_expectation_history, _buyer.quality_expectation)
             push!(_buyer.durability_expectation_history, _buyer.durability_expectation)
@@ -630,23 +640,23 @@ for i in 1:500
 
 end
 
-ex1_p1 = plot(sort(ex1_total_surplus_eq), (1:length(ex1_total_surplus_eq))./length(ex1_total_surplus_eq), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
-plot!(sort(ex2_total_surplus_dq), (1:length(ex2_total_surplus_dq))./length(ex2_total_surplus_dq), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality")
+ex1_p1 = Plots.plot(sort(ex1_total_surplus_eq), (1:length(ex1_total_surplus_eq))./length(ex1_total_surplus_eq), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
+Plots.plot!(sort(ex2_total_surplus_dq), (1:length(ex2_total_surplus_dq))./length(ex2_total_surplus_dq), xlabel = "Total Market surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality")
 
-ex1_p2 = plot(sort(ex1_producer_surplus_eq), (1:length(ex1_producer_surplus_eq))./length(ex1_producer_surplus_eq), xlabel = "Producer surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
-plot!(sort(ex2_producer_surplus_dq), (1:length(ex2_producer_surplus_dq))./length(ex2_producer_surplus_dq), xlabel = "Producer surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality")
+ex1_p2 = Plots.plot(sort(ex1_producer_surplus_eq), (1:length(ex1_producer_surplus_eq))./length(ex1_producer_surplus_eq), xlabel = "Producer surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
+Plots.plot!(sort(ex2_producer_surplus_dq), (1:length(ex2_producer_surplus_dq))./length(ex2_producer_surplus_dq), xlabel = "Producer surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality")
 
-ex1_p3 = plot(sort(ex1_consumer_surplus_eq), (1:length(ex1_consumer_surplus_eq))./length(ex1_consumer_surplus_eq), xlabel = "Consumer surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
-plot!(sort(ex2_consumer_surplus_dq), (1:length(ex2_consumer_surplus_dq))./length(ex2_consumer_surplus_dq), xlabel = "Consumer surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality")
+ex1_p3 = Plots.plot(sort(ex1_consumer_surplus_eq), (1:length(ex1_consumer_surplus_eq))./length(ex1_consumer_surplus_eq), xlabel = "Consumer surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
+Plots.plot!(sort(ex2_consumer_surplus_dq), (1:length(ex2_consumer_surplus_dq))./length(ex2_consumer_surplus_dq), xlabel = "Consumer surplus", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality")
 
-plot(sort(mean.(ex1_price_eq)), (1:length(ex1_price_eq))./length(ex1_price_eq), xlabel = "Price", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
-plot!(sort(mean.(ex2_price_dq)), (1:length(ex2_price_dq))./length(ex2_price_dq), xlabel = "Price", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality", legend=:bottomright)
+Plots.plot(sort(mean.(ex1_price_eq)), (1:length(ex1_price_eq))./length(ex1_price_eq), xlabel = "Price", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
+Plots.plot!(sort(mean.(ex2_price_dq)), (1:length(ex2_price_dq))./length(ex2_price_dq), xlabel = "Price", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality", legend=:bottomright)
 
-plot(sort(mean.(ex1_quantity_eq)), (1:length(ex1_quantity_eq))./length(ex1_quantity_eq), xlabel = "Quaniity", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
-plot!(sort(mean.(ex2_quantity_dq)), (1:length(ex2_quantity_dq))./length(ex2_quantity_dq), xlabel = "Quantity", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality", legend=:bottomright)
+Plots.plot(sort(mean.(ex1_quantity_eq)), (1:length(ex1_quantity_eq))./length(ex1_quantity_eq), xlabel = "Quaniity", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
+Plots.plot!(sort(mean.(ex2_quantity_dq)), (1:length(ex2_quantity_dq))./length(ex2_quantity_dq), xlabel = "Quantity", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality", legend=:bottomright)
 
-plot(sort(mean.(ex1_advertising_eq)), (1:length(ex1_advertising_eq))./length(ex1_advertising_eq), xlabel = "Advertising", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
-plot!(sort(mean.(ex2_advertising_dq)), (1:length(ex2_advertising_dq))./length(ex2_advertising_dq), xlabel = "Advertising", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality", legend=:bottomright)
+Plots.plot(sort(mean.(ex1_advertising_eq)), (1:length(ex1_advertising_eq))./length(ex1_advertising_eq), xlabel = "Advertising", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "equal quality", legend=:bottomright)
+Plots.plot!(sort(mean.(ex2_advertising_dq)), (1:length(ex2_advertising_dq))./length(ex2_advertising_dq), xlabel = "Advertising", ylabel = "Probability", title = "Empirical Cumulative Distribution", label = "non-equal quality", legend=:bottomright)
 
 p = plot(mean(ex1_price_eq), 
     xlabel = "T", ylabel = "Price", 
@@ -708,10 +718,10 @@ d_eq_firm2 = [mean(getindex.(p_eq, 2)[d_eq .== fill([d1,d2], length(d_eq))]) for
 d_dq_firm1 = [mean(getindex.(p_dq, 1)[d_dq .== fill([d1,d2], length(d_dq))]) for d1 in duration_test, d2 in duration_test]
 d_dq_firm2 = [mean(getindex.(p_dq, 2)[d_dq .== fill([d1,d2], length(d_dq))]) for d1 in duration_test, d2 in duration_test]
 
-plot([argmax(c) for c in eachcol(d_dq_firm1)], duration_test, label = "BR firm 1, eq. K", xlabel = "Duration of firm 1", ylabel = "Duration of firm 2", xlim = (0,25), xticks = 0:1:25, yticks = 0:1:25, aspect_ratio = :equal)
-plot!(duration_test, [argmax(c) for c in eachrow(d_dq_firm2)], label = "BR firm 2, eq. K")
-plot!([argmax(c) for c in eachcol(d_eq_firm1)], duration_test, label = "BR firm 1, df. K")
-plot!(duration_test, [argmax(c) for c in eachrow(d_eq_firm2)], label = "BR firm 2, df. K")
+Plots.plot([argmax(c) for c in eachcol(d_dq_firm1)], duration_test, label = "BR firm 1, eq. K", xlabel = "Duration of firm 1", ylabel = "Duration of firm 2", xlim = (0,25), xticks = 0:1:25, yticks = 0:1:25, aspect_ratio = :equal)
+Plots.plot!(duration_test, [argmax(c) for c in eachrow(d_dq_firm2)], label = "BR firm 2, eq. K")
+Plots.plot!([argmax(c) for c in eachcol(d_eq_firm1)], duration_test, label = "BR firm 1, df. K")
+Plots.plot!(duration_test, [argmax(c) for c in eachrow(d_eq_firm2)], label = "BR firm 2, df. K")
 
 sing_min = minimum([minimum(mtr) for mtr in (d_eq_firm1, d_eq_firm2, d_dq_firm1, d_dq_firm2)])
 sing_max = maximum([maximum(mtr) for mtr in (d_eq_firm1, d_eq_firm2, d_dq_firm1, d_dq_firm2)])
@@ -730,28 +740,115 @@ heatmap((d_dq_firm1 .+ d_dq_firm2)', xlabel = "Firm 1 duration", ylabel = "Firm 
 #################### DURATION TO QUALITY RELATION
 
 duration_test = collect(1:1:25)
-max_iter = 10000
+quality_test = collect(0.5:0.1:1.5)
+max_iter = 5000
 duration_quality_sensitivity_eq = []
 
 for iter in 1:max_iter
     println(iter)
-    qd = sample(collect(-0.5:0.1:0.5))
-    q1 = 1 + qd
-    q2 = 1 - qd
+    q1 = sample(quality_test)
+    q2 = sample(quality_test)
     d1 = sample(duration_test)
     d2 = sample(duration_test)
     sim_with_obs_13 = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [q1, q2], m = [0.2, 0.2], c = [0.6, 0.6], ϵ = [0.33, 0.33], a = [0.0, 0.0], r = [0.4, 0.4], q_init = [q1, q2], d = [d1,d2], d_init = [Float64(d1),Float64(d2)], num_links = 1000)
-    push!(duration_quality_sensitivity_eq, (d = getfield(getfield(sim_with_obs_13, :function_args), :d), q = getfield(getfield(sim_with_obs_13, :function_args), :q), profit = sum.(calculate_profit_history.(sim_with_obs_13.sellers, sim_with_obs_13.function_args.γ, sim_with_obs_13.function_args.num_buyers))))
+    push!(duration_quality_sensitivity_eq, (d = getfield(getfield(sim_with_obs_13, :function_args), :d), q = getfield(getfield(sim_with_obs_13, :function_args), :q), profit = sum.(calculate_profit_history.(sim_with_obs_13.sellers, sim_with_obs_13.function_args.γ, sim_with_obs_13.function_args.num_buyers)), csurplus = calculate_total_surplus(sim_with_obs_13, "consumer")))
 
 end
 
 d = getfield.(duration_quality_sensitivity_eq, :d)
 q = getfield.(duration_quality_sensitivity_eq, :q)
 p = getfield.(duration_quality_sensitivity_eq, :profit)
+c = getfield.(duration_quality_sensitivity_eq, :csurplus)
 
 d_eq_firm1 = [mean(getindex.(p, 1)[(getindex.(d,1) .== d1) .& (getindex.(q,1) .== q1)]) for d1 in duration_test, q1 in 1 .+ collect(-0.5:0.1:0.5)]
-
 heatmap(d_eq_firm1', xlabel = "Durability", ylabel = "Quality", yticks = (1:11, 0.5:0.1:1.5), xticks = (1:25))
+
+d_eq_firm2 = [mean(getindex.(p, 2)[(getindex.(d,2) .== d2) .& (getindex.(q,2) .== q2)]) for d2 in duration_test, q2 in 1 .+ collect(-0.5:0.1:0.5)]
+heatmap(d_eq_firm2', xlabel = "Durability", ylabel = "Quality", yticks = (1:11, 0.5:0.1:1.5), xticks = (1:25))
+
+d_eq_firm1 = [mean(getindex.(c, 1)[(getindex.(d,1) .== d1) .& (getindex.(q,1) .== q1)]) for d1 in duration_test, q1 in 1 .+ collect(-0.5:0.1:0.5)]
+heatmap(d_eq_firm1', xlabel = "Durability", ylabel = "Quality", yticks = (1:11, 0.5:0.1:1.5), xticks = (1:25))
+
+d_eq_firm3 = [mean(getindex.(p, 1)[(getindex.(q,1) .== q1) .& (getindex.(q,2) .== q2)]) for q1 in 1 .+ collect(-0.5:0.1:0.5), q2 in 1 .+ collect(-0.5:0.1:0.5)]
+heatmap(d_eq_firm3', xlabel = "Quality", ylabel = "Quality", yticks = (1:11, 0.5:0.1:1.5), xticks = (1:11, 0.5:0.1:1.5))
+
+d_eq_firm3 = [mean(getindex.(c, 1)[(getindex.(q,1) .== q1) .& (getindex.(q,2) .== q2)]) for q1 in 1 .+ collect(-0.5:0.1:0.5), q2 in 1 .+ collect(-0.5:0.1:0.5)]
+heatmap(d_eq_firm3', xlabel = "Quality", ylabel = "Quality", yticks = (1:11, 0.5:0.1:1.5), xticks = (1:11, 0.5:0.1:1.5))
+
+d_eq_firm3 = [mean(sum.(p)[(getindex.(q,1) .== q1) .& (getindex.(q,2) .== q2)]) for q1 in 1 .+ collect(-0.5:0.1:0.5), q2 in 1 .+ collect(-0.5:0.1:0.5)]
+heatmap(d_eq_firm3', xlabel = "Quality", ylabel = "Quality", yticks = (1:11, 0.5:0.1:1.5), xticks = (1:11, 0.5:0.1:1.5))
+
+d_eq_firm3 = [mean(sum.(p)[(getindex.(d,1) .== d1) .& (getindex.(d,2) .== d2)]) for d1 in duration_test, d2 in duration_test]
+heatmap(d_eq_firm3', xlabel = "Quality", ylabel = "Quality")
+
+d_eq_firm3 = [mean(c[(getindex.(d,1) .== d1) .& (getindex.(d,2) .== d2)]) for d1 in duration_test, d2 in duration_test]
+heatmap(d_eq_firm3', xlabel = "Quality", ylabel = "Quality")
+
+d_eq_firm3 = [mean((sum.(p).+c)[(getindex.(d,1) .== d1) .& (getindex.(d,2) .== d2)]) for d1 in duration_test, d2 in duration_test]
+heatmap(d_eq_firm3', xlabel = "Quality", ylabel = "Quality")
+
+d_eq_firm33 = [mean((sum.(p) .+ c)[(getindex.(q,1) .== q1) .& (getindex.(q,2) .== q2)]) for q1 in quality_test, q2 in quality_test]
+heatmap(d_eq_firm33')
+
+d_eq_firm3 = [mean(c[(getindex.(d,1) .== d1) .& (getindex.(d,2) .== d2) .& (getindex.(q,1) .<= 1.0) .& (getindex.(q,2) .<= 1.0)]) for d1 in duration_test, d2 in duration_test]
+heatmap(d_eq_firm3', xlabel = "Quality", ylabel = "Quality")
+
+d_eq_firm3 = [mean(c[(getindex.(d,1) .== d1) .& (getindex.(d,2) .== d2) .& (getindex.(q,1) .>= 1.0) .& (getindex.(q,2) .>= 1.0)]) for d1 in duration_test, d2 in duration_test]
+heatmap(d_eq_firm3', xlabel = "Quality", ylabel = "Quality")
+
+d_eq_firm3 = [mean(c[(getindex.(d,1) .== d1) .& (getindex.(d,2) .== d2) .& (getindex.(q,1) .>= 1.0) .& (getindex.(q,2) .<= 1.0)]) for d1 in duration_test, d2 in duration_test]
+heatmap(d_eq_firm3', xlabel = "Quality", ylabel = "Quality")
+
+d_eq_firm3 = [mean(c[(getindex.(d,1) .== d1) .& (getindex.(d,2) .== d2) .& (getindex.(q,1) .<= 1.0) .& (getindex.(q,2) .>= 1.0)]) for d1 in duration_test, d2 in duration_test]
+heatmap(d_eq_firm3', xlabel = "Quality", ylabel = "Quality")
+
+######################################################
+
+
+
+#######################################################
+
+riskiness_test = collect(0:0.05:0.5)
+quality_test = collect(0.5:0.1:1.5)
+max_iter = 1000
+riskiness_persuasiveness_sensitivity_eq = []
+
+for iter in 1:max_iter
+    println(iter)
+    q1 = sample(quality_test)
+    q2 = sample(quality_test)
+    r1 = sample(riskiness_test)
+    r2 = sample(riskiness_test)
+    sim_with_obs_13 = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [q1, q2], m = [0.2, 0.2], c = [0.6, 0.6], ϵ = [0.33, 0.33], a = [0.0, 0.0], r = [r1, r2], q_init = [q1, q2], d = [1,1], d_init = [1., 1.], num_links = 1000)
+    push!(riskiness_persuasiveness_sensitivity_eq, (d = getfield(getfield(sim_with_obs_13, :function_args), :r), q = getfield(getfield(sim_with_obs_13, :function_args), :q), profit = sum.(calculate_profit_history.(sim_with_obs_13.sellers, sim_with_obs_13.function_args.γ, sim_with_obs_13.function_args.num_buyers)), csurplus = calculate_total_surplus(sim_with_obs_13, "consumer")))
+
+end
+
+r = getfield.(riskiness_persuasiveness_sensitivity_eq, :d)
+q = getfield.(riskiness_persuasiveness_sensitivity_eq, :q)
+p = getfield.(riskiness_persuasiveness_sensitivity_eq, :profit)
+c = getfield.(riskiness_persuasiveness_sensitivity_eq, :csurplus)
+
+d_eq_firm1 = [mean(getindex.(c, 1)[(getindex.(r,1) .== r1) .& (getindex.(q,1) .== q1)]) for r1 in riskiness_test, q1 in quality_test]
+heatmap(d_eq_firm1', xlabel = "Risk seeking", ylabel = "Quality")
+
+d_eq_firm2 = [mean((sum.(p) .+ c)[(getindex.(r,1) .== r1) .& (getindex.(r,2) .== r2)]) for r1 in riskiness_test, r2 in riskiness_test]
+heatmap(d_eq_firm2', xlabel = "Risk seeking", ylabel = "Quality")
+
+d_eq_firm2 = [mean(sum.(p)[(getindex.(r,1) .== r1) .& (getindex.(r,2) .== r2) .& (getindex.(q,1) .<= 1.0) .& (getindex.(q,2) .>= 1.0)]) for r1 in riskiness_test, r2 in riskiness_test]
+heatmap(d_eq_firm2', xlabel = "Risk seeking", ylabel = "Quality")
+
+using CairoMakie
+
+function plot_contour(xs,ys,zs)
+    f = Figure()
+    Axis(f[1, 1])
+    CairoMakie.contour!(xs, ys, zs)
+    f
+end
+
+plot_contour(quality_test, riskiness_test, [mean(sum.(p)[(getindex.(q,1) .== q1) .& (getindex.(q,2) .== q2)]) for q1 in quality_test, q2 in quality_test])
+
 
 ################# OPTIMAL DURATION FOR 
 
@@ -882,7 +979,12 @@ plot([getindex(mean(getfield.(quality_diff_on_advertising, :profit)[quality_best
 
 # Przykład bez zapominania, zostaje na rynku jeden producent
 
-sim_with_obs_12 = TO_GO(4, 500, 500, 0.25, 0.25, "deterministic"; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], q_init = [1.6, 1.3, 1.0, 0.7], d = [2, 2, 2, 2],num_links = 1000)
+sim_with_obs_12 = TO_GO(4, 500, 500, 0.25, 0.25, "deterministic"; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], q_init = [1.6, 1.3, 1.0, 0.7], d = [2, 2, 2, 2], d_init = [2.0,2.0,2.0,2.0], num_links = 1000)
+
+sum(getindex.((getfield.(sim_with_obs_12.ut_his, :wtp) .- getfield.(sim_with_obs_12.ut_his, :p)),argmax.(getfield.(sim_with_obs_12.ut_his,:u))))
+
+Plots.plot(calculate_total_surplus(sim_with_obs_12, "consumer", false))
+Plots.plot!(calculate_total_surplus(sim_with_obs_12, "producer", false))
 
 plot_margin(sim_with_obs_12)
 plot_advertising(sim_with_obs_12)
