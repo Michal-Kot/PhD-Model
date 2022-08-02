@@ -11,6 +11,7 @@ using SmoothingSplines
 using GLM
 using DataFrames
 using SmoothingSplines
+using Random
 
 ### TO DO: add duration impact on buyers decisions
 
@@ -39,9 +40,10 @@ mutable struct seller
     advertising_history::Vector{Float64}
     risk_decisions::Float64
     persuasiveness::Float64
+    price_change::Bool
 end
 
-function create_sellers(num_sellers::Int64,q::Vector{Float64},c::Vector{Float64},m::Vector{Float64},a::Vector{Float64},r::Vector{Float64},p::Vector{Float64},d::Vector{Float64})::Vector{seller}
+function create_sellers(num_sellers::Int64,q::Vector{Float64},c::Vector{Float64},m::Vector{Float64},a::Vector{Float64},r::Vector{Float64},p::Vector{Float64},d::Vector{Int64})::Vector{seller}
     @assert length(q) == num_sellers
     @assert length(c) == num_sellers
     @assert length(m) == num_sellers
@@ -50,7 +52,7 @@ function create_sellers(num_sellers::Int64,q::Vector{Float64},c::Vector{Float64}
     @assert length(p) == num_sellers
     sellers_vector = []
     for s in 1:num_sellers
-        new_seller = seller(s, q[s], d[s], c[s], m[s], [], [], a[s], [], r[s], p[s])
+        new_seller = seller(s, q[s], d[s], c[s], m[s], [], [], a[s], [], r[s], p[s], true)
         push!(sellers_vector, new_seller)
     end
     return sellers_vector
@@ -68,18 +70,20 @@ s - seeking for quality parameter, eq = expected quality of the product, p - pri
 mutable struct buyer
     id::Int64
     neighbours::Vector{Int64}
-    broken_product::Bool 
     std_reservation_price::Float64
+    future_discount::Float64
     quality_seeking::Float64
+    wealth::Float64
     quality_expectation::Vector{Float64}
     quality_expectation_history::Vector{Vector{Float64}}
     durability_expectation::Vector{Float64}
     durability_expectation_history::Vector{Vector{Float64}}
-    unit_bought::Vector{Bool}
-    unit_bought_history::Vector{Vector{Bool}}
-    unit_bought_time::Int64
-    quality_of_unit_bought::Float64
-    quality_of_unit_bought_history::Vector{Vector{Float64}}
+    unit_possessed::Vector{Bool}
+    unit_possessed_history::Vector{Vector{Bool}}
+    unit_possessed_time::Int64
+    unit_possessed_durability::Int64
+    quality_of_unit_possessed::Float64
+    quality_of_unit_possessed_history::Vector{Vector{Float64}}
     ad_received::Vector{Bool}
     ad_received_history::Vector{Vector{Bool}}
     surplus_history::Vector{Float64}
@@ -92,18 +96,20 @@ function create_buyers(num_buyers::Int64, num_sellers::Int64, network::SimpleGra
         qs_srp = rand(Uniform(0,1))
         new_buyer = buyer(b, #id
             my_neighbours, #neighbours
-            true, #broken_product
             qs_srp, #std_reservation_price
+            rand(Uniform(0.5,0.8)), #future_discount
             qs_srp, #quality_seeking
+            qs_srp, #wealth
             initial_quality_expectation, #quality_expectation
             [], #quality_expectation_history
             initial_duration_expectation, #duration_expectation
             [], #duration_expectation_history
-            fill(false, num_sellers), #unit_bought
-            [], #unit_bought_history,
-            0, #unit_bought_time
-            0.0, #quality_of_unit_bought
-            [], #quality_of_unit_bought_history
+            fill(false, num_sellers), #unit_possessed
+            [], #unit_possessed_history,
+            0, #unit_possessed_time
+            0, #unit_possessed_durability
+            0.0, #quality_of_unit_possessed
+            [], #quality_of_unit_possessed_history
             [], #ad_received
             [], #ad_received_history
             []) #surplus_history
@@ -159,8 +165,8 @@ function u2w(u::Vector{Float64}, p_min::Float64 = 0.1)::Vector{Float64}
     return wgt
 end
 
-function calculate_profit_history(_seller::seller, γ::Float64, num_buyers::Int64)::Vector{Float64}
-    (calculate_price_history(_seller) .- calculate_cost(_seller)) .* _seller.quantity_history .- γ * num_buyers * _seller.advertising_history
+function calculate_profit_history(_seller::seller)::Vector{Float64}
+    (calculate_price_history(_seller) .- calculate_cost(_seller)) .* _seller.quantity_history
 end
 
 function plot_phasediagram(_seller::seller, function_args::Vector)
@@ -177,10 +183,30 @@ function plot_phasediagram(_seller::seller, function_args::Vector)
     scatter!(x,y, xlabel = "Price", ylabel = "Profit", markershape = :none, markercolor = :white, markerstrokecolor = :white, series_annotations = points_labels, markersize = 0)
 end
 
-function add_smoothing_spline(x,y,clr)
-    spl = fit(SmoothingSpline, x, y, 0.05)
+function add_smoothing_spline(x,y,clr,λ=0.05)
+    spl = fit(SmoothingSpline, x, y, λ)
     y_hat = predict(spl)
     plot!(sort(x), y_hat[sortperm(x)], label = "", color = clr)
+end
+
+function calculate_average_elasticity(q,p;trim = 10)
+    q = q[(trim+1):end]
+    p = p[(trim+1):end]
+    dq = diff(q) ./ mean(q)
+    dp = diff(p) ./ mean(p)
+    eqp = dq ./ dp
+    eqp = eqp[eqp .!= Inf]
+    eqp = eqp[eqp .!= -Inf]
+    eqp = eqp[.!isnan.(eqp)]
+    return mean(eqp)
+end
+
+function trim_outliers(x, trim = 5)
+    lb = percentile(x, trim)
+    ub = percentile(x, 100-trim)
+    y = copy(x)
+    y = y[(y .>= lb) .& (y .<= ub)]
+    return y
 end
 
 function create_bool_purchase(n::Int64,k::Int64)::Vector{Bool}
@@ -235,7 +261,59 @@ function calculate_total_surplus(sim_res, return_type::String = "total", cumulat
 
 end
 
-function seller_price_advertising_adjustment(sellers, iter, δ, α, γ, num_buyers, variant_advertising, allow_negative_margin)
+function calculate_profit(my_m, my_dq, comp_p, comp_dq, my_c, δ_m)
+
+    my_p_current = my_c * my_dq * (1 + my_m)
+    my_p_priceup = my_c * my_dq * (1 + my_m + δ_m)
+    my_p_pricedown = my_c * my_dq * (1 + my_m - δ_m)
+
+    s = LinRange(0:0.01:1.0)
+
+    my_w = s .* my_dq
+    comp_w = [s .* cdq for cdq in comp_dq]
+
+    my_spl_current = my_w .- my_p_current
+    my_spl_priceup = my_w .- my_p_priceup
+    my_spl_pricedown = my_w .- my_p_pricedown
+
+    comp_spl = [cw .- cp for (cw,cp) in zip(comp_w, comp_p)]
+
+    my_spl_diff_current = reduce(.*,[my_spl_current .> cspl for cspl in comp_spl])
+    my_spl_diff_priceup = reduce(.*,[my_spl_priceup .> cspl for cspl in comp_spl])
+    my_spl_diff_pricedown = reduce(.*,[my_spl_pricedown .> cspl for cspl in comp_spl])
+
+    my_demand_current = count((my_spl_current .>= 0) .& (my_spl_diff_current))
+    my_demand_priceup = count((my_spl_priceup .>= 0) .& (my_spl_diff_priceup))
+    my_demand_pricedown = count((my_spl_pricedown .>= 0) .& (my_spl_diff_pricedown))
+
+    my_margin_current = my_p_current - my_dq * my_c
+    my_margin_priceup = my_p_priceup - my_dq * my_c
+    my_margin_pricedown = my_p_pricedown - my_dq * my_c
+
+    my_π_current = my_demand_current * my_margin_current
+    my_π_priceup = my_demand_priceup * my_margin_priceup
+    my_π_pricedown = my_demand_pricedown * my_margin_pricedown
+
+    my_decision = argmax([my_π_pricedown, my_π_current, my_π_priceup])
+
+    if my_decision == 1
+
+        return my_m - δ_m
+
+    elseif my_decision == 2
+
+        return my_m
+
+    elseif my_decision == 3
+
+        return my_m + δ_m
+
+    end
+
+end
+
+function seller_price_adjustment_observing_competitors(sellers, iter, allow_negative_margin)
+
     if iter == 1
 
         # no change to price in iter 1
@@ -243,110 +321,65 @@ function seller_price_advertising_adjustment(sellers, iter, δ, α, γ, num_buye
         for _seller in sellers
 
             push!(_seller.margin_history, _seller.margin)
-            push!(_seller.advertising_history, _seller.advertising)
+            #push!(_seller.advertising_history, _seller.advertising)
 
         end
 
-    elseif iter == 2
+    elseif iter >= 2
 
-        # random change to price in iter 2
+        # change based on P(price) and K(quality-duration)
+            # if P/K > P̂/K̂ -> test lower price, to increase profit
+            # if P/K = P̂/K̂ -> test new, random price, to increase profit
+            # if P/K < P̂/K̂ -> test higher price, to increase profit
         # price changes by δ
         # advertising changes by α
 
         for _seller in sellers
 
-            change_margin = sample([-1,0,1], Weights(fill(1/3,3)))
-            new_margin = _seller.margin + change_margin * rand() * δ
-            _seller.margin = new_margin
-            push!(_seller.margin_history, _seller.margin)
+            if _seller.price_change == true
 
-            if variant_advertising
-                change_advertising = sample([0,1], Weights(fill(1/2,2)))
-                new_advertising = _seller.advertising + change_advertising * rand() * α
-                new_advertising = in_boundaries(new_advertising, 0.0, 0.10)
-                _seller.advertising = new_advertising
-            end
+                # seek for a new price
 
-            push!(_seller.advertising_history, _seller.advertising)
+                my_margin = _seller.margin
 
-        end
+                my_dq = _seller.quality * _seller.durability
 
-    else
+                comp = copy(sellers)
+                comp = comp[Not(_seller.id)]
 
-        # from iter 3 to the end, firm decides about the price, by comparing price change and resulting profit change
+                comp_p = calculate_price.(comp)
 
-        for _seller in sellers
+                comp_dq = getfield.(comp, :quality) .* getfield.(comp, :durability)
 
-            # margin has to be in tha range between cost of production & 2
-            #margin_ub = 2 - _seller.quality * _seller.average_cost
+                my_c = _seller.average_cost
 
-            # how did margin change?
-            margin_change = sign(_seller.margin_history[end] - _seller.margin_history[end-1])
+                my_r = _seller.risk_decisions
 
-            # how did advertising change?
+                new_margin = calculate_profit(my_margin, my_dq, comp_p, comp_dq, my_c, my_r)
 
-            advertising_change = sign(_seller.advertising_history[end] - _seller.advertising_history[end-1])
+                _seller.price_change = false
 
-            # how did profit change?
+            else
 
-            profit_history = calculate_profit_history(_seller, γ, num_buyers)
-            profit_change = profit_history[end] - profit_history[end-1]
-            
-            if profit_change > 0
+                # verify if last move was profitable
 
-                if rand() <= _seller.risk_decisions
-                    new_margin = _seller.margin + margin_change * rand() * δ
-                else
-                    new_margin = _seller.margin
-                end
+                profit_history = calculate_profit_history(_seller)
 
-                if rand() <= _seller.risk_decisions
-                    new_advertising = _seller.advertising + advertising_change * rand() * α
-                else
-                    new_advertising = _seller.advertising
-                end
+                profit_change = profit_history[end] - profit_history[end-1]
 
-            elseif profit_change < 0
+                if profit_change <= 0
 
-                if rand() <= _seller.risk_decisions
-                    new_margin = _seller.margin_history[end-1] + (-1) * margin_change * rand() * δ
-                else
+                    # if not profitable, then return to the previous price
+
                     new_margin = _seller.margin_history[end-1]
-                end
 
-                if rand() <= _seller.risk_decisions
-                    new_advertising = _seller.advertising_history[end-1] + (-1) * advertising_change * rand() * α
                 else
-                    new_advertising = _seller.advertising_history[end-1]
-                end
 
-            elseif profit_change == 0
-
-                if rand() <= _seller.risk_decisions
-                    margin_change = sample([-1,0,1], Weights(fill(1/3,3)))
-                    new_margin = _seller.margin + margin_change * rand() * δ
-                else
                     new_margin = _seller.margin
+
                 end
 
-                if rand() <= _seller.risk_decisions
-                    advertising_change = sample([-1,0,1], Weights(fill(1/3,3)))
-                    new_advertising = _seller.advertising + advertising_change * rand() * α
-                else
-                    new_advertising = _seller.advertising
-                end
-
-            end
-
-            if iter >= 6
-
-                if all((_seller.margin_history[(end-4):end] .* _seller.quantity_history[(end-4):end]) .<= 0) #& (_seller.margin > 0)
-                    new_margin = _seller.margin - rand() * δ
-                end
-
-                if (all(calculate_profit_history(_seller, γ, num_buyers)[(end-4):end] .< 0)) & (_seller.margin < 0)
-                    new_margin = _seller.margin + δ
-                end
+                _seller.price_change = true
 
             end
 
@@ -357,18 +390,29 @@ function seller_price_advertising_adjustment(sellers, iter, δ, α, γ, num_buye
             _seller.margin = new_margin
             push!(_seller.margin_history, _seller.margin)
 
-            if variant_advertising
-                new_advertising = in_boundaries(new_advertising, 0.0, 0.10)
-                _seller.advertising = new_advertising
-            end
-
             push!(_seller.advertising_history, _seller.advertising)
-        
+
         end
 
     end
 
     return sellers
+
+end
+
+function cut_integer(x::Vector{Float64},k::Int64)::Vector{Int64}
+
+    bin_width = 1 / k * (maximum(x) - minimum(x)) 
+    bin_up_bounds = collect(1:k) .* bin_width
+    
+    x_categorical = fill(k, length(x))
+    
+    for i in reverse(1:(k-1))
+        x_index = x .<= bin_up_bounds[i]
+        x_categorical[x_index] .= i
+    end
+
+    return x_categorical
 
 end
 
@@ -381,7 +425,7 @@ function plot_quality_expectation(sim_res)
 end
 
 function plot_profit_history(sim_res)
-    plot(calculate_profit_history.(sim_res.sellers, sim_res.function_args.γ, sim_res.function_args.num_buyers))
+    plot(calculate_profit_history.(sim_res.sellers))
 end
 
 function plot_advertising(sim_res)
@@ -423,20 +467,69 @@ function calculate_expectation(sim_res, metric, cumulated = false)
 
 end
 
+function sum_of_geom_series(a1,q,n)
+    a1 .* (1 .- q .^ n) ./ (1 .- q)
+end
+
+function consumer_choice(_buyer, prices, p, consumer_behaviour, iter)
+
+    wtp_advertising = 1 .+ (_buyer.ad_received .* p)
+
+    buyer_wtp = _buyer.wealth .* _buyer.quality_expectation .* sum_of_geom_series(1, _buyer.future_discount, _buyer.durability_expectation) .* wtp_advertising
+
+    diff_p_w = prices .- buyer_wtp
+
+    min_time_to_purchase = in_boundaries.(Float64.(floor.(diff_p_w ./ (_buyer.std_reservation_price .* _buyer.quality_expectation .* sum_of_geom_series(1, _buyer.future_discount, _buyer.durability_expectation)))), 0.0, 100000.0)
+
+    expected_discounted_utility = _buyer.future_discount .^ min_time_to_purchase .* _buyer.std_reservation_price .* _buyer.quality_expectation .* sum_of_geom_series(1, _buyer.future_discount, _buyer.durability_expectation)
+
+    if consumer_behaviour == "deterministic"
+
+        # consumer choses product that maximizes utility
+
+        chosen_product = argmax(expected_discounted_utility)
+
+    elseif consumer_behaviour == "stochastic"
+
+        # consumer randomly choses products, accordingly to utility (may choose not the best one)
+
+        weight = u2w(expected_discounted_utility)
+
+        chosen_product = sample(1:num_sellers, Weights(weight))
+
+    end
+
+    chosen_time_to_purchase = min_time_to_purchase[chosen_product]
+
+    if chosen_time_to_purchase == 0
+
+        # buy now
+
+        return chosen_product
+
+    else 
+
+        # postpone purchase
+
+        return nothing
+
+    end
+
+end
+
 ############################################ MAIN SIM FUNCTION #####################################################
 
 function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::Float64, λ_wom::Float64, consumer_behaviour::String; q::Vector{Float64} = fill(1.0, num_sellers), c::Vector{Float64} = fill(0.8, num_sellers), m::Vector{Float64} = fill(0.2, num_sellers), a::Vector{Float64} = fill(0.05, num_sellers), r::Vector{Float64} = fill(0.05, num_sellers), ϵ::Vector{Float64} = fill(1/3, num_sellers), q_init::Vector{Float64} = fill(1.0, num_sellers), p::Vector{Float64} = fill(0.05, num_sellers), d::Vector{Int64} = fill(5, num_sellers), num_links::Int64 = 200, δ::Float64 = 0.05, γ::Float64 = 0.050, α::Float64 = 0.005, variant_advertising::Bool = true, allow_negative_margin::Bool = true)
 
-    d_init = expected_duration.(d)
 
-    function_args = (num_sellers = num_sellers, num_buyers = num_buyers, max_iter = max_iter, λ_ind = λ_ind, λ_wom = λ_wom, q = q, c = c, m = m, a = a, r = r, ϵ = ϵ, q_init = q_init, p=p, d=d, d_init=d_init, num_links = num_links, δ = δ, γ = γ, α=α)
+    function_args = (num_sellers = num_sellers, num_buyers = num_buyers, max_iter = max_iter, λ_ind = λ_ind, λ_wom = λ_wom, q = q, c = c, m = m, a = a, r = r, ϵ = ϵ, q_init = q_init, p=p, d=d, num_links = num_links, δ = δ, γ = γ, α=α)
 
     # create sellers and buyers
 
-    sellers = create_sellers(num_sellers, q, c, m, a, r, p, d_init)
+    sellers = create_sellers(num_sellers, q, c, m, a, r, p, d)
 
     buyers_network = create_network("random", num_buyers = num_buyers, num_links = num_links)
-    buyers = create_buyers(num_buyers, num_sellers, buyers_network, q_init, d_init)
+    buyers = create_buyers(num_buyers, num_sellers, buyers_network, q_init, Float64.(d))
 
     # utlity function definition
 
@@ -454,7 +547,7 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
 
     for iter in 1:max_iter
 
-        sellers = seller_price_advertising_adjustment(sellers, iter, δ, α, γ, num_buyers, variant_advertising, allow_negative_margin)
+        sellers = seller_price_adjustment_observing_competitors(sellers, iter, allow_negative_margin)
 
         #### RYNEK ####
 
@@ -486,21 +579,22 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
 
             if iter >= 2
 
-                if any(_buyer.unit_bought)
+                if any(_buyer.unit_possessed)
 
-                    product_durability = sellers[argmax(_buyer.unit_bought)].durability
-                    product_amortization = iter - _buyer.unit_bought_time
-                    probability_to_break = 1 / product_durability
+                    product_amortization = iter - _buyer.unit_possessed_time
+                    product_durability = _buyer.unit_possessed_durability
 
-                    if rand() < probability_to_break
-                        _buyer.broken_product = true
+                    if product_amortization >= product_durability
 
-                        push!(durability_history, (argmax(_buyer.unit_bought), product_amortization))
+                        #_buyer.broken_product = true
+                        _buyer.unit_possessed = fill(false, num_sellers)
 
-                        _buyer.durability_expectation = _buyer.durability_expectation .+ λ_ind .* _buyer.unit_bought .* (product_amortization .- _buyer.durability_expectation)
+                        push!(durability_history, (argmax(_buyer.unit_possessed), product_amortization))
+
+                        _buyer.durability_expectation = _buyer.durability_expectation .+ λ_ind .* _buyer.unit_possessed .* (product_amortization .- _buyer.durability_expectation)
 
                         for idn in _buyer.neighbours
-                            buyers[idn].durability_expectation = buyers[idn].durability_expectation .+ λ_wom .* _buyer.unit_bought .* (product_amortization .- buyers[idn].durability_expectation)
+                            buyers[idn].durability_expectation = buyers[idn].durability_expectation .+ λ_wom .* _buyer.unit_possessed .* (product_amortization .- buyers[idn].durability_expectation)
                         end
                     end
 
@@ -516,57 +610,34 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
 
             # buying new product in iter == 1, or replacing product in iter >= 2
 
-            if _buyer.broken_product | all(_buyer.unit_bought .== false)
+            if all(_buyer.unit_possessed .== false)
 
-                wtp_advertising = 1 .+ (_buyer.ad_received .* p)
+                chosen_product = consumer_choice(_buyer, prices, p, consumer_behaviour, iter)
 
-                buyer_wtp = _buyer.std_reservation_price .* _buyer.quality_expectation .* _buyer.durability_expectation .* wtp_advertising 
+                if !isnothing(chosen_product)
 
-                available_products = prices .<= buyer_wtp
-
-                if any(available_products)
-
-                    utility = u.(_buyer.quality_expectation, _buyer.durability_expectation, prices; β = _buyer.quality_seeking)
-
-                    push!(utility_history, (id=_buyer.id, qs=_buyer.quality_seeking, qe=_buyer.quality_expectation, p=prices, ap=available_products, u=utility, wtp = buyer_wtp, ad = _buyer.ad_received, de=_buyer.durability_expectation,srp = _buyer.std_reservation_price))
-
-                    if consumer_behaviour == "deterministic"
-
-                        # consumer choses product that maximizes utility
-
-                        chosen_product = argmax(utility .- 1e10 .* .!available_products)
-
-                    elseif consumer_behaviour == "stochastic"
-
-                        # consumer randomly choses products, accordingly to utility (may choose not the best one)
-
-                        weight = u2w(utility) .* available_products
-
-                        chosen_product = sample(1:num_sellers, Weights(weight))
-
-                    end
-
-                    _buyer.unit_bought = create_bool_purchase(num_sellers, chosen_product)
-                    _buyer.broken_product = false
-                    _buyer.unit_bought_time = iter
-
-                    push!(_buyer.unit_bought_history, _buyer.unit_bought)
+                    _buyer.unit_possessed = create_bool_purchase(num_sellers, chosen_product)
+                    _buyer.unit_possessed_time = iter
+                    _buyer.unit_possessed_durability = rand(Poisson(sellers[chosen_product].durability))
+                    push!(_buyer.unit_possessed_history, _buyer.unit_possessed)
                     push!(demand, chosen_product)
-    
+                    _buyer.wealth = 0    
 
                 else
 
-                    _buyer.unit_bought = fill(false, num_sellers)
-                    _buyer.broken_product = false
-                    push!(_buyer.unit_bought_history, _buyer.unit_bought)
+                    _buyer.unit_possessed = fill(false, num_sellers)
+                    _buyer.unit_possessed_durability = 0
+                    push!(_buyer.unit_possessed_history, _buyer.unit_possessed)
 
                 end
 
             else
 
-                push!(_buyer.unit_bought_history, _buyer.unit_bought)
+                push!(_buyer.unit_possessed_history, _buyer.unit_possessed)
 
             end
+
+            _buyer.wealth += _buyer.std_reservation_price
 
         end
 
@@ -574,34 +645,34 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
 
             # calculate quality driven by the product
 
-            if any(_buyer.unit_bought) # if product is possessed
+            if any(_buyer.unit_possessed) # if product is possessed
 
-                chosen_product = argmax(_buyer.unit_bought)
+                chosen_product = argmax(_buyer.unit_possessed)
 
-                _buyer.quality_of_unit_bought = rand(Uniform(sellers[chosen_product].quality - ϵ[chosen_product], sellers[chosen_product].quality + ϵ[chosen_product]))
+                _buyer.quality_of_unit_possessed = rand(Uniform(sellers[chosen_product].quality - ϵ[chosen_product], sellers[chosen_product].quality + ϵ[chosen_product]))
 
-                push!(_buyer.quality_of_unit_bought_history, _buyer.unit_bought .*  _buyer.quality_of_unit_bought)
+                push!(_buyer.quality_of_unit_possessed_history, _buyer.unit_possessed .*  _buyer.quality_of_unit_possessed)
 
-                _buyer.quality_expectation = _buyer.quality_expectation .+ λ_ind .* _buyer.unit_bought .* (_buyer.quality_of_unit_bought .- _buyer.quality_expectation)
+                _buyer.quality_expectation = _buyer.quality_expectation .+ λ_ind .* _buyer.unit_possessed .* (_buyer.quality_of_unit_possessed .- _buyer.quality_expectation)
 
                 for idn in _buyer.neighbours
-                    buyers[idn].quality_expectation = buyers[idn].quality_expectation .+ λ_wom .* _buyer.unit_bought .* (_buyer.quality_of_unit_bought .- buyers[idn].quality_expectation)
+                    buyers[idn].quality_expectation = buyers[idn].quality_expectation .+ λ_wom .* _buyer.unit_possessed .* (_buyer.quality_of_unit_possessed .- buyers[idn].quality_expectation)
                 end
 
-                if iter == _buyer.unit_bought_time
+                if iter == _buyer.unit_possessed_time
 
-                    push!(_buyer.surplus_history, _buyer.std_reservation_price * _buyer.quality_of_unit_bought - prices[chosen_product])
+                    push!(_buyer.surplus_history, _buyer.std_reservation_price * _buyer.quality_of_unit_possessed - prices[chosen_product])
 
                 else
 
-                    push!(_buyer.surplus_history, _buyer.std_reservation_price * _buyer.quality_of_unit_bought)
+                    push!(_buyer.surplus_history, _buyer.std_reservation_price * _buyer.quality_of_unit_possessed)
 
                 end
             
             else
 
-                _buyer.quality_of_unit_bought = 0.0
-                push!(_buyer.quality_of_unit_bought_history, fill(0.0, num_sellers))
+                _buyer.quality_of_unit_possessed = 0.0
+                push!(_buyer.quality_of_unit_possessed_history, fill(0.0, num_sellers))
                 push!(_buyer.surplus_history, 0.0)
 
             end
