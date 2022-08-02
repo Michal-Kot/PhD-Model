@@ -33,38 +33,48 @@ for i in 1:1000
     m_init = rand(Uniform(0,0.2))
     push!(ex1_v12_init_margin, m_init)
 
-    ex1_v1_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.0, 1.0, 1.0, 1.0], m = fill(m_init, 4), c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [1,1,1,1], q_init = [1., 1., 1., 1.], num_links = 1000)
+    ex1_v1_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.0, 1.0, 1.0, 1.0], m = fill(m_init, 4), c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [2,2,2,2], q_init = [1., 1., 1., 1.], num_links = 1000)
     push!(ex1_v1_total_surplus, calculate_total_surplus(ex1_v1_sim, "total"))
     push!(ex1_v1_producer_surplus, calculate_total_surplus(ex1_v1_sim, "producer"))
     push!(ex1_v1_consumer_surplus, calculate_total_surplus(ex1_v1_sim, "consumer"))
-    push!(ex1_v1_price, mean(calculate_price_history.(ex1_v1_sim.sellers)))
-    push!(ex1_v1_quantity, mean(getfield.(ex1_v1_sim.sellers, :quantity_history)))
+    push!(ex1_v1_price, calculate_price_history.(ex1_v1_sim.sellers))
+    push!(ex1_v1_quantity, getfield.(ex1_v1_sim.sellers, :quantity_history))
     push!(ex1_v1_advertising, mean(getfield.(ex1_v1_sim.sellers, :advertising_history)))
 
-    ex1_v2_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.5, 1.25, 0.75, 0.50], m = fill(m_init, 4), c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [1,1,1,1], num_links = 1000, q_init = [1.5, 1.25, 0.75, 0.50])
+    ex1_v2_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.5, 1.25, 0.75, 0.50], m = fill(m_init, 4), c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [2,2,2,2], num_links = 1000, q_init = [1.5, 1.25, 0.75, 0.50])
     push!(ex1_v2_total_surplus, calculate_total_surplus(ex1_v2_sim, "total"))
     push!(ex1_v2_producer_surplus, calculate_total_surplus(ex1_v2_sim, "producer"))
     push!(ex1_v2_consumer_surplus, calculate_total_surplus(ex1_v2_sim, "consumer"))
-    push!(ex1_v2_price, mean(calculate_price_history.(ex1_v2_sim.sellers)))
-    push!(ex1_v2_quantity, mean(getfield.(ex1_v2_sim.sellers, :quantity_history)))
+    push!(ex1_v2_price, calculate_price_history.(ex1_v2_sim.sellers))
+    push!(ex1_v2_quantity, getfield.(ex1_v2_sim.sellers, :quantity_history))
     push!(ex1_v2_advertising, mean(getfield.(ex1_v2_sim.sellers, :advertising_history)))
 
 end
 
-plot_ecdf(ex1_v1_total_surplus, "equal Q", "Total Surplus", "Probability", "ECDF", true)
-plot_ecdf(ex1_v2_total_surplus, "not equal Q", "Total Surplus", "Probability", "ECDF", false)
+ex1_p1 = plot_ecdf(ex1_v1_total_surplus, "Identyczna jakość", "Całkowita nadwyżka", "F(x)", "Dystrybuanta empiryczna - nadwyżka całkowita", true)
+plot_ecdf(ex1_v2_total_surplus, "Różna jakość", "Całkowita nadwyżka", "F(x)", "Dystrybuanta empiryczna - nadwyżka całkowita", false)
 
-plot_ecdf(ex1_v1_consumer_surplus, "equal Q", "Consumer Surplus", "Probability", "ECDF", true)
+savefig(ex1_p1, pwd() * "\\plots\\ex1_surplus_total.svg")
+
+ex1_p2 = plot_ecdf(ex1_v1_consumer_surplus, "equal Q", "Consumer Surplus", "Probability", "ECDF", true)
 plot_ecdf(ex1_v2_consumer_surplus, "not equal Q", "Consumer Surplus", "Probability", "ECDF", false)
 
-plot_ecdf(ex1_v1_producer_surplus, "equal Q", "Producer Surplus", "Probability", "ECDF", true)
+savefig(ex1_p2, pwd() * "\\plots\\ex1_surplus_consumer.pdf")
+
+ex1_p3 = plot_ecdf(ex1_v1_producer_surplus, "equal Q", "Producer Surplus", "Probability", "ECDF", true)
 plot_ecdf(ex1_v2_producer_surplus, "not equal Q", "Producer Surplus", "Probability", "ECDF", false)
 
-plot_ecdf(mean.(ex1_v1_price), "equal Q", "Price", "Probability", "ECDF", true)
-plot_ecdf(mean.(ex1_v2_price), "not equal Q", "Price", "Probability", "ECDF", false)
+savefig(ex1_p3, pwd() * "\\plots\\ex1_surplus_producer.pdf")
 
-plot_ecdf(sum.(ex1_v1_quantity), "equal Q", "Quantity", "Probability", "ECDF", true)
-plot_ecdf(sum.(ex1_v2_quantity), "not equal Q", "Quantity", "Probability", "ECDF", false)
+ex1_p4 = plot_ecdf(mean.(mean.(ex1_v1_price)), "Identyczna jakość", "Średnia cena", "F(x)", "Dystrybuanta empiryczna - średnia cena", true)
+plot_ecdf(mean.(mean.(ex1_v2_price)), "Różna jakość", "Średnia cena", "F(x)", "Dystrybuanta empiryczna - średnia cena", false)
+
+savefig(ex1_p4, pwd() * "\\plots\\ex1_price.svg")
+
+ex1_p5 = plot_ecdf(sum.(sum.(ex1_v1_quantity)), "Identyczna jakość", "Wolumen sprzedaży", "F(x)", "Dystrybuanta empiryczna - wolumen sprzedaży", true)
+plot_ecdf(sum.(sum.(ex1_v2_quantity)), "Różna jakość", "Wolumen sprzedaży", "F(x)", "Dystrybuanta empiryczna - wolumen sprzedaży", false)
+
+savefig(ex1_p5, pwd() * "\\plots\\ex1_quantity.svg")
 
 plot_ecdf(mean.(ex1_v1_advertising), "equal Q", "Advertising", "Probability", "ECDF", true)
 plot_ecdf(mean.(ex1_v2_advertising), "not equal Q", "Advertising", "Probability", "ECDF", false)
@@ -77,7 +87,7 @@ plot!(mean(ex1_v2_price),
     xlabel = "T", ylabel = "Price", 
     title = "Average price", label = "not equal quality", legend=:topright)
 
-EqualVarianceTTest(mean(ex1_price_eq), mean(ex2_price_dq))
+EqualVarianceTTest(mean(ex1_price_eq), mean(ex1_price_dq))
 
 p = plot(mean(ex1_v1_quantity), 
     xlabel = "T", ylabel = "Quantity", 
@@ -87,7 +97,7 @@ plot!(mean(ex1_v2_quantity),
     xlabel = "T", ylabel = "Quantity", 
     title = "Average quantity", label = "non-equal quality")
 
-EqualVarianceTTest(mean(ex1_quantity_eq), mean(ex2_quantity_dq))
+EqualVarianceTTest(mean(ex1_quantity_eq), mean(ex1_quantity_dq))
 
 p = plot(mean(ex1_v1_advertising), 
     xlabel = "T", ylabel = "Advertising", 
@@ -97,7 +107,19 @@ plot!(mean(ex1_v2_advertising),
     xlabel = "T", ylabel = "Advertising", 
     title = "Average advertising", label = "non-equal quality")
 
-EqualVarianceTTest(mean(ex1_advertising_eq), mean(ex2_advertising_dq))
+EqualVarianceTTest(mean(ex1_advertising_eq), mean(ex1_advertising_dq))
+
+#%^^^^
+
+boxplot([trim_outliers(calculate_average_elasticity.(getindex.(ex1_v1_quantity, 1), getindex.(ex1_v1_price, 1))), trim_outliers(calculate_average_elasticity.(getindex.(ex1_v1_quantity, 2), getindex.(ex1_v1_price, 2)))], ylim = (-150,150))
+
+boxplot([trim_outliers(calculate_average_elasticity.(getindex.(ex1_v2_quantity, 1), getindex.(ex1_v2_price, 1))), trim_outliers(calculate_average_elasticity.(getindex.(ex1_v2_quantity, 2), getindex.(ex1_v2_price, 2)))], ylim = (-150,150))
+
+mean(trim_outliers(calculate_average_elasticity.(getindex.(ex1_v1_quantity, 1), getindex.(ex1_v1_price, 1)))) - mean(trim_outliers(calculate_average_elasticity.(getindex.(ex1_v2_quantity, 1), getindex.(ex1_v2_price, 1))))
+
+UnequalVarianceTTest(trim_outliers(calculate_average_elasticity.(getindex.(ex1_v1_quantity, 2), getindex.(ex1_v1_price, 2))), trim_outliers(calculate_average_elasticity.(getindex.(ex1_v2_quantity, 2), getindex.(ex1_v2_price, 2))))
+
+UnequalVarianceTTest(trim_outliers(calculate_average_elasticity.(getindex.(ex1_v1_quantity, 1), getindex.(ex1_v1_price, 1))), trim_outliers(calculate_average_elasticity.(getindex.(ex1_v2_quantity, 1), getindex.(ex1_v2_price, 1))))
 
 ####################### EXPERIMENT 2, IMPACT OF QUALITY DIFFERENCES ON ADVERTISING & MARKET EFFECTIVENESS ############################################
 
@@ -107,160 +129,42 @@ EqualVarianceTTest(mean(ex1_advertising_eq), mean(ex2_advertising_dq))
 
 # v3 - equal quality, advertising allowed
 
-ex2_v3_total_surplus = []
-ex2_v3_producer_surplus = []
-ex2_v3_consumer_surplus = []
-ex2_v3_price = []
-ex2_v3_quantity = []
-ex2_v3_advertising = []
+ex1_v3_total_surplus = []
+ex1_v3_producer_surplus = []
+ex1_v3_consumer_surplus = []
+ex1_v3_price = []
+ex1_v3_quantity = []
+ex1_v3_advertising = []
 
 # v4 - equal quality, advertising NOT allowed
 
-ex2_v4_total_surplus = []
-ex2_v4_producer_surplus = []
-ex2_v4_consumer_surplus = []
-ex2_v4_price = []
-ex2_v4_quantity = []
-ex2_v4_advertising = []
-ex2_v4_advertising_highest = []
+ex1_v4_total_surplus = []
+ex1_v4_producer_surplus = []
+ex1_v4_consumer_surplus = []
+ex1_v4_price = []
+ex1_v4_quantity = []
+ex1_v4_advertising = []
+ex1_v4_advertising_highest = []
 
 # v5 - NOT equal quality, advertising allowed
 
-ex2_v5_total_surplus = []
-ex2_v5_producer_surplus = []
-ex2_v5_consumer_surplus = []
-ex2_v5_price = []
-ex2_v5_quantity = []
-ex2_v5_advertising = []
-ex2_v5_advertising_highest = []
+ex1_v5_total_surplus = []
+ex1_v5_producer_surplus = []
+ex1_v5_consumer_surplus = []
+ex1_v5_price = []
+ex1_v5_quantity = []
+ex1_v5_advertising = []
+ex1_v5_advertising_highest = []
 
 # v6 - NOT equal quality, advertising NOT allowed
 
-ex2_v6_total_surplus = []
-ex2_v6_producer_surplus = []
-ex2_v6_consumer_surplus = []
-ex2_v6_price = []
-ex2_v6_quantity = []
-ex2_v6_advertising = []
-ex2_v6_advertising_highest = []
-
-for i in 1:1000
-
-    if (mod(i,10) == 0) | (i == 1)
-        println(i)
-    end
-
-    m_init = rand(Uniform(0,0.2), 4)
-
-    ex2_v3_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1., 1., 1. ,1. ], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [1,1,1,1], num_links = 1000, q_init = [1., 1., 1., 1.])
-    push!(ex2_v3_total_surplus, calculate_total_surplus(ex2_v3_sim, "total"))
-    push!(ex2_v3_producer_surplus, calculate_total_surplus(ex2_v3_sim, "producer"))
-    push!(ex2_v3_consumer_surplus, calculate_total_surplus(ex2_v3_sim, "consumer"))
-    push!(ex2_v3_price, mean(calculate_price_history.(ex2_v3_sim.sellers)))
-    push!(ex2_v3_quantity, mean(getfield.(ex2_v3_sim.sellers, :quantity_history)))
-    push!(ex2_v3_advertising, mean(getfield.(ex2_v3_sim.sellers, :advertising_history)))
-
-    ex2_v4_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1., 1., 1. ,1. ], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [1,1,1,1], num_links = 1000, q_init = [1., 1., 1., 1.], variant_advertising = false)
-    push!(ex2_v4_total_surplus, calculate_total_surplus(ex2_v4_sim, "total"))
-    push!(ex2_v4_producer_surplus, calculate_total_surplus(ex2_v4_sim, "producer"))
-    push!(ex2_v4_consumer_surplus, calculate_total_surplus(ex2_v4_sim, "consumer"))
-    push!(ex2_v4_price, mean(calculate_price_history.(ex2_v4_sim.sellers)))
-    push!(ex2_v4_quantity, mean(getfield.(ex2_v4_sim.sellers, :quantity_history)))
-    push!(ex2_v4_advertising, mean(getfield.(ex2_v4_sim.sellers, :advertising_history)))
-
-    ex2_v5_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.5, 1.25, 0.75, 0.50], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [1,1,1,1], num_links = 1000, q_init = [1.5, 1.25, 0.75, 0.50])
-    push!(ex2_v5_total_surplus, calculate_total_surplus(ex2_v5_sim, "total"))
-    push!(ex2_v5_producer_surplus, calculate_total_surplus(ex2_v5_sim, "producer"))
-    push!(ex2_v5_consumer_surplus, calculate_total_surplus(ex2_v5_sim, "consumer"))
-    push!(ex2_v5_price, mean(calculate_price_history.(ex2_v5_sim.sellers)))
-    push!(ex2_v5_quantity, mean(getfield.(ex2_v5_sim.sellers, :quantity_history)))
-    push!(ex2_v5_advertising, mean(getfield.(ex2_v5_sim.sellers, :advertising_history)))
-
-    ex2_v6_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.5, 1.25, 0.75, 0.50], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [1,1,1,1], num_links = 1000, q_init = [1.5, 1.25, 0.75, 0.50], variant_advertising = false)
-    push!(ex2_v6_total_surplus, calculate_total_surplus(ex2_v6_sim, "total"))
-    push!(ex2_v6_producer_surplus, calculate_total_surplus(ex2_v6_sim, "producer"))
-    push!(ex2_v6_consumer_surplus, calculate_total_surplus(ex2_v6_sim, "consumer"))
-    push!(ex2_v6_price, mean(calculate_price_history.(ex2_v6_sim.sellers)))
-    push!(ex2_v6_quantity, mean(getfield.(ex2_v6_sim.sellers, :quantity_history)))
-    push!(ex2_v6_advertising, mean(getfield.(ex2_v6_sim.sellers, :advertising_history)))
-
-end
-
-plot_ecdf(ex2_v3_total_surplus, "equal Q, advertising", "Total Surplus", "Probability", "ECDF", true)
-plot_ecdf(ex2_v4_total_surplus, "equal Q, no advertising", "Total Surplus", "Probability", "ECDF", false)
-plot_ecdf(ex2_v5_total_surplus, "not equal Q, advertising", "Total Surplus", "Probability", "ECDF", false)
-plot_ecdf(ex2_v6_total_surplus, "not equal Q, no advertising", "Total Surplus", "Probability", "ECDF", false)
-
-plot_ecdf(ex2_v3_consumer_surplus, "equal Q, advertising", "Consumer Surplus", "Probability", "ECDF", true)
-plot_ecdf(ex2_v4_consumer_surplus, "equal Q, no advertising", "Consumer Surplus", "Probability", "ECDF", false)
-plot_ecdf(ex2_v5_consumer_surplus, "not equal Q, advertising", "Consumer Surplus", "Probability", "ECDF", false)
-plot_ecdf(ex2_v6_consumer_surplus, "not equal Q, no advertising", "Consumer Surplus", "Probability", "ECDF", false)
-
-plot_ecdf(ex2_v3_producer_surplus, "equal Q, advertising", "Producer Surplus", "Probability", "ECDF", true)
-plot_ecdf(ex2_v4_producer_surplus, "equal Q, no advertising", "Producer Surplus", "Probability", "ECDF", false)
-plot_ecdf(ex2_v5_producer_surplus, "not equal Q, advertising", "Producer Surplus", "Probability", "ECDF", false)
-plot_ecdf(ex2_v6_producer_surplus, "not equal Q, no advertising", "Producer Surplus", "Probability", "ECDF", false)
-
-plot_ecdf(mean.(ex2_v3_price), "equal Q, advertising", "Price", "Probability", "ECDF", true)
-plot_ecdf(mean.(ex2_v4_price), "equal Q, no advertising", "Price", "Probability", "ECDF", false)
-plot_ecdf(mean.(ex2_v5_price), "not equal Q, advertising", "Price", "Probability", "ECDF", false)
-plot_ecdf(mean.(ex2_v6_price), "not equal Q, no advertising", "Price", "Probability", "ECDF", false)
-
-plot_ecdf(mean.(ex2_v3_quantity), "equal Q, advertising", "Quantity", "Probability", "ECDF", true)
-plot_ecdf(mean.(ex2_v4_quantity), "equal Q, no advertising", "Quantity", "Probability", "ECDF", false)
-plot_ecdf(mean.(ex2_v5_quantity), "not equal Q, advertising", "Quantity", "Probability", "ECDF", false)
-plot_ecdf(mean.(ex2_v6_quantity), "not equal Q, no advertising", "Quantity", "Probability", "ECDF", false)
-
-plot_ecdf(mean.(ex2_v3_advertising), "equal Q, advertising", "Advertising", "Probability", "ECDF", true)
-plot_ecdf(mean.(ex2_v4_advertising), "equal Q, no advertising", "Advertising", "Probability", "ECDF", false)
-plot_ecdf(mean.(ex2_v5_advertising), "not equal Q, advertising", "Advertising", "Probability", "ECDF", false)
-plot_ecdf(mean.(ex2_v6_advertising), "not equal Q, no advertising", "Advertising", "Probability", "ECDF", false)
-
-
-####################### EXPERIMENT 3, IMPACT OF QUALITY AND DURABILITY DIFFERENCES & MARKET EFFECTIVENESS ############################################
-
-# Cel 1: Sprawdzenie, w jaki sposób zmienia się efektywność komunikacji reklamowej, gdy na rynku występuje (oraz nie) zróżnicowanie jakości produktów
-
-# Wynik:
-
-# v7 - equal quality, equal durability
-
-ex2_v7_total_surplus = []
-ex2_v7_producer_surplus = []
-ex2_v7_consumer_surplus = []
-ex2_v7_price = []
-ex2_v7_quantity = []
-ex2_v7_advertising = []
-
-# v8 - equal quality, NOT equal durability
-
-ex2_v8_total_surplus = []
-ex2_v8_producer_surplus = []
-ex2_v8_consumer_surplus = []
-ex2_v8_price = []
-ex2_v8_quantity = []
-ex2_v8_advertising = []
-ex2_v8_advertising_highest = []
-
-# v9 - NOT equal quality, equal durability
-
-ex2_v9_total_surplus = []
-ex2_v9_producer_surplus = []
-ex2_v9_consumer_surplus = []
-ex2_v9_price = []
-ex2_v9_quantity = []
-ex2_v9_advertising = []
-ex2_v9_advertising_highest = []
-
-# v10 - NOT equal quality, NOT equal durability
-
-ex2_v10_total_surplus = []
-ex2_v10_producer_surplus = []
-ex2_v10_consumer_surplus = []
-ex2_v10_price = []
-ex2_v10_quantity = []
-ex2_v10_advertising = []
-ex2_v10_advertising_highest = []
+ex1_v6_total_surplus = []
+ex1_v6_producer_surplus = []
+ex1_v6_consumer_surplus = []
+ex1_v6_price = []
+ex1_v6_quantity = []
+ex1_v6_advertising = []
+ex1_v6_advertising_highest = []
 
 for i in 1:1000
 
@@ -271,69 +175,304 @@ for i in 1:1000
     m_init = rand(Uniform(0,0.2))
     m_init = fill(m_init, 4)
 
-    d_init = sample(1:4,4) # 🍎 tu poprawić
+    d_init = [2,2,2,2]
 
-    ex2_v7_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1., 1., 1. ,1. ], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = d_init, num_links = 1000, q_init = [1., 1., 1., 1.])
-    push!(ex2_v7_total_surplus, calculate_total_surplus(ex2_v7_sim, "total"))
-    push!(ex2_v7_producer_surplus, calculate_total_surplus(ex2_v7_sim, "producer"))
-    push!(ex2_v7_consumer_surplus, calculate_total_surplus(ex2_v7_sim, "consumer"))
-    push!(ex2_v7_price, mean(calculate_price_history.(ex2_v7_sim.sellers)))
-    push!(ex2_v7_quantity, mean(getfield.(ex2_v7_sim.sellers, :quantity_history)))
-    push!(ex2_v7_advertising, mean(getfield.(ex2_v7_sim.sellers, :advertising_history)))
+    ex1_v3_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1., 1., 1. ,1. ], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = d_init, num_links = 1000, q_init = [1., 1., 1., 1.])
 
-    ex2_v8_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1., 1., 1. ,1. ], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = d_init, num_links = 1000, q_init = [1., 1., 1., 1.])
-    push!(ex2_v8_total_surplus, calculate_total_surplus(ex2_v8_sim, "total"))
-    push!(ex2_v8_producer_surplus, calculate_total_surplus(ex2_v8_sim, "producer"))
-    push!(ex2_v8_consumer_surplus, calculate_total_surplus(ex2_v8_sim, "consumer"))
-    push!(ex2_v8_price, mean(calculate_price_history.(ex2_v8_sim.sellers)))
-    push!(ex2_v8_quantity, mean(getfield.(ex2_v8_sim.sellers, :quantity_history)))
-    push!(ex2_v8_advertising, mean(getfield.(ex2_v8_sim.sellers, :advertising_history)))
 
-    ex2_v9_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.5, 1.25, 0.75, 0.50], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = d_init, num_links = 1000, q_init = [1.5, 1.25, 0.75, 0.50])
-    push!(ex2_v9_total_surplus, calculate_total_surplus(ex2_v9_sim, "total"))
-    push!(ex2_v9_producer_surplus, calculate_total_surplus(ex2_v9_sim, "producer"))
-    push!(ex2_v9_consumer_surplus, calculate_total_surplus(ex2_v9_sim, "consumer"))
-    push!(ex2_v9_price, mean(calculate_price_history.(ex2_v9_sim.sellers)))
-    push!(ex2_v9_quantity, mean(getfield.(ex2_v9_sim.sellers, :quantity_history)))
-    push!(ex2_v9_advertising, mean(getfield.(ex2_v9_sim.sellers, :advertising_history)))
+    push!(ex1_v3_total_surplus, calculate_total_surplus(ex1_v3_sim, "total"))
+    push!(ex1_v3_producer_surplus, calculate_total_surplus(ex1_v3_sim, "producer"))
+    push!(ex1_v3_consumer_surplus, calculate_total_surplus(ex1_v3_sim, "consumer"))
+    push!(ex1_v3_price, calculate_price_history.(ex1_v3_sim.sellers))
+    push!(ex1_v3_quantity, getfield.(ex1_v3_sim.sellers, :quantity_history))
+    push!(ex1_v3_advertising, mean(getfield.(ex1_v3_sim.sellers, :advertising_history)))
 
-    ex2_v10_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.5, 1.25, 0.75, 0.50], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = d_init, num_links = 1000, q_init = [1.5, 1.25, 0.75, 0.50])
-    push!(ex2_v10_total_surplus, calculate_total_surplus(ex2_v10_sim, "total"))
-    push!(ex2_v10_producer_surplus, calculate_total_surplus(ex2_v10_sim, "producer"))
-    push!(ex2_v10_consumer_surplus, calculate_total_surplus(ex2_v10_sim, "consumer"))
-    push!(ex2_v10_price, mean(calculate_price_history.(ex2_v10_sim.sellers)))
-    push!(ex2_v10_quantity, mean(getfield.(ex2_v10_sim.sellers, :quantity_history)))
-    push!(ex2_v10_advertising, mean(getfield.(ex2_v10_sim.sellers, :advertising_history)))
+    ex1_v4_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1., 1., 1. ,1. ], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = d_init, num_links = 1000, q_init = [1., 1., 1., 1.], variant_advertising = false)
+
+    push!(ex1_v4_total_surplus, calculate_total_surplus(ex1_v4_sim, "total"))
+    push!(ex1_v4_producer_surplus, calculate_total_surplus(ex1_v4_sim, "producer"))
+    push!(ex1_v4_consumer_surplus, calculate_total_surplus(ex1_v4_sim, "consumer"))
+    push!(ex1_v4_price, calculate_price_history.(ex1_v4_sim.sellers))
+    push!(ex1_v4_quantity, getfield.(ex1_v4_sim.sellers, :quantity_history))
+    push!(ex1_v4_advertising, mean(getfield.(ex1_v4_sim.sellers, :advertising_history)))
+
+    ex1_v5_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.5, 1.25, 0.75, 0.50], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = d_init, num_links = 1000, q_init = [1.5, 1.25, 0.75, 0.50])
+
+    push!(ex1_v5_total_surplus, calculate_total_surplus(ex1_v5_sim, "total"))
+    push!(ex1_v5_producer_surplus, calculate_total_surplus(ex1_v5_sim, "producer"))
+    push!(ex1_v5_consumer_surplus, calculate_total_surplus(ex1_v5_sim, "consumer"))
+    push!(ex1_v5_price, calculate_price_history.(ex1_v5_sim.sellers))
+    push!(ex1_v5_quantity, getfield.(ex1_v5_sim.sellers, :quantity_history))
+    push!(ex1_v5_advertising, mean(getfield.(ex1_v5_sim.sellers, :advertising_history)))
+
+    ex1_v6_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.5, 1.25, 0.75, 0.50], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = d_init, num_links = 1000, q_init = [1.5, 1.25, 0.75, 0.50], variant_advertising = false)
+
+    push!(ex1_v6_total_surplus, calculate_total_surplus(ex1_v6_sim, "total"))
+    push!(ex1_v6_producer_surplus, calculate_total_surplus(ex1_v6_sim, "producer"))
+    push!(ex1_v6_consumer_surplus, calculate_total_surplus(ex1_v6_sim, "consumer"))
+    push!(ex1_v6_price, calculate_price_history.(ex1_v6_sim.sellers))
+    push!(ex1_v6_quantity, getfield.(ex1_v6_sim.sellers, :quantity_history))
+    push!(ex1_v6_advertising, mean(getfield.(ex1_v6_sim.sellers, :advertising_history)))
 
 end
 
-plot_ecdf(ex2_v7_total_surplus, "equal Q, equal D", "Total Surplus", "Probability", "ECDF", true)
-plot_ecdf(ex2_v8_total_surplus, "equal Q, ~equal D", "Total Surplus", "Probability", "ECDF", false)
-plot_ecdf(ex2_v9_total_surplus, "~equal Q, equal D", "Total Surplus", "Probability", "ECDF", false)
-plot_ecdf(ex2_v10_total_surplus, "~equal Q, ~equal D", "Total Surplus", "Probability", "ECDF", false)
+plot_ecdf(ex1_v3_total_surplus, "equal Q, advertising", "Total Surplus", "Probability", "ECDF", true)
+plot_ecdf(ex1_v4_total_surplus, "equal Q, no advertising", "Total Surplus", "Probability", "ECDF", false)
+plot_ecdf(ex1_v5_total_surplus, "not equal Q, advertising", "Total Surplus", "Probability", "ECDF", false)
+plot_ecdf(ex1_v6_total_surplus, "not equal Q, no advertising", "Total Surplus", "Probability", "ECDF", false)
 
-plot_ecdf(ex2_v7_consumer_surplus, "equal Q, equal D", "Consumer Surplus", "Probability", "ECDF", true)
-plot_ecdf(ex2_v8_consumer_surplus, "equal Q, ~equal D", "Consumer Surplus", "Probability", "ECDF", false)
-plot_ecdf(ex2_v9_consumer_surplus, "~equal Q, equal D", "Consumer Surplus", "Probability", "ECDF", false)
-plot_ecdf(ex2_v10_consumer_surplus, "~equal Q, ~equal D", "Consumer Surplus", "Probability", "ECDF", false)
+plot_ecdf(ex1_v3_consumer_surplus, "equal Q, advertising", "Consumer Surplus", "Probability", "ECDF", true)
+plot_ecdf(ex1_v4_consumer_surplus, "equal Q, no advertising", "Consumer Surplus", "Probability", "ECDF", false)
+plot_ecdf(ex1_v5_consumer_surplus, "not equal Q, advertising", "Consumer Surplus", "Probability", "ECDF", false)
+plot_ecdf(ex1_v6_consumer_surplus, "not equal Q, no advertising", "Consumer Surplus", "Probability", "ECDF", false)
 
-plot_ecdf(ex2_v7_producer_surplus, "equal Q, equal D", "Producer Surplus", "Probability", "ECDF", true)
-plot_ecdf(ex2_v8_producer_surplus, "equal Q, ~equal D", "Producer Surplus", "Probability", "ECDF", false)
-plot_ecdf(ex2_v9_producer_surplus, "~equal Q, equal D", "Producer Surplus", "Probability", "ECDF", false)
-plot_ecdf(ex2_v10_producer_surplus, "~equal Q, ~equal D", "Producer Surplus", "Probability", "ECDF", false)
+plot_ecdf(ex1_v3_producer_surplus, "equal Q, advertising", "Producer Surplus", "Probability", "ECDF", true)
+plot_ecdf(ex1_v4_producer_surplus, "equal Q, no advertising", "Producer Surplus", "Probability", "ECDF", false)
+plot_ecdf(ex1_v5_producer_surplus, "not equal Q, advertising", "Producer Surplus", "Probability", "ECDF", false)
+plot_ecdf(ex1_v6_producer_surplus, "not equal Q, no advertising", "Producer Surplus", "Probability", "ECDF", false)
 
-plot_ecdf(mean.(ex2_v7_price), "equal Q, equal D", "Price", "Probability", "ECDF", true)
-plot_ecdf(mean.(ex2_v8_price), "equal Q, ~equal D", "Price", "Probability", "ECDF", false)
-plot_ecdf(mean.(ex2_v9_price), "~equal Q, equal D", "Price", "Probability", "ECDF", false)
-plot_ecdf(mean.(ex2_v10_price), "~equal Q, ~equal D", "Price", "Probability", "ECDF", false)
+plot_ecdf(mean.(ex1_v3_price), "equal Q, advertising", "Price", "Probability", "ECDF", true)
+plot_ecdf(mean.(ex1_v4_price), "equal Q, no advertising", "Price", "Probability", "ECDF", false)
+plot_ecdf(mean.(ex1_v5_price), "not equal Q, advertising", "Price", "Probability", "ECDF", false)
+plot_ecdf(mean.(ex1_v6_price), "not equal Q, no advertising", "Price", "Probability", "ECDF", false)
 
-plot_ecdf(mean.(ex2_v7_quantity), "equal Q, equal D", "Quantity", "Probability", "ECDF", true)
-plot_ecdf(mean.(ex2_v8_quantity), "equal Q, ~equal D", "Quantity", "Probability", "ECDF", false)
-plot_ecdf(mean.(ex2_v9_quantity), "~equal Q, equal D", "Quantity", "Probability", "ECDF", false)
-plot_ecdf(mean.(ex2_v10_quantity), "~equal Q, ~equal D", "Quantity", "Probability", "ECDF", false)
+plot_ecdf(mean.(ex1_v3_quantity), "equal Q, advertising", "Quantity", "Probability", "ECDF", true)
+plot_ecdf(mean.(ex1_v4_quantity), "equal Q, no advertising", "Quantity", "Probability", "ECDF", false)
+plot_ecdf(mean.(ex1_v5_quantity), "not equal Q, advertising", "Quantity", "Probability", "ECDF", false)
+plot_ecdf(mean.(ex1_v6_quantity), "not equal Q, no advertising", "Quantity", "Probability", "ECDF", false)
 
-plot_ecdf(mean.(ex2_v7_advertising), "equal Q, equal D", "Advertising", "Probability", "ECDF", true)
-plot_ecdf(mean.(ex2_v8_advertising), "equal Q, ~equal D", "Advertising", "Probability", "ECDF", false)
-plot_ecdf(mean.(ex2_v9_advertising), "~equal Q, equal D", "Advertising", "Probability", "ECDF", false)
-plot_ecdf(mean.(ex2_v10_advertising), "~equal Q, ~equal D", "Advertising", "Probability", "ECDF", false)
+plot_ecdf(mean.(ex1_v3_advertising), "equal Q, advertising", "Advertising", "Probability", "ECDF", true)
+plot_ecdf(mean.(ex1_v4_advertising), "equal Q, no advertising", "Advertising", "Probability", "ECDF", false)
+plot_ecdf(mean.(ex1_v5_advertising), "not equal Q, advertising", "Advertising", "Probability", "ECDF", false)
+plot_ecdf(mean.(ex1_v6_advertising), "not equal Q, no advertising", "Advertising", "Probability", "ECDF", false)
+
+####
+
+mean([coef(GLM.lm(@formula(lq~lp), DataFrame(lq = log.(1 .+ q), lp = log.(1 .+ p))))[2] for (q,p) in zip(getindex.(ex1_v3_quantity, 1), getindex.(ex1_v3_price, 1))])
+
+boxplot([trim_outliers(calculate_average_elasticity.(getindex.(ex1_v3_quantity, 1), getindex.(ex1_v3_price, 1))), trim_outliers(calculate_average_elasticity.(getindex.(ex1_v3_quantity, 2), getindex.(ex1_v3_price, 2))), trim_outliers(calculate_average_elasticity.(getindex.(ex1_v3_quantity, 3), getindex.(ex1_v3_price, 3))), trim_outliers(calculate_average_elasticity.(getindex.(ex1_v3_quantity, 4), getindex.(ex1_v3_price, 4)))])
+
+boxplot([trim_outliers(calculate_average_elasticity.(getindex.(ex1_v5_quantity, 1), getindex.(ex1_v5_price, 1))), trim_outliers(calculate_average_elasticity.(getindex.(ex1_v5_quantity, 2), getindex.(ex1_v5_price, 2)))], ylim = (-150,150))
+
+mean(trim_outliers(calculate_average_elasticity.(getindex.(ex1_v1_quantity, 1), getindex.(ex1_v1_price, 1)))) - mean(trim_outliers(calculate_average_elasticity.(getindex.(ex1_v2_quantity, 1), getindex.(ex1_v2_price, 1))))
+
+UnequalVarianceTTest(trim_outliers(calculate_average_elasticity.(getindex.(ex1_v1_quantity, 2), getindex.(ex1_v1_price, 2))), trim_outliers(calculate_average_elasticity.(getindex.(ex1_v2_quantity, 2), getindex.(ex1_v2_price, 2))))
+
+UnequalVarianceTTest(trim_outliers(calculate_average_elasticity.(getindex.(ex1_v1_quantity, 1), getindex.(ex1_v1_price, 1))), trim_outliers(calculate_average_elasticity.(getindex.(ex1_v2_quantity, 1), getindex.(ex1_v2_price, 1))))
+
+####
+
+
+####################### EXPERIMENT 3, IMPACT OF QUALITY AND DURABILITY DIFFERENCES & MARKET EFFECTIVENESS ############################################
+
+# Cel 1: Sprawdzenie, w jaki sposób zmienia się efektywność komunikacji reklamowej, gdy na rynku występuje (oraz nie) zróżnicowanie jakości produktów
+
+# Wynik:
+
+# v7 - equal quality, equal durability
+
+ex1_v7_total_surplus = []
+ex1_v7_producer_surplus = []
+ex1_v7_consumer_surplus = []
+ex1_v7_price = []
+ex1_v7_quantity = []
+ex1_v7_advertising = []
+ex1_v7_producer_surplus_singleton = []
+
+# v8 - equal quality, NOT equal durability
+
+ex1_v8_total_surplus = []
+ex1_v8_producer_surplus = []
+ex1_v8_consumer_surplus = []
+ex1_v8_price = []
+ex1_v8_quantity = []
+ex1_v8_advertising = []
+ex1_v8_advertising_highest = []
+ex1_v8_producer_surplus_singleton = []
+
+# v9 - NOT equal quality, equal durability
+
+ex1_v9_total_surplus = []
+ex1_v9_producer_surplus = []
+ex1_v9_consumer_surplus = []
+ex1_v9_price = []
+ex1_v9_quantity = []
+ex1_v9_advertising = []
+ex1_v9_advertising_highest = []
+ex1_v9_producer_surplus_singleton = []
+
+# v10 - NOT equal quality, NOT equal durability
+
+ex1_v10_total_surplus = []
+ex1_v10_producer_surplus = []
+ex1_v10_consumer_surplus = []
+ex1_v10_price = []
+ex1_v10_quantity = []
+ex1_v10_advertising = []
+ex1_v10_advertising_highest = []
+ex1_v10_producer_surplus_singleton = []
+
+ex1_v710_m = []
+ex1_v710_d = []
+
+for i in 1:1000
+
+    if (mod(i,10) == 0) | (i == 1)
+        println(i)
+    end
+
+    m_init = rand(Uniform(0,0.2))
+    m_init = fill(m_init, 4)
+
+    push!(ex1_v710_m, m_init)
+
+    d_init = shuffle([7,5,3,1])
+
+    push!(ex1_v710_d, d_init)
+
+    ex1_v7_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1., 1., 1. ,1. ], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [4,4,4,4], num_links = 1000, q_init = [1., 1., 1., 1.])
+    push!(ex1_v7_total_surplus, calculate_total_surplus(ex1_v7_sim, "total"))
+    push!(ex1_v7_producer_surplus, calculate_total_surplus(ex1_v7_sim, "producer"))
+    push!(ex1_v7_consumer_surplus, calculate_total_surplus(ex1_v7_sim, "consumer"))
+    push!(ex1_v7_price, mean(calculate_price_history.(ex1_v7_sim.sellers)))
+    push!(ex1_v7_quantity, mean(getfield.(ex1_v7_sim.sellers, :quantity_history)))
+    push!(ex1_v7_advertising, mean(getfield.(ex1_v7_sim.sellers, :advertising_history)))
+    push!(ex1_v7_producer_surplus_singleton, sum.(calculate_profit_history.(ex1_v7_sim.sellers, ex1_v7_sim.function_args.γ, ex1_v7_sim.function_args.num_buyers)))
+
+    ex1_v8_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1., 1., 1. ,1. ], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = d_init, num_links = 1000, q_init = [1., 1., 1., 1.])
+    push!(ex1_v8_total_surplus, calculate_total_surplus(ex1_v8_sim, "total"))
+    push!(ex1_v8_producer_surplus, calculate_total_surplus(ex1_v8_sim, "producer"))
+    push!(ex1_v8_consumer_surplus, calculate_total_surplus(ex1_v8_sim, "consumer"))
+    push!(ex1_v8_price, mean(calculate_price_history.(ex1_v8_sim.sellers)))
+    push!(ex1_v8_quantity, mean(getfield.(ex1_v8_sim.sellers, :quantity_history)))
+    push!(ex1_v8_advertising, mean(getfield.(ex1_v8_sim.sellers, :advertising_history)))
+    push!(ex1_v8_producer_surplus_singleton, sum.(calculate_profit_history.(ex1_v8_sim.sellers, ex1_v8_sim.function_args.γ, ex1_v8_sim.function_args.num_buyers)))
+
+    ex1_v9_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.5, 1.25, 0.75, 0.50], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [4,4,4,4], num_links = 1000, q_init = [1.5, 1.25, 0.75, 0.50])
+    push!(ex1_v9_total_surplus, calculate_total_surplus(ex1_v9_sim, "total"))
+    push!(ex1_v9_producer_surplus, calculate_total_surplus(ex1_v9_sim, "producer"))
+    push!(ex1_v9_consumer_surplus, calculate_total_surplus(ex1_v9_sim, "consumer"))
+    push!(ex1_v9_price, mean(calculate_price_history.(ex1_v9_sim.sellers)))
+    push!(ex1_v9_quantity, mean(getfield.(ex1_v9_sim.sellers, :quantity_history)))
+    push!(ex1_v9_advertising, mean(getfield.(ex1_v9_sim.sellers, :advertising_history)))
+    push!(ex1_v9_producer_surplus_singleton, sum.(calculate_profit_history.(ex1_v9_sim.sellers, ex1_v9_sim.function_args.γ, ex1_v9_sim.function_args.num_buyers)))
+
+    ex1_v10_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.5, 1.25, 0.75, 0.50], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = d_init, num_links = 1000, q_init = [1.5, 1.25, 0.75, 0.50])
+    push!(ex1_v10_total_surplus, calculate_total_surplus(ex1_v10_sim, "total"))
+    push!(ex1_v10_producer_surplus, calculate_total_surplus(ex1_v10_sim, "producer"))
+    push!(ex1_v10_consumer_surplus, calculate_total_surplus(ex1_v10_sim, "consumer"))
+    push!(ex1_v10_price, mean(calculate_price_history.(ex1_v10_sim.sellers)))
+    push!(ex1_v10_quantity, mean(getfield.(ex1_v10_sim.sellers, :quantity_history)))
+    push!(ex1_v10_advertising, mean(getfield.(ex1_v10_sim.sellers, :advertising_history)))
+    push!(ex1_v10_producer_surplus_singleton, sum.(calculate_profit_history.(ex1_v10_sim.sellers, ex1_v10_sim.function_args.γ, ex1_v10_sim.function_args.num_buyers)))
+
+end
+
+# Rynek, na którym występuje zróżnicowanie jakości i trwałości produktów dominuje, pod względem nadwyżek, pozostałe rynki.
+
+ex1_p5 = plot_ecdf(ex1_v7_total_surplus, "Identyczna jakość, identyczna trwałość", "Nadwyżka całkowita", "F(x)", "Dystrybuanta empiryczna - nadwyżka całkowita", true)
+plot_ecdf(ex1_v8_total_surplus, "Identyczna jakość, różna trwałość", "Nadwyżka całkowita", "F(x)", "Dystrybuanta empiryczna - nadwyżka całkowita", false)
+plot_ecdf(ex1_v9_total_surplus, "Różna jakość, identyczna trwałość", "Nadwyżka całkowita", "F(x)", "Dystrybuanta empiryczna - nadwyżka całkowita", false)
+plot_ecdf(ex1_v10_total_surplus, "Różna jakość, różna trwałość", "Nadwyżka całkowita", "F(x)", "Dystrybuanta empiryczna - nadwyżka całkowita", false)
+
+savefig(ex1_p5, pwd() * "\\plots\\ex1_durability quality surplus.svg")
+
+UnequalVarianceTTest(Float64.(ex1_v7_total_surplus), Float64.(ex1_v9_total_surplus))
+UnequalVarianceTTest(Float64.(ex1_v8_total_surplus), Float64.(ex1_v10_total_surplus))
+
+UnequalVarianceTTest(Float64.(sort(ex1_v8_total_surplus) .- sort(ex1_v10_total_surplus)), Float64.(sort(ex1_v7_total_surplus) .- sort(ex1_v9_total_surplus)))
+
+StatsPlots.density(ex1_v7_total_surplus .- ex1_v9_total_surplus)
+StatsPlots.density!(ex1_v8_total_surplus .- ex1_v10_total_surplus)
+
+
+plot_ecdf(ex1_v7_consumer_surplus, "equal Q, equal D", "Consumer Surplus", "Probability", "ECDF", true)
+plot_ecdf(ex1_v8_consumer_surplus, "equal Q, ~equal D", "Consumer Surplus", "Probability", "ECDF", false)
+plot_ecdf(ex1_v9_consumer_surplus, "~equal Q, equal D", "Consumer Surplus", "Probability", "ECDF", false)
+plot_ecdf(ex1_v10_consumer_surplus, "~equal Q, ~equal D", "Consumer Surplus", "Probability", "ECDF", false)
+
+plot_ecdf(ex1_v7_producer_surplus, "equal Q, equal D", "Producer Surplus", "Probability", "ECDF", true)
+plot_ecdf(ex1_v8_producer_surplus, "equal Q, ~equal D", "Producer Surplus", "Probability", "ECDF", false)
+plot_ecdf(ex1_v9_producer_surplus, "~equal Q, equal D", "Producer Surplus", "Probability", "ECDF", false)
+plot_ecdf(ex1_v10_producer_surplus, "~equal Q, ~equal D", "Producer Surplus", "Probability", "ECDF", false)
+
+####
+
+ex1_v710_d_u = sort(unique(ex1_v710_d))
+
+# Całkowita nadwyżka rynkowa jest maksymalna, gdy produkty o najwyższej jakości mają najniższą trwałość.
+
+total_surplus_durability_eq = [ex1_v8_total_surplus[[all(x .== y) for x in ex1_v710_d]] for y in ex1_v710_d_u]
+
+ex3_p1 = boxplot(total_surplus_durability_eq, legend = nothing, xlabel = "Trwałość dobra [liczba iteracji]", ylabel = "Nadwyżka całkowita", ylim = (0, 60000), title = "Nadwyżka całkowita, dobra o identycznej jakości")
+xticks!(1:length(ex1_v710_d_u), [join(string.(x)) for x in ex1_v710_d_u], xrotation = 90)
+
+savefig(ex3_p1, pwd() * "\\plots\\ex3_equal quality durability optim.svg")
+
+total_surplus_durability_dq = [ex1_v10_total_surplus[[all(x .== y) for x in ex1_v710_d]] for y in ex1_v710_d_u]
+ex3_p2 = boxplot(total_surplus_durability_dq, legend = nothing, xlabel = "Trwałość dobra [liczba iteracji]", ylabel = "Nadwyżka całkowita", title = "Nadwyżka całkowita, dobra o różnej jakości", ylim = (0,60000))
+xticks!(1:length(ex1_v710_d_u), [join(string.(x)) for x in ex1_v710_d_u], xrotation = 90)
+
+savefig(ex3_p2, pwd() * "\\plots\\ex3_diff quality durability optim.svg")
+
+# Consumer surplus
+
+consumer_surplus_durability_eq = [ex1_v8_consumer_surplus[[all(x .== y) for x in ex1_v710_d]] for y in ex1_v710_d_u]
+boxplot(consumer_surplus_durability_eq, legend = nothing, xlabel = "Durability combination", ylabel = "Consumer surplus")
+xticks!(1:length(ex1_v710_d_u), [join(string.(x)) for x in ex1_v710_d_u], xrotation = 90)
+
+consumer_surplus_durability_dq = [ex1_v10_consumer_surplus[[all(x .== y) for x in ex1_v710_d]] for y in ex1_v710_d_u]
+boxplot(consumer_surplus_durability_dq, legend = nothing, xlabel = "Durability combination", ylabel = "Consumer surplus")
+xticks!(1:length(ex1_v710_d_u), [join(string.(x)) for x in ex1_v710_d_u], xrotation = 90)
+
+# Producer surplus
+
+producer_surplus_durability_eq = [ex1_v8_producer_surplus[[all(x .== y) for x in ex1_v710_d]] for y in ex1_v710_d_u]
+boxplot(producer_surplus_durability_eq, legend = nothing, xlabel = "Durability combination", ylabel = "Producer surplus")
+xticks!(1:length(ex1_v710_d_u), [join(string.(x)) for x in ex1_v710_d_u], xrotation = 90)
+
+producer_surplus_durability_dq = [ex1_v10_producer_surplus[[all(x .== y) for x in ex1_v710_d]] for y in ex1_v710_d_u]
+boxplot(producer_surplus_durability_dq, legend = nothing, xlabel = "Durability combination", ylabel = "Producer surplus")
+xticks!(1:length(ex1_v710_d_u), [join(string.(x)) for x in ex1_v710_d_u], xrotation = 90)
+
+#### Producenci, niezależnie od oferowanej jakości produktów, chcą maksymalizować trwałość swoich produktów vs pozostali producenci
+
+#### Producent 1 osiąga najwyższy zysk, gdy ma wysoką trwałość, a drugi najlepszy produkt niską
+
+producer_1_durability_surplus = [getindex.(ex1_v10_producer_surplus_singleton,1)[[all(x .== y) for x in ex1_v710_d]] for y in ex1_v710_d_u]
+boxplot(producer_1_durability_surplus, legend = nothing, xlabel = "Durability combination", ylabel = "Producer 1 surplus")
+xticks!(1:length(ex1_v710_d_u), [join(string.(x)) for x in ex1_v710_d_u], xrotation = 90)
+
+producer_2_durability_surplus = [getindex.(ex1_v10_producer_surplus_singleton,2)[[all(x .== y) for x in ex1_v710_d]] for y in ex1_v710_d_u]
+boxplot(producer_2_durability_surplus, legend = nothing, xlabel = "Durability combination", ylabel = "Producer 2 surplus")
+xticks!(1:length(ex1_v710_d_u), [join(string.(x)) for x in ex1_v710_d_u], xrotation = 90)
+
+producer_3_durability_surplus = [getindex.(ex1_v10_producer_surplus_singleton,3)[[all(x .== y) for x in ex1_v710_d]] for y in ex1_v710_d_u]
+boxplot(producer_3_durability_surplus, legend = nothing, xlabel = "Durability combination", ylabel = "Producer 2 surplus")
+xticks!(1:length(ex1_v710_d_u), [join(string.(x)) for x in ex1_v710_d_u], xrotation = 90)
+
+producer_4_durability_surplus = [getindex.(ex1_v10_producer_surplus_singleton,4)[[all(x .== y) for x in ex1_v710_d]] for y in ex1_v710_d_u]
+boxplot(producer_4_durability_surplus, legend = nothing, xlabel = "Durability combination", ylabel = "Producer 2 surplus")
+xticks!(1:length(ex1_v710_d_u), [join(string.(x)) for x in ex1_v710_d_u], xrotation = 90)
+
+###
+
+
+
+###
+
+plot_ecdf(mean.(ex1_v7_price), "equal Q, equal D", "Price", "Probability", "ECDF", true)
+plot_ecdf(mean.(ex1_v8_price), "equal Q, ~equal D", "Price", "Probability", "ECDF", false)
+plot_ecdf(mean.(ex1_v9_price), "~equal Q, equal D", "Price", "Probability", "ECDF", false)
+plot_ecdf(mean.(ex1_v10_price), "~equal Q, ~equal D", "Price", "Probability", "ECDF", false)
+
+plot_ecdf(mean.(ex1_v7_quantity), "equal Q, equal D", "Quantity", "Probability", "ECDF", true)
+plot_ecdf(mean.(ex1_v8_quantity), "equal Q, ~equal D", "Quantity", "Probability", "ECDF", false)
+plot_ecdf(mean.(ex1_v9_quantity), "~equal Q, equal D", "Quantity", "Probability", "ECDF", false)
+plot_ecdf(mean.(ex1_v10_quantity), "~equal Q, ~equal D", "Quantity", "Probability", "ECDF", false)
+
+plot_ecdf(mean.(ex1_v7_advertising), "equal Q, equal D", "Advertising", "Probability", "ECDF", true)
+plot_ecdf(mean.(ex1_v8_advertising), "equal Q, ~equal D", "Advertising", "Probability", "ECDF", false)
+plot_ecdf(mean.(ex1_v9_advertising), "~equal Q, equal D", "Advertising", "Probability", "ECDF", false)
+plot_ecdf(mean.(ex1_v10_advertising), "~equal Q, ~equal D", "Advertising", "Probability", "ECDF", false)
 

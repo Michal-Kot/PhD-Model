@@ -1,6 +1,30 @@
 include(pwd() * "\\methods\\methods.jl")
 
-sim_single = TO_GO(4, 500, 5000, 0.25, 0.25, "deterministic"; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], q_init = [1.6, 1.3, 1.0, 0.7], num_links = 1000)
+sim_single = TO_GO(4, 1000, 100, 0.25, 0.25, "stochastic"; q = [1.1, 1.1, 0.9, 0.7], m = [0.1,0.1,0.1,0.1], c = [0.3, 0.3, 0.3, 0.3], ϵ = [0.33, 0.33, 0.33, 0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.01, 0.01, 0.01, 0.01], q_init = [1.1, 1.1, 0.9, 0.7], d = [9, 7, 5, 5], num_links = 1000)
+
+plot_margin(sim_single, true)
+plot_margin(sim_single, false)
+plot(calculate_price_history.(sim_single.sellers))
+plot_quantity(sim_single)
+plot_quality_expectation(sim_single)
+plot_profit_history(sim_single)
+calculate_total_surplus(sim_single)
+
+scatter(sim_single.sellers[4].margin_history, calculate_profit_history(sim_single.sellers[4]))
+
+plot(calculate_profit_history(sim_single.sellers[4]))
+plot!(sim_single.sellers[4].quantity_history)
+plot!(calculate_price_history(sim_single.sellers[4]))
+
+scatter(calculate_price_history(sim_single.sellers[4]), calculate_profit_history(sim_single.sellers[4]))
+
+sim_single.buyers[1].unit_possessed_history
+
+plot([getindex.(sim_single.buyers[1].unit_possessed_history,x) for x in 1:4])
+
+sim_single.buyers[1].std_reservation_price
+sim_single.buyers[1].future_discount
+
 
 # Cel zweryfikować w jaki sposób losowość marż początkowych wpływa na finalne wyniki symulacji.
 
@@ -88,9 +112,11 @@ for i in 1:1000
 
     push!(ex2_v16_init_margin, m_init)
 
+    d_init = [2,2]
+
     # 1.0
 
-    ex2_v1_sim = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [1.0, 1.0], m = m_init, c = [0.6,0.6], ϵ = [0.33,0.33], a = [0.0, 0.0], r = [0.4, 0.4], d = [1,1], q_init = [1., 1.], num_links = 1000)
+    ex2_v1_sim = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [1.0, 1.0], m = m_init, c = [0.6,0.6], ϵ = [0.33,0.33], a = [0.0, 0.0], r = [0.4, 0.4], d = d_init, q_init = [1., 1.], num_links = 1000)
     push!(ex2_v1_total_surplus, calculate_total_surplus(ex2_v1_sim, "total"))
     push!(ex2_v1_producer_surplus, calculate_total_surplus(ex2_v1_sim, "producer"))
     push!(ex2_v1_consumer_surplus, calculate_total_surplus(ex2_v1_sim, "consumer"))
@@ -104,7 +130,7 @@ for i in 1:1000
 
     # 1.1
 
-    ex2_v2_sim = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [1.1, 0.9], m = m_init, c = [0.6,0.6], ϵ = [0.33,0.33], a = [0.0, 0.0], r = [0.4, 0.4], d = [1,1], q_init = [1.1, 0.9], num_links = 1000)
+    ex2_v2_sim = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [1.1, 0.9], m = m_init, c = [0.6,0.6], ϵ = [0.33,0.33], a = [0.0, 0.0], r = [0.4, 0.4], d = d_init, q_init = [1.1, 0.9], num_links = 1000)
     push!(ex2_v2_total_surplus, calculate_total_surplus(ex2_v2_sim, "total"))
     push!(ex2_v2_producer_surplus, calculate_total_surplus(ex2_v2_sim, "producer"))
     push!(ex2_v2_consumer_surplus, calculate_total_surplus(ex2_v2_sim, "consumer"))
@@ -119,7 +145,7 @@ for i in 1:1000
 
     # 1.2
 
-    ex2_v3_sim = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [1.2, 0.8], m = m_init, c = [0.6,0.6], ϵ = [0.33,0.33], a = [0.0, 0.0], r = [0.4, 0.4], d = [1,1], q_init = [1.2, 0.8], num_links = 1000)
+    ex2_v3_sim = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [1.2, 0.8], m = m_init, c = [0.6,0.6], ϵ = [0.33,0.33], a = [0.0, 0.0], r = [0.4, 0.4], d = d_init, q_init = [1.2, 0.8], num_links = 1000)
     push!(ex2_v3_total_surplus, calculate_total_surplus(ex2_v3_sim, "total"))
     push!(ex2_v3_producer_surplus, calculate_total_surplus(ex2_v3_sim, "producer"))
     push!(ex2_v3_consumer_surplus, calculate_total_surplus(ex2_v3_sim, "consumer"))
@@ -134,7 +160,7 @@ for i in 1:1000
 
     # 1.3
 
-    ex2_v4_sim = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [1.3, 0.7], m = m_init, c = [0.6,0.6], ϵ = [0.33,0.33], a = [0.0, 0.0], r = [0.4, 0.4], d = [1,1], q_init = [1.3, 0.7], num_links = 1000)
+    ex2_v4_sim = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [1.3, 0.7], m = m_init, c = [0.6,0.6], ϵ = [0.33,0.33], a = [0.0, 0.0], r = [0.4, 0.4], d = d_init, q_init = [1.3, 0.7], num_links = 1000)
     push!(ex2_v4_total_surplus, calculate_total_surplus(ex2_v4_sim, "total"))
     push!(ex2_v4_producer_surplus, calculate_total_surplus(ex2_v4_sim, "producer"))
     push!(ex2_v4_consumer_surplus, calculate_total_surplus(ex2_v4_sim, "consumer"))
@@ -149,7 +175,7 @@ for i in 1:1000
 
     # 1.4
 
-    ex2_v5_sim = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [1.4, 0.6], m = m_init, c = [0.6,0.6], ϵ = [0.33,0.33], a = [0.0, 0.0], r = [0.4, 0.4], d = [1,1], q_init = [1.4, 0.6], num_links = 1000)
+    ex2_v5_sim = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [1.4, 0.6], m = m_init, c = [0.6,0.6], ϵ = [0.33,0.33], a = [0.0, 0.0], r = [0.4, 0.4], d = d_init, q_init = [1.4, 0.6], num_links = 1000)
     push!(ex2_v5_total_surplus, calculate_total_surplus(ex2_v5_sim, "total"))
     push!(ex2_v5_producer_surplus, calculate_total_surplus(ex2_v5_sim, "producer"))
     push!(ex2_v5_consumer_surplus, calculate_total_surplus(ex2_v5_sim, "consumer"))
@@ -164,7 +190,7 @@ for i in 1:1000
 
     # 1.5
 
-    ex2_v6_sim = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [1.5, 0.5], m = m_init, c = [0.6,0.6], ϵ = [0.33,0.33], a = [0.0, 0.0], r = [0.4, 0.4], d = [1,1], q_init = [1.5, 0.5], num_links = 1000)
+    ex2_v6_sim = TO_GO(2, 500, 250, 0.25, 0.25, "deterministic"; q = [1.5, 0.5], m = m_init, c = [0.6,0.6], ϵ = [0.33,0.33], a = [0.0, 0.0], r = [0.4, 0.4], d = d_init, q_init = [1.5, 0.5], num_links = 1000)
     push!(ex2_v6_total_surplus, calculate_total_surplus(ex2_v6_sim, "total"))
     push!(ex2_v6_producer_surplus, calculate_total_surplus(ex2_v6_sim, "producer"))
     push!(ex2_v6_consumer_surplus, calculate_total_surplus(ex2_v6_sim, "consumer"))
@@ -192,15 +218,19 @@ scatter!(getindex.(ex2_v16_init_margin, 1), getindex.([mean.(x) for x in ex2_v6_
 ### Wyższe poziomy marż pozwalają producentom na osiąganie wyższych zysków, jednak po osiągnięciu poziomu m_π* zysk zaczyna spadać 
 ### Producentom opłaca się zwiększać marżę, tak by maksymalizować zyski
 
-scatter(getindex.([mean.(x) for x in ex2_v1_margin], 1), getindex.(ex2_v1_producer_surplus_singleton, 1), xlabel = "Average margin d. simulation", ylabel = "Producer 1 surplus", label = "Q = (1.0, 1.0)", markeralpha = 0.25, ylim = (0,15000))
+ex2_p4 = scatter(getindex.([mean.(x) for x in ex2_v1_margin], 1), getindex.(ex2_v1_producer_surplus_singleton, 1), xlabel = "Średnia marża", ylabel = "Nadwyżka pierwszego producenta", label = "K = (1.0, 1.0)", markeralpha = 0.25, title = "Nadwyżka pierwszego producenta")
 add_smoothing_spline(getindex.([mean.(x) for x in ex2_v1_margin], 1), getindex.(ex2_v1_producer_surplus_singleton, 1), "blue")
-scatter!(getindex.([mean.(x) for x in ex2_v6_margin], 1), getindex.(ex2_v6_producer_surplus_singleton, 1), xlabel = "Average margin d. simulation", ylabel = "Producer 1 surplus", label = "Q = (1.5, 0.5)", markeralpha = 0.25)
+scatter!(getindex.([mean.(x) for x in ex2_v6_margin], 1), getindex.(ex2_v6_producer_surplus_singleton, 1), xlabel = "Średnia marża", ylabel = "Nadwyżka pierwszego producenta", label = "K = (1.5, 0.5)", markeralpha = 0.25)
 add_smoothing_spline(getindex.([mean.(x) for x in ex2_v6_margin], 1), getindex.(ex2_v6_producer_surplus_singleton, 1), "green")
 
-scatter(getindex.([mean.(x) for x in ex2_v1_margin], 2), getindex.(ex2_v1_producer_surplus_singleton, 2), xlabel = "Average margin d. simulation", ylabel = "Producer 2 surplus", label = "Q = (1.0, 1.0)", markeralpha = 0.25, ylim = (0, 15000))
+savefig(ex2_p4, pwd() * "\\plots\\ex2_p4 surplus 1.svg")
+
+ex2_p5 = scatter(getindex.([mean.(x) for x in ex2_v1_margin], 2), getindex.(ex2_v1_producer_surplus_singleton, 2), xlabel = "Średnia marża", ylabel = "Nadwyżka drugiego producenta", label = "K = (1.0, 1.0)", markeralpha = 0.25, title = "Nadwyżka drugiego producenta")
 add_smoothing_spline(getindex.([mean.(x) for x in ex2_v1_margin], 2), getindex.(ex2_v1_producer_surplus_singleton, 2), "blue")
-scatter!(getindex.([mean.(x) for x in ex2_v6_margin], 2), getindex.(ex2_v6_producer_surplus_singleton, 2), xlabel = "Average margin d. simulation", ylabel = "Producer 2 surplus", label = "Q = (1.5, 0.5)", markeralpha = 0.25)
+scatter!(getindex.([mean.(x) for x in ex2_v6_margin], 2), getindex.(ex2_v6_producer_surplus_singleton, 2), xlabel = "Średnia marża", ylabel = "Nadwyżka drugiego producenta", label = "K = (1.5, 0.5)", markeralpha = 0.25)
 add_smoothing_spline(getindex.([mean.(x) for x in ex2_v6_margin], 2), getindex.(ex2_v6_producer_surplus_singleton, 2), "green")
+
+savefig(ex2_p5, pwd() * "\\plots\\ex2_p4 surplus 2.svg")
 
 ### Całkowita nadwyżka producenta na rynku bez zróżnicowania produktu nie zależy od różnic pomiędzy marżami producentów - z uwagi na substytucyjny charakter produktów
 
@@ -224,98 +254,32 @@ add_smoothing_spline(d.([mean.(x) for x in ex2_v6_margin]), getindex.(ex2_v6_pro
 
 ###
 
-margin_diff_12_34 = getindex.(ex2_v16_init_margin, 1) .- getindex.(ex2_v16_init_margin, 2)
+
+
+#margin_diff_12_34 = getindex.(ex2_v16_init_margin, 1) .- getindex.(ex2_v16_init_margin, 2)
+margin_diff_12_34 = mean.(getindex.(ex2_v1_margin, 1)) .- mean.(getindex.(ex2_v1_margin, 2)) 
 
 # Całkowita nadwyżka w zależności od marży początkowej: im wyższa różnica pomiędzy marżą firmy najlepszej vs. inne firmy, to efektywność rynku spada
 
-scatter(margin_diff_12_34, ex2_v1_total_surplus, smooth = true, xlabel = "Margin difference between high quality and low-quality producers", ylabel = "Total market surplus", legend=nothing, markeralpha = 0.25)
+ex2_p1 = scatter(margin_diff_12_34, ex2_v1_total_surplus, xlabel = "Różnica marży, pomiędzy producentem pierwszym a drugim", ylabel = "Całkowita nadwyżka", label="Identyczna jakość", markeralpha = 0.25, title = "Nadwyżka całkowita a jakość dóbr")
 add_smoothing_spline(margin_diff_12_34, Float64.(ex2_v1_total_surplus), "blue")
-scatter!(margin_diff_12_34, ex2_v6_total_surplus, smooth = true, legend=nothing, markeralpha = 0.25)
+scatter!(margin_diff_12_34, ex2_v6_total_surplus, label="Rożna jakość", markeralpha = 0.25)
 add_smoothing_spline(margin_diff_12_34, Float64.(ex2_v6_total_surplus), "green")
+
+savefig(ex2_p1, pwd() * "\\plots\\ex2_surplus vs margin diff.svg")
+
+ex2_p2 = scatter(margin_diff_12_34, ex2_v1_producer_surplus, xlabel = "Różnica marży, pomiędzy producentem pierwszym a drugim", ylabel = "Nadwyżka producenta", label="Identyczna jakość", markeralpha = 0.25, title = "Nadwyżka całkowita")
+add_smoothing_spline(margin_diff_12_34, Float64.(ex2_v1_producer_surplus), "blue")
+scatter!(margin_diff_12_34, ex2_v6_producer_surplus, label="Rożna jakość", markeralpha = 0.25)
+add_smoothing_spline(margin_diff_12_34, Float64.(ex2_v6_producer_surplus), "green")
 
 # Nadwyżka konsumenta spada wraz ze wzrostem różnicy marż. Przyczyna wynika z faktu, że jeśli marża firmy o najwyższej jakości jest zbyt wysoka, to nawet konsumenci poszukujący jakości zdecydują się na zakup dobra o niższej jakości, tym samym ograniczając swoją nadwyżkę. Cel social plannera to zmusić firmę najlepszą jakościowo do obniżenia marży, a dla pozostałych firm to podnieść marże. Cele firmy najlepszej są sprzeczne z celami social plannera.
 
-scatter(margin_diff_12_34, ex2_v1_consumer_surplus, smooth = true, xlabel = "Margin difference between high quality and low-quality producers", ylabel = "Profit", legend=nothing, markeralpha = 0.25)
-scatter!(margin_diff_12_34, ex2_v2_consumer_surplus, smooth = true, xlabel = "Margin difference between high quality and low-quality producers", ylabel = "Profit", legend=nothing, markeralpha = 0.25)
-scatter!(margin_diff_12_34, ex2_v3_consumer_surplus, smooth = true, xlabel = "Margin difference between high quality and low-quality producers", ylabel = "Profit", legend=nothing, markeralpha = 0.25)
-scatter!(margin_diff_12_34, ex2_v4_consumer_surplus, smooth = true, xlabel = "Margin difference between high quality and low-quality producers", ylabel = "Profit", legend=nothing, markeralpha = 0.25)
-scatter!(margin_diff_12_34, ex2_v5_consumer_surplus, smooth = true, xlabel = "Margin difference between high quality and low-quality producers", ylabel = "Profit", legend=nothing, markeralpha = 0.25)
-scatter!(margin_diff_12_34, ex2_v6_consumer_surplus, smooth = true, xlabel = "Margin difference between high quality and low-quality producers", ylabel = "Profit", legend=nothing, markeralpha = 0.25)
+ex2_p3 = scatter(margin_diff_12_34, ex2_v1_consumer_surplus, smooth = true, xlabel = "Różnica marży, pomiędzy producentem pierwszym a drugim", ylabel = "Nadwyżka konsumenta", label = "K = (1.0,1.0)", markeralpha = 0.25, title = "Nadwyżka konsumenta a jakość dóbr")
+scatter!(margin_diff_12_34, ex2_v2_consumer_surplus, smooth = true, xlabel = "Różnica marży, pomiędzy producentem pierwszym a drugim", ylabel = "Nadwyżka konsumenta", label = "K = (1.1,0.9)", markeralpha = 0.25)
+scatter!(margin_diff_12_34, ex2_v3_consumer_surplus, smooth = true, xlabel = "Różnica marży, pomiędzy producentem pierwszym a drugim", ylabel = "Nadwyżka konsumenta", label = "K = (1.2,0.8)", markeralpha = 0.25)
+scatter!(margin_diff_12_34, ex2_v4_consumer_surplus, smooth = true, xlabel = "Różnica marży, pomiędzy producentem pierwszym a drugim", ylabel = "Nadwyżka konsumenta", label = "K = (1.3,0.7)", markeralpha = 0.25)
+scatter!(margin_diff_12_34, ex2_v5_consumer_surplus, smooth = true, xlabel = "Różnica marży, pomiędzy producentem pierwszym a drugim", ylabel = "Nadwyżka konsumenta", label = "K = (1.4,0.6)", markeralpha = 0.25)
+scatter!(margin_diff_12_34, ex2_v6_consumer_surplus, smooth = true, xlabel = "Różnica marży, pomiędzy producentem pierwszym a drugim", ylabel = "Nadwyżka konsumenta", label = "K = (1.5,0.5)", markeralpha = 0.25)
 
-
-
-########## HypothesisTests
-sim_single_1111 = TO_GO(4, 250, 500, 0.25, 0.25, "deterministic"; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.6, 0.6, 0.6, 0.6], ϵ = [0.33, 0.33, 0.33, 0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], q_init = [1.6, 1.3, 1.0, 0.7], num_links = 1000, d = [2, 2, 2, 2])
-
-sim_single_4321 = TO_GO(4, 250, 500, 0.25, 0.25, "deterministic"; q = [1.6, 1.3, 1.0, 0.7], m = [0.2, 0.2, 0.2, 0.2], c = [0.6, 0.6, 0.6, 0.6], ϵ = [0.33, 0.33, 0.33, 0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], q_init = [1.6, 1.3, 1.0, 0.7], num_links = 1000, d = [2, 3, 2, 2])
-
-plot(calculate_expectation(sim_single_1111, "durability"))
-plot(calculate_expectation(sim_single_4321, "durability"))
-
-prod1111 = getindex.(sim_single_1111.dur_his,1)
-dur1111 = getindex.(sim_single_1111.dur_his,2)
-
-map(x -> mean(dur1111[prod1111 .== x]), 1:4)
-
-prod4321 = getindex.(sim_single_4321.dur_his,1)
-dur4321 = getindex.(sim_single_4321.dur_his,2)
-
-map(x -> mean(dur4321[prod4321 .== x]), 1:4)
-
-(calculate_total_surplus(sim_single_1111,"consumer"),calculate_total_surplus(sim_single_4321,"consumer"))
-
-plot(sim_single_4321.buyers[1].surplus_history[1:10])
-
-StatsPlots.density(sum.(getfield.(sim_single_1111.buyers, :surplus_history)))
-StatsPlots.density!(sum.(getfield.(sim_single_4321.buyers, :surplus_history)))
-
-surplus_1111 = [x[y] for (x,y) in zip((getfield.(sim_single_1111.ut_his, :wtp) .- getfield.(sim_single_1111.ut_his, :p)),argmax.(getfield.(sim_single_1111.ut_his, :u)))]
-
-surplus_4321 = [x[y] for (x,y) in zip((getfield.(sim_single_4321.ut_his, :wtp) .- getfield.(sim_single_4321.ut_his, :p)),argmax.(getfield.(sim_single_4321.ut_his, :u)))]
-
-chp1111 = argmax.(getfield.(sim_single_1111.ut_his, :u))
-wtp1111 = [x[y] for (x,y) in zip(getfield.(sim_single_1111.ut_his, :wtp) .- getfield.(sim_single_1111.ut_his, :p), chp1111)]
-
-chp4321 = argmax.(getfield.(sim_single_4321.ut_his, :u))
-wtp4321 = [x[y] for (x,y) in zip(getfield.(sim_single_4321.ut_his, :wtp) .- getfield.(sim_single_4321.ut_his, :p), chp4321)]
-
-mean(wtp1111[chp1111 .== 1])
-mean(wtp4321[chp4321 .== 1])
-
-mean(wtp1111[chp1111 .== 2])
-mean(wtp4321[chp4321 .== 2])
-
-sum(wtp1111[chp1111 .== 3])
-sum(wtp4321[chp4321 .== 3])
-
-sum(wtp1111[chp1111 .== 4])
-sum(wtp4321[chp4321 .== 4])
-
-countmap(chp1111)
-countmap(chp4321)
-
-plot(calculate_expectation(sim_single_1111, "durability"))
-plot(calculate_expectation(sim_single_4321, "durability"))
-
-18528 *  / 23259
-3.03 / 2.41
-
-sort(countmap([argmax(x.u[x.ap]) for x in sim_single_1111.ut_his]))
-sort(countmap([argmax(x.u[x.ap]) for x in sim_single_4321.ut_his]))
-
-sim_single_4321.ut_his[1].wtp .- sim_single_4321.ut_his[1].p
-
-(0.5 + sim_single_4321.ut_his[1].qs) .* sim_single_4321.ut_his[1].qe .* sim_single_4321.ut_his[1].de ./ sim_single_4321.ut_his[1].p
-
-mean(surplus_1111)
-mean(surplus_4321)
-
-sim_single_1111.ut_his
-sim_single_4321.ut_his
-
-plot(argmax.(sim_single_1111.buyers[4].unit_bought_history))
-
-plot(getindex.(sim_single_1111.buyers[4].durability_expectation_history, 3))
-
-
-sim_single.buyers[4].quality_expectation_history
+savefig(ex2_p3, pwd() * "\\plots\\ex2_consumer surplus vs margin diff.svg")
