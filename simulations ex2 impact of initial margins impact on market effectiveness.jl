@@ -1,6 +1,6 @@
 include(pwd() * "\\methods\\methods.jl")
 
-sim_single = TO_GO(4, 1000, 100, 0.25, 0.25, "stochastic"; q = [1.1, 1.1, 0.9, 0.7], m = [0.1,0.1,0.1,0.1], c = [0.3, 0.3, 0.3, 0.3], ϵ = [0.33, 0.33, 0.33, 0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.01, 0.01, 0.01, 0.01], q_init = [1.1, 1.1, 0.9, 0.7], d = [9, 7, 5, 5], num_links = 1000)
+sim_single = TO_GO(4, 1000, 400, 0.25, 0.25, "stochastic"; q = [1.1, 1.1, 0.9, 0.7], m = [0.1,0.1,0.1,0.1], c = [0.3, 0.3, 0.3, 0.3], ϵ = [0.33, 0.33, 0.33, 0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.01, 0.01, 0.01, 0.01], q_init = [1.1, 1.1, 0.9, 0.7], d = [9, 7, 5, 5], num_links = 1000)
 
 plot_margin(sim_single, true)
 plot_margin(sim_single, false)
@@ -9,6 +9,11 @@ plot_quantity(sim_single)
 plot_quality_expectation(sim_single)
 plot_profit_history(sim_single)
 calculate_total_surplus(sim_single)
+plot_advertising(sim_single)
+
+mean(mean.(getfield.(sim_single.buyers, :ad_received_history)))
+
+sim_single.sellers[1].advertising
 
 scatter(sim_single.sellers[4].margin_history, calculate_profit_history(sim_single.sellers[4]))
 
