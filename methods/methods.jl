@@ -188,7 +188,7 @@ function calculate_optimal_margin(my_m, my_dq, comp_p, comp_dq, my_c, δ_m)
 
 end
 
-function calculate_optimal_margin_and_advertising(my_m, my_dq, comp_p, comp_dq, my_c, δ_m, my_a, δ_a, my_i, comp_a, comp_i)
+function calculate_optimal_margin_and_advertising(my_m, my_dq, comp_p, comp_dq, my_c, δ_m, my_a, δ_a, my_i, comp_a, comp_i, seller_behaviour = "stochastic", verbose = false)
 
     my_p_current = my_c * my_dq * (1 + my_m)
     my_p_priceup = my_c * my_dq * (1 + my_m + δ_m)
@@ -197,7 +197,6 @@ function calculate_optimal_margin_and_advertising(my_m, my_dq, comp_p, comp_dq, 
     my_a_current = my_a
     my_a_adsup = my_a + δ_a
     my_a_adsdown = my_a - δ_a
-    my_a_none = 0
 
     s = LinRange(0:0.01:1.0)
 
@@ -205,7 +204,7 @@ function calculate_optimal_margin_and_advertising(my_m, my_dq, comp_p, comp_dq, 
 
     m_a_profit = []
 
-    for a in [my_a_none, my_a_adsdown, my_a_current, my_a_adsup]
+    for a in [my_a_adsdown, my_a_current, my_a_adsup]
 
         my_w = s .* my_dq .* (1 + a * my_i)
 
@@ -227,9 +226,9 @@ function calculate_optimal_margin_and_advertising(my_m, my_dq, comp_p, comp_dq, 
         my_margin_priceup = my_p_priceup - my_dq * my_c
         my_margin_pricedown = my_p_pricedown - my_dq * my_c
 
-        my_π_current = my_demand_current * my_margin_current - 0.05 * 100 * a
-        my_π_priceup = my_demand_priceup * my_margin_priceup - 0.05 * 100 * a
-        my_π_pricedown = my_demand_pricedown * my_margin_pricedown - 0.05 * 100 * a
+        my_π_current = my_demand_current * my_margin_current - 2 * a
+        my_π_priceup = my_demand_priceup * my_margin_priceup - 2 * a
+        my_π_pricedown = my_demand_pricedown * my_margin_pricedown - 2 * a
 
         push!(m_a_profit, [my_π_pricedown, my_π_current, my_π_priceup])
 
@@ -237,24 +236,31 @@ function calculate_optimal_margin_and_advertising(my_m, my_dq, comp_p, comp_dq, 
 
     profit_matrix = hcat(m_a_profit...)
 
-    my_decision = argmax(profit_matrix)
+    new_m = -1
+    new_a = -1
+
+    if seller_behaviour == "deterministic"
+
+        my_decision = Tuple(argmax(profit_matrix))
+
+    elseif seller_behaviour == "stochastic"
+
+        my_decision = sample(vec(reshape(CartesianIndices(profit_matrix), 9, 1)), Weights(vec(reshape(profit_matrix, 9, 1))))
+
+    end
 
     m_decision = my_decision[1]
     a_decision = my_decision[2]
-
-    if m_decision == 1
-
-        new_m = 0
     
-    elseif m_decision == 2
+    if m_decision == 1
 
         new_m = my_m - δ_m
 
-    elseif m_decision == 3
+    elseif m_decision == 2
 
         new_m = my_m
 
-    elseif m_decision == 4
+    elseif m_decision == 3
 
         new_m = my_m + δ_m
 
@@ -274,11 +280,53 @@ function calculate_optimal_margin_and_advertising(my_m, my_dq, comp_p, comp_dq, 
 
     end
 
+    if verbose
+
+        if my_decision == (1,1)
+
+            println("M down, A down")
+
+        elseif my_decision == (1,2)
+
+            println("M down, A keep")
+
+        elseif my_decision == (1,3)
+
+            println("M down, A up")
+
+        elseif my_decision == (2,1)
+
+            println("M keep, A down")
+
+        elseif my_decision == (2,2)
+
+            println("M keep, A keep")
+
+        elseif my_decision == (2,3)
+
+            println("M keep, A up")
+
+        elseif my_decision == (3,1)
+
+            println("M up, A down")
+
+        elseif my_decision == (3,2)
+
+            println("M up, A keep")
+
+        elseif my_decision == (3,3)
+
+            println("M up, A up")
+
+        end
+
+    end
+
     return new_m, new_a
 
 end
 
-function seller_price_and_advertising_adjustment_observing_competitors(sellers, iter, allow_negative_margin)
+function seller_price_and_advertising_adjustment_observing_competitors(sellers, iter, allow_negative_margin, seller_behaviour)
 
     if iter == 1
 
@@ -327,7 +375,7 @@ function seller_price_and_advertising_adjustment_observing_competitors(sellers, 
 
                 comp_i = getfield.(comp, :persuasiveness)
 
-                new_margin, new_advertising = calculate_optimal_margin_and_advertising(my_margin, my_dq, comp_p, comp_dq, my_c, 0.01, my_a, 0.005, my_i, comp_a, comp_i)
+                new_margin, new_advertising = calculate_optimal_margin_and_advertising(my_margin, my_dq, comp_p, comp_dq, my_c, 0.01, my_a, 0.01, my_i, comp_a, comp_i, seller_behaviour)
 
                 _seller.price_change = false
 
@@ -374,7 +422,7 @@ function seller_price_and_advertising_adjustment_observing_competitors(sellers, 
             end
 
             if !allow_negative_margin
-                new_margin = in_boundaries(new_margin, 0, 2)
+                new_margin = in_boundaries(new_margin, 0, 100)
             end
 
             new_advertising = in_boundaries(new_advertising, 0, 1)
@@ -445,17 +493,17 @@ end
 
 ############################################ MAIN SIM FUNCTION #####################################################
 
-function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::Float64, λ_wom::Float64, consumer_behaviour::String; q::Vector{Float64} = fill(1.0, num_sellers), c::Vector{Float64} = fill(0.8, num_sellers), m::Vector{Float64} = fill(0.2, num_sellers), a::Vector{Float64} = fill(0.05, num_sellers), r::Vector{Float64} = fill(0.05, num_sellers), ϵ::Vector{Float64} = fill(1/3, num_sellers), q_init::Vector{Float64} = fill(1.0, num_sellers), p::Vector{Float64} = fill(0.05, num_sellers), d::Vector{Int64} = fill(5, num_sellers), num_links::Int64 = 200, δ::Float64 = 0.05, γ::Float64 = 0.050, α::Float64 = 0.005, variant_advertising::Bool = true, allow_negative_margin::Bool = true)
+function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::Float64, λ_wom::Float64; q::Vector{Float64} = fill(1.0, num_sellers), c::Vector{Float64} = fill(0.8, num_sellers), m::Vector{Float64} = fill(0.2, num_sellers), a::Vector{Float64} = fill(0.05, num_sellers), r::Vector{Float64} = fill(0.05, num_sellers), ϵ::Vector{Float64} = fill(1/3, num_sellers), p::Vector{Float64} = fill(0.05, num_sellers), d::Vector{Int64} = fill(5, num_sellers), num_links::Int64 = 200, δ::Float64 = 0.05, γ::Float64 = 0.050, α::Float64 = 0.005, variant_advertising::Bool = true, allow_negative_margin::Bool = true, consumer_behaviour::String = "stochastic", seller_behaviour::String = "stochastic")
 
 
-    function_args = (num_sellers = num_sellers, num_buyers = num_buyers, max_iter = max_iter, λ_ind = λ_ind, λ_wom = λ_wom, q = q, c = c, m = m, a = a, r = r, ϵ = ϵ, q_init = q_init, p=p, d=d, num_links = num_links, δ = δ, γ = γ, α=α)
+    function_args = (num_sellers = num_sellers, num_buyers = num_buyers, max_iter = max_iter, λ_ind = λ_ind, λ_wom = λ_wom, q = q, c = c, m = m, a = a, r = r, ϵ = ϵ, p=p, d=d, num_links = num_links, δ = δ, γ = γ, α=α)
 
     # create sellers and buyers
 
     sellers = create_sellers(num_sellers, q, c, m, a, r, p, d)
 
     buyers_network = create_network("random", num_buyers = num_buyers, num_links = num_links)
-    buyers = create_buyers(num_buyers, num_sellers, buyers_network, q_init, Float64.(d))
+    buyers = create_buyers(num_buyers, num_sellers, buyers_network, q, Float64.(d))
 
     # utlity function definition
 
@@ -473,7 +521,7 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
 
     for iter in 1:max_iter
 
-        sellers = seller_price_and_advertising_adjustment_observing_competitors(sellers, iter, allow_negative_margin)
+        sellers = seller_price_and_advertising_adjustment_observing_competitors(sellers, iter, allow_negative_margin, seller_behaviour)
 
         #### RYNEK ####
 
@@ -513,15 +561,16 @@ function TO_GO(num_sellers::Int64, num_buyers::Int64, max_iter::Int64, λ_ind::F
                     if product_amortization >= product_durability
 
                         #_buyer.broken_product = true
-                        _buyer.unit_possessed = fill(false, num_sellers)
-
-                        push!(durability_history, (argmax(_buyer.unit_possessed), product_amortization))
-
                         _buyer.durability_expectation = _buyer.durability_expectation .+ λ_ind .* _buyer.unit_possessed .* (product_amortization .- _buyer.durability_expectation)
 
                         for idn in _buyer.neighbours
                             buyers[idn].durability_expectation = buyers[idn].durability_expectation .+ λ_wom .* _buyer.unit_possessed .* (product_amortization .- buyers[idn].durability_expectation)
                         end
+
+                        _buyer.unit_possessed = fill(false, num_sellers)
+
+                        push!(durability_history, (argmax(_buyer.unit_possessed), product_amortization))
+
                     end
 
                 end
