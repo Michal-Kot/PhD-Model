@@ -33,7 +33,7 @@ for i in 1:1000
     m_init = rand(Uniform(0,0.2))
     push!(ex1_v12_init_margin, m_init)
 
-    ex1_v1_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.0, 1.0, 1.0, 1.0], m = fill(m_init, 4), c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [2,2,2,2], q_init = [1., 1., 1., 1.], num_links = 1000)
+    ex1_v1_sim = TO_GO(4, 500, 250, 0.25, 0.25; q = [1.0, 1.0, 1.0, 1.0], m = fill(m_init, 4), c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [2,2,2,2], num_links = 1000, consumer_behaviour = "stochastic", seller_behaviour = "deterministic")
     push!(ex1_v1_total_surplus, calculate_total_surplus(ex1_v1_sim, "total"))
     push!(ex1_v1_producer_surplus, calculate_total_surplus(ex1_v1_sim, "producer"))
     push!(ex1_v1_consumer_surplus, calculate_total_surplus(ex1_v1_sim, "consumer"))
@@ -41,7 +41,7 @@ for i in 1:1000
     push!(ex1_v1_quantity, getfield.(ex1_v1_sim.sellers, :quantity_history))
     push!(ex1_v1_advertising, mean(getfield.(ex1_v1_sim.sellers, :advertising_history)))
 
-    ex1_v2_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.5, 1.25, 0.75, 0.50], m = fill(m_init, 4), c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [2,2,2,2], num_links = 1000, q_init = [1.5, 1.25, 0.75, 0.50])
+    ex1_v2_sim = TO_GO(4, 500, 250, 0.25, 0.25; q = [1.3, 1.15, 0.85, 0.7], m = fill(m_init, 4), c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [2,2,2,2], num_links = 1000, consumer_behaviour = "stochastic", seller_behaviour = "deterministic")
     push!(ex1_v2_total_surplus, calculate_total_surplus(ex1_v2_sim, "total"))
     push!(ex1_v2_producer_surplus, calculate_total_surplus(ex1_v2_sim, "producer"))
     push!(ex1_v2_consumer_surplus, calculate_total_surplus(ex1_v2_sim, "consumer"))
@@ -182,11 +182,11 @@ for i in 1:1000
 
     push!(ex1_v710_m, m_init)
 
-    d_init = shuffle([5,4,2,1])
+    d_init = shuffle([3,3,1,1])
 
     push!(ex1_v710_d, d_init)
 
-    ex1_v7_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1., 1., 1. ,1. ], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [3,3,3,3], num_links = 1000, q_init = [1., 1., 1., 1.])
+    ex1_v7_sim = TO_GO(4, 500, 250, 0.25, 0.25; q = [1., 1., 1. ,1. ], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [2,2,2,2], num_links = 1000, consumer_behaviour = "stochastic", seller_behaviour = "deterministic")
 
     push!(ex1_v7_total_surplus, calculate_total_surplus(ex1_v7_sim, "total"))
     push!(ex1_v7_producer_surplus, calculate_total_surplus(ex1_v7_sim, "producer"))
@@ -196,7 +196,7 @@ for i in 1:1000
     push!(ex1_v7_advertising, mean(getfield.(ex1_v7_sim.sellers, :advertising_history)))
     push!(ex1_v7_producer_surplus_singleton, sum.(calculate_profit_history.(ex1_v7_sim.sellers)))
 
-    ex1_v8_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1., 1., 1. ,1. ], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = d_init, num_links = 1000, q_init = [1., 1., 1., 1.])
+    ex1_v8_sim = TO_GO(4, 500, 250, 0.25, 0.25; q = [1., 1., 1. ,1. ], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = d_init, num_links = 1000, consumer_behaviour = "stochastic", seller_behaviour = "deterministic")
     push!(ex1_v8_total_surplus, calculate_total_surplus(ex1_v8_sim, "total"))
     push!(ex1_v8_producer_surplus, calculate_total_surplus(ex1_v8_sim, "producer"))
     push!(ex1_v8_consumer_surplus, calculate_total_surplus(ex1_v8_sim, "consumer"))
@@ -205,7 +205,7 @@ for i in 1:1000
     push!(ex1_v8_advertising, mean(getfield.(ex1_v8_sim.sellers, :advertising_history)))
     push!(ex1_v8_producer_surplus_singleton, sum.(calculate_profit_history.(ex1_v8_sim.sellers)))
 
-    ex1_v9_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.5, 1.25, 0.75, 0.50], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [3,3,3,3], num_links = 1000, q_init = [1.5, 1.25, 0.75, 0.50])
+    ex1_v9_sim = TO_GO(4, 500, 250, 0.25, 0.25; q = [1.3, 1.15, 0.85, 0.7], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = [2,2,2,2], num_links = 1000, consumer_behaviour = "stochastic", seller_behaviour = "deterministic")
     push!(ex1_v9_total_surplus, calculate_total_surplus(ex1_v9_sim, "total"))
     push!(ex1_v9_producer_surplus, calculate_total_surplus(ex1_v9_sim, "producer"))
     push!(ex1_v9_consumer_surplus, calculate_total_surplus(ex1_v9_sim, "consumer"))
@@ -214,7 +214,7 @@ for i in 1:1000
     push!(ex1_v9_advertising, mean(getfield.(ex1_v9_sim.sellers, :advertising_history)))
     push!(ex1_v9_producer_surplus_singleton, sum.(calculate_profit_history.(ex1_v9_sim.sellers)))
 
-    ex1_v10_sim = TO_GO(4, 500, 250, 0.25, 0.25, "deterministic"; q = [1.5, 1.25, 0.75, 0.50], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = d_init, num_links = 1000, q_init = [1.5, 1.25, 0.75, 0.50])
+    ex1_v10_sim = TO_GO(4, 500, 250, 0.25, 0.25; q = [1.3, 1.15, 0.85, 0.7], m = m_init, c = [0.6,0.6,0.6,0.6], ϵ = [0.33,0.33,0.33,0.33], a = [0.0, 0.0, 0.0, 0.0], r = [0.4, 0.4, 0.4, 0.4], d = d_init, num_links = 1000, consumer_behaviour = "stochastic", seller_behaviour = "deterministic")
     push!(ex1_v10_total_surplus, calculate_total_surplus(ex1_v10_sim, "total"))
     push!(ex1_v10_producer_surplus, calculate_total_surplus(ex1_v10_sim, "producer"))
     push!(ex1_v10_consumer_surplus, calculate_total_surplus(ex1_v10_sim, "consumer"))
@@ -239,8 +239,6 @@ UnequalVarianceTTest(Float64.(ex1_v8_total_surplus), Float64.(ex1_v10_total_surp
 
 UnequalVarianceTTest(Float64.(sort(ex1_v8_total_surplus) .- sort(ex1_v10_total_surplus)), Float64.(sort(ex1_v7_total_surplus) .- sort(ex1_v9_total_surplus)))
 
-StatsPlots.density(ex1_v7_total_surplus .- ex1_v9_total_surplus)
-StatsPlots.density!(ex1_v8_total_surplus .- ex1_v10_total_surplus)
 
 
 plot_ecdf(ex1_v7_consumer_surplus, "equal Q, equal D", "Consumer Surplus", "Probability", "ECDF", true)
@@ -261,13 +259,13 @@ ex1_v710_d_u = sort(unique(ex1_v710_d))
 
 total_surplus_durability_eq = [ex1_v8_total_surplus[[all(x .== y) for x in ex1_v710_d]] for y in ex1_v710_d_u]
 
-ex3_p1 = boxplot(total_surplus_durability_eq, legend = nothing, xlabel = "Trwałość dobra [liczba iteracji]", ylabel = "Nadwyżka całkowita", ylim = (0, 60000), title = "Nadwyżka całkowita, dobra o identycznej jakości")
+ex3_p1 = boxplot(total_surplus_durability_eq, legend = nothing, xlabel = "Trwałość dobra [liczba iteracji]", ylabel = "Nadwyżka całkowita", title = "Nadwyżka całkowita, dobra o identycznej jakości")
 xticks!(1:length(ex1_v710_d_u), [join(string.(x)) for x in ex1_v710_d_u], xrotation = 90)
 
 savefig(ex3_p1, pwd() * "\\plots\\ex3_equal quality durability optim.svg")
 
 total_surplus_durability_dq = [ex1_v10_total_surplus[[all(x .== y) for x in ex1_v710_d]] for y in ex1_v710_d_u]
-ex3_p2 = boxplot(total_surplus_durability_dq, legend = nothing, xlabel = "Trwałość dobra [liczba iteracji]", ylabel = "Nadwyżka całkowita", title = "Nadwyżka całkowita, dobra o różnej jakości", ylim = (0,60000))
+ex3_p2 = boxplot(total_surplus_durability_dq, legend = nothing, xlabel = "Trwałość dobra [liczba iteracji]", ylabel = "Nadwyżka całkowita", title = "Nadwyżka całkowita, dobra o różnej jakości")
 xticks!(1:length(ex1_v710_d_u), [join(string.(x)) for x in ex1_v710_d_u], xrotation = 90)
 
 savefig(ex3_p2, pwd() * "\\plots\\ex3_diff quality durability optim.svg")
@@ -275,6 +273,7 @@ savefig(ex3_p2, pwd() * "\\plots\\ex3_diff quality durability optim.svg")
 # Consumer surplus
 
 consumer_surplus_durability_eq = [ex1_v8_consumer_surplus[[all(x .== y) for x in ex1_v710_d]] for y in ex1_v710_d_u]
+
 boxplot(consumer_surplus_durability_eq, legend = nothing, xlabel = "Durability combination", ylabel = "Consumer surplus")
 xticks!(1:length(ex1_v710_d_u), [join(string.(x)) for x in ex1_v710_d_u], xrotation = 90)
 
