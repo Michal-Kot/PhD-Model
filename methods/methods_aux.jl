@@ -9,12 +9,12 @@ function in_boundaries(x::Float64,lb::Int64,ub::Int64)::Float64
 end
 
 function calculate_cost(_seller::seller)::Float64
-    cost = _seller.durability * _seller.quality * _seller.average_cost
+    cost = sum_of_geom_series(_seller.quality, _seller.durability) * _seller.cost_coefficient
     return cost
 end
 
 function calculate_price(_seller::seller)::Float64
-    price = calculate_cost(_seller) * (1 + _seller.margin)
+    price = calculate_cost(_seller) * _seller.margin
     return price
 end
 
@@ -32,7 +32,7 @@ function u2w(u::Vector{Float64}, p_min::Float64 = 0.1)::Vector{Float64}
 end
 
 function calculate_profit_history(_seller::seller)::Vector{Float64}
-    profit = (calculate_price_history(_seller) .- calculate_cost(_seller)) .* _seller.quantity_history
+    profit = (calculate_price_history(_seller) .- calculate_cost(_seller)) .* _seller.quantity_history .- 2 .* _seller.advertising_history
     return profit
 end
 
@@ -108,7 +108,7 @@ function calculate_total_surplus(sim_res, return_type::String = "total", cumulat
 
 end
 
-function cut_integer(x::Vector{Float64},k::Int64)::Vector{Int64}
+function cut_integer(x::Vector{Float64},k::Int64)
 
     bin_width = 1 / k * (maximum(x) - minimum(x)) 
     bin_up_bounds = collect(1:k) .* bin_width
@@ -120,12 +120,12 @@ function cut_integer(x::Vector{Float64},k::Int64)::Vector{Int64}
         x_categorical[x_index] .= i
     end
 
-    return x_categorical
+    return x_categorical, bin_up_bounds
 
 end
 
 
-function sum_of_geom_series(a1,q,n)
+function sum_of_geom_series_finite(a1,q,n)
     a1 .* (1 .- q .^ n) ./ (1 .- q)
 end
 
@@ -146,3 +146,5 @@ function calculate_expectation(sim_res, metric, cumulated = false)
     end
 
 end
+
+mean_c(x) = length(x) > 0 ? mean(x) : NaN
