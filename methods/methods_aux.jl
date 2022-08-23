@@ -13,26 +13,41 @@ function calculate_cost(_seller::seller)::Float64
     return cost
 end
 
+function calculate_cost_history(_seller::seller)::Vector{Float64}
+    cost = sum_of_geom_series.(_seller.quality_history, _seller.durability_history) .* _seller.cost_coefficient
+    return cost
+end
+
 function calculate_price(_seller::seller)::Float64
     price = calculate_cost(_seller) * _seller.margin
     return price
 end
 
 function calculate_price_history(_seller::seller)::Vector{Float64}
-    price = calculate_cost(_seller) .* (1 .+ _seller.margin_history)
+    price = calculate_cost_history(_seller) .* _seller.margin_history
     return price
 end
 
 function u2w(u::Vector{Float64}, p_min::Float64 = 0.1)::Vector{Float64}
-    @assert p_min < 1.0
-    ut = u .- minimum(u)
-    wgt = ut ./ sum(ut) .* (1 - p_min)
-    wgt[argmin(u)] = p_min
+
+    if p_min > 0
+
+        @assert p_min < 1.0
+        ut = u .- minimum(u)
+        wgt = ut ./ sum(ut) .* (1 - p_min)
+        wgt[argmin(u)] = p_min
+
+    else
+
+        wgt = u ./ sum(u)
+
+    end
+
     return wgt
 end
 
 function calculate_profit_history(_seller::seller)::Vector{Float64}
-    profit = (calculate_price_history(_seller) .- calculate_cost(_seller)) .* _seller.quantity_history .- 2 .* _seller.advertising_history
+    profit = (calculate_price_history(_seller) .- calculate_cost_history(_seller)) .* _seller.quantity_sold_history
     return profit
 end
 
@@ -62,45 +77,79 @@ function create_bool_purchase(n::Int64,k::Int64)::Vector{Bool}
     return x
 end
 
-function calculate_total_surplus(sim_res, return_type::String = "total", cumulated::Bool = true)
+function calculate_surplus(sim_single, type::String, cumulated::Bool)
 
-    producer_surplus = sum(calculate_profit_history.(sim_res.sellers))
-    consumer_surplus = sum(getfield.(sim_res.buyers, :surplus_history))
-    total_surplus = producer_surplus .+ consumer_surplus
+    if type == "consumer,pm"
 
-    if return_type == "total"
+        if cumulated
 
-        if cumulated 
-
-            return sum(total_surplus)
+            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_pm_history)))
 
         else
 
-            return total_surplus
+            return sum(getfield.(sim_single.buyers, :realized_surplus_pm_history))
 
         end
 
-    elseif return_type == "producer"
+    elseif type == "consumer,sm,b"
 
-        if cumulated 
+        if cumulated
 
-            return sum(producer_surplus)
+            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history)))
 
         else
 
-            return producer_surplus
+            return sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history))
 
         end
 
-    elseif return_type == "consumer"
 
-        if cumulated 
+    elseif type == "consumer,sm,s"
 
-            return sum(consumer_surplus)
+        if cumulated
+
+            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history)))
 
         else
 
-            return consumer_surplus
+            return sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history))
+
+        end
+
+    elseif type == "consumer,total"
+
+        if cumulated
+
+            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_pm_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history)))
+
+        else
+
+            return sum(getfield.(sim_single.buyers, :realized_surplus_pm_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history))
+
+        end
+
+    elseif type == "producer"
+
+        if cumulated
+
+            return sum(sum(calculate_profit_history.(sim_single.sellers)))
+
+        else
+
+            return sum(calculate_profit_history.(sim_single.sellers))
+
+        end
+
+
+    elseif type == "total"
+
+        if cumulated
+
+            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_pm_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history))) + sum(sum(calculate_profit_history.(sim_single.sellers)))
+
+        else
+
+            return sum(getfield.(sim_single.buyers, :realized_surplus_pm_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history)) + sum(calculate_profit_history.(sim_single.sellers))
 
         end
 
@@ -148,3 +197,6 @@ function calculate_expectation(sim_res, metric, cumulated = false)
 end
 
 mean_c(x) = length(x) > 0 ? mean(x) : NaN
+
+maximum_c(x) = any(isnan(x)) ? maximum(x[.!isnan(x)]) : maximum(x)
+minimum_c(x) = any(isnan(x)) ? minimum(x[.!isnan(x)]) : minimum(x)

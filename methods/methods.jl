@@ -45,13 +45,26 @@ mutable struct seller
 
     reselling_history::Vector{Int64}
 
+    quality_range::Vector{Float64}
+    durability_range::Vector{Float64}
+    margin_range::Vector{Float64}
+
+    determinism::String
+
 end
 
-function create_sellers(num_sellers::Int64,k::Vector{Float64},c::Vector{Float64},m::Vector{Float64},d::Vector{Float64})::Vector{seller}
+function create_sellers(num_sellers::Int64,k::Vector{Float64},c::Vector{Float64},m::Vector{Float64},d::Vector{Float64}, qr::Vector{Vector{Float64}}, dr::Vector{Vector{Float64}}, mr::Vector{Vector{Float64}}, ω::Vector{String})::Vector{seller}
+    
     @assert length(k) == num_sellers
     @assert length(c) == num_sellers
     @assert length(m) == num_sellers
+    @assert length(d) == num_sellers
+    @assert length(qr) == num_sellers
+    @assert length(dr) == num_sellers
+    @assert length(mr) == num_sellers
+
     sellers_vector = []
+
     for s in 1:num_sellers
         new_seller = seller(s, #id
         k[s], #quality
@@ -65,7 +78,11 @@ function create_sellers(num_sellers::Int64,k::Vector{Float64},c::Vector{Float64}
         [], #quality_history
         [], #durability_history
         [], # margin_history
-        []) #reselling_history
+        [],
+        qr[s],
+        dr[s],
+        mr[s],
+        ω[s]) #reselling_history
         push!(sellers_vector, new_seller)
     end
     return sellers_vector
@@ -104,6 +121,9 @@ mutable struct buyer
     durability_for_sale::Float64
     price_for_sale::Float64
     age_for_sale::Int64
+    realized_surplus_pm_history::Vector{Float64}
+    realized_surplus_sm_b_history::Vector{Float64}
+    realized_surplus_sm_s_history::Vector{Float64}
 end
 
 function create_buyers(num_buyers::Int64, num_sellers::Int64, network::SimpleGraph{Int64}, initial_quality_expectation::Vector{Float64}=fill(1.0, num_sellers), initial_duration_expectation::Vector{Float64}=fill(0.5, num_sellers))::Vector{buyer}
@@ -133,7 +153,10 @@ function create_buyers(num_buyers::Int64, num_sellers::Int64, network::SimpleGra
             0.0, # quality_for_sale
             0.0, # durability_for_sale
             0.0, # price for sale
-            0) # age_for_sale
+            0,
+            [],
+            [],
+            []) # age_for_sale
         push!(buyers_vector, new_buyer)
     end
     return buyers_vector
@@ -164,75 +187,186 @@ include(pwd() * "\\methods\\methods_aux.jl")
 
 __precompile__()
 
-function sellers_choose_qp_k_d_m(sellers::Vector{seller}, iter::Int64, num_buyers::Int64)::Vector{seller}
+function sellers_choose_qp_k_d_m_deterministic(sellers::Vector{seller}, iter::Int64, num_buyers::Int64)::Vector{seller}
     for _seller in sellers
         if iter == 0
 
-            #_seller.quality = rand(Uniform(0,2))
-            #_seller.durability = rand(Uniform(0.5,1))
             _seller.quantity_produced = sample(1:num_buyers)
-            #_seller.margin = rand(Uniform(0.5,1.5))
 
         elseif iter >= 1
 
             # 🍎 tu skończone, dopisać 
 
-            #if _seller.phase == "setting"
+            δ_k = 0.01
+            δ_d = 0.01
+            δ_m = 0.01
 
-                δ_k = 0.01
-                δ_d = 0.01
-                δ_m = 0.01
+            my_k = _seller.quality
+            my_k = my_k .+ [-δ_k, 0, δ_k]
+            my_k = my_k[(my_k .>= _seller.quality_range[1]) .& (my_k .<= _seller.quality_range[2])]
 
-                my_k = _seller.quality
-                my_k = my_k .+ [-δ_k, 0, δ_k]
-                my_d = _seller.durability
-                my_d = my_d .+ [-δ_d, 0, δ_d]
-                my_m = _seller.margin
-                my_m = my_m .+ [-δ_m, 0, δ_m]
-                my_c = _seller.cost_coefficient
+            my_d = _seller.durability
+            my_d = my_d .+ [-δ_d, 0, δ_d]
+            my_d = my_d[(my_d .>= _seller.durability_range[1]) .& (my_d .<= _seller.durability_range[2])]
 
-                combinations = vec(collect(Iterators.product(my_k, my_d, my_m)))
+            my_m = _seller.margin
+            my_m = my_m .+ [-δ_m, 0, δ_m]
+            my_m = my_m[(my_m .>= _seller.margin_range[1]) .& (my_m .<= _seller.margin_range[2])]
+
+            my_c = _seller.cost_coefficient
+
+            combinations = vec(collect(Iterators.product(my_k, my_d, my_m)))
                 
-                comp = copy(sellers)
-                comp = comp[Not(_seller.id)]
+            comp = copy(sellers)
+            comp = comp[Not(_seller.id)]
 
-                comp_k = getfield.(comp, :quality)
-                comp_d = getfield.(comp, :durability)
-                comp_p = calculate_price.(comp)
+            comp_k = getfield.(comp, :quality)
+            comp_d = getfield.(comp, :durability)
+            comp_p = calculate_price.(comp)
 
-                strategy_outcomes = []
+            strategy_outcomes = []
 
-                for comb in combinations
+            for comb in combinations
 
-                    my_k = comb[1]
-                    my_d = comb[2]
-                    my_m = comb[3]
+                my_k = comb[1]
+                my_d = comb[2]
+                my_m = comb[3]
                 
-                    y = simulate_outcome_of_strategy(my_k, my_d, my_m, my_c, comp_k, comp_d, comp_p)
+                y = simulate_outcome_of_strategy(my_k, my_d, my_m, my_c, comp_k, comp_d, comp_p)
                 
-                    push!(strategy_outcomes, (comb, y[1], y[2]))
+                push!(strategy_outcomes, (comb, y[1], y[2]))
                     
+            end
+
+            if _seller.determinism == "deterministic"
+
+            best_strategy = getindex.(strategy_outcomes,1)[argmax(getindex.(strategy_outcomes,2))]    
+                
+            elseif _seller.determinism == "stochastic"
+
+                weights = getindex.(strategy_outcomes,2)
+                weights = max.(0, weights)
+                best_strategy = sample(getindex.(strategy_outcomes,1), Weights(weights))
+
+            end
+
+            new_quality = best_strategy[1]
+            new_durability = best_strategy[2]
+            new_margin = best_strategy[3]
+
+            # correction
+
+            produced_q = _seller.quantity_produced_history[end]
+            sold_q = _seller.quantity_sold_history[end]
+            
+            if produced_q > sold_q
+
+                planned_q = ceil(produced_q - rand() * (produced_q - sold_q))
+
+            elseif produced_q == sold_q
+
+                planned_q = ceil(produced_q * (1 + rand()))
+
+            end
+
+            _seller.quality = new_quality
+            _seller.durability = new_durability
+            _seller.margin = new_margin
+            _seller.quantity_produced = planned_q
+
+        end
+
+        push!(_seller.quantity_produced_history, _seller.quantity_produced)
+        push!(_seller.quality_history, _seller.quality)
+        push!(_seller.durability_history, _seller.durability)
+        push!(_seller.margin_history, _seller.margin)
+
+    end
+
+    return sellers
+
+end
+
+function sellers_choose_qp_k_d_m_stochastic(sellers::Vector{seller}, iter::Int64, num_buyers::Int64)::Vector{seller}
+
+    δ_k = 0.01
+    δ_d = 0.01
+    δ_m = 0.01
+
+    for _seller in sellers
+
+        if iter <= 50
+
+            _seller.quality = _seller.quality + sample([-δ_k, 0, δ_k], Weights([1/3, 1/3, 1/3]))
+            _seller.durability = _seller.durability + sample([-δ_d, 0, δ_d], Weights([1/3, 1/3, 1/3]))
+            _seller.margin = _seller.margin + sample([-δ_m, 0, δ_m], Weights([1/3, 1/3, 1/3]))
+            _seller.quantity_produced = sample(1:num_buyers)
+
+        elseif iter >= 51
+
+            δ_k_history = sign.(diff(_seller.quality_history))
+            δ_d_history = sign.(diff(_seller.durability_history))
+            δ_m_history = sign.(diff(_seller.margin_history))
+
+            δ_π_history = diff(calculate_profit_history(_seller))
+
+            possible_k_d_m = vec(collect(Iterators.product([-1, 0, 1], [-1, 0, 1], [-1, 0, 1])))
+
+            expected_π = []
+
+            for kdm in possible_k_d_m
+
+                requirements = (δ_k_history .== kdm[1]) .& (δ_d_history .== kdm[2]) .& (δ_m_history .== kdm[3])
+
+                if any(requirements)
+
+                    π_e = mean(δ_π_history[requirements])
+                    push!(expected_π, π_e)
+
+                else
+
+                    push!(expected_π, 0)
+
                 end
 
-                best_strategy = getindex.(strategy_outcomes,1)[argmax(getindex.(strategy_outcomes,2))]
-                expected_marketshare = getindex.(strategy_outcomes,3)[argmax(getindex.(strategy_outcomes,2))]       
+            end
+
+            if _seller.determinism == "deterministic"
+
+                best_strategy = possible_k_d_m[argmax(expected_π)]    
                 
-                new_quality = in_boundaries(best_strategy[1], 0.50, 1.50)
-                new_durability = in_boundaries(best_strategy[2], 0.20, 0.50)
-                new_margin = in_boundaries(best_strategy[3], 0.8, 2.)
-                
-                _seller.quality = new_quality
-                _seller.durability = new_durability
-                _seller.margin = new_margin
-                _seller.quantity_produced = ceil(expected_marketshare / 100 * num_buyers)
+            elseif _seller.determinism == "stochastic"
 
-                #_seller.phase = "evaluating"
+                weights = expected_π
+                weights = max.(0, weights)
 
-            #elseif (iter >= 2) & (_seller.phase == "evaluating")
+                best_strategy = sample(possible_k_d_m, Weights(weights))
 
+            end
 
+            new_quality = _seller.quality + best_strategy[1] * δ_k
+            new_durability = _seller.durability + best_strategy[2] * δ_d
+            new_margin = _seller.margin + best_strategy[3] * δ_m
 
-            #end
+            # correction
+
+            produced_q = _seller.quantity_produced_history[end]
+            sold_q = _seller.quantity_sold_history[end]
+            
+            if produced_q > sold_q
+
+                planned_q = ceil(produced_q - rand() * (produced_q - sold_q))
+
+            elseif produced_q == sold_q
+
+                planned_q = ceil(produced_q * (1 + rand()))
+
+            end
+
+            _seller.quality = new_quality
+            _seller.durability = new_durability
+            _seller.margin = new_margin
+            _seller.quantity_produced = planned_q
 
         end
 
@@ -263,7 +397,7 @@ function consumers_compare_offers(buyers::Vector{buyer}, sellers::Vector{seller}
 
 end
 
-function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller}, num_sellers::Int64, iter::Int64)
+function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller}, num_sellers::Int64, iter::Int64, buyer_behaviour::String)
 
     shuffle!(buyers)
 
@@ -275,11 +409,15 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
             supply_requirement = supply .> 0
             if any(surplus_requirement .& supply_requirement)
                 requirements = surplus_requirement .* supply_requirement .* _buyer.surplus
-                chosen_product = argmax(requirements)
 
-                if _buyer.id == 1
+                if buyer_behaviour == "deterministic"
 
-                    println("Buyer " * string(_buyer.id) * " bought product " * string(chosen_product) * " in iteration " * string(iter))
+                    chosen_product = argmax(requirements)
+
+                elseif buyer_behaviour == "stochastic"
+
+                    weight = u2w(requirements, 0.0)
+                    chosen_product = sample(1:length(sellers), Weights(weight))
 
                 end
 
@@ -287,6 +425,12 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
                 _buyer.unit_possessed = create_bool_purchase(num_sellers, chosen_product)
                 _buyer.unit_possessed_time = iter
                 sellers[chosen_product].quantity_sold += 1
+                push!(_buyer.realized_surplus_pm_history, requirements[chosen_product])
+
+            else
+
+                push!(_buyer.realized_surplus_pm_history, 0.0)
+            
             end
 
         elseif iter >= 2
@@ -299,35 +443,21 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
                 expected_surplus_from_possessed_product = _buyer.std_reservation_price * _buyer.current_quality_of_unit_possessed / (1 - _buyer.durability_of_unit_possessed)
                 reselling_requirement = surplus_requirement .> expected_surplus_from_possessed_product
 
-                x = ""
-
-                if any(surplus_requirement .& supply_requirement)
-                    x = x * "A"
-                end
-
-                if any(reselling_requirement)
-                    x = x * "B"
-                end
-
-                if _buyer.unit_possessed_is_new
-                    x = x * "C"
-                end
-
-                println(x)
-
-
                 if any(surplus_requirement .& supply_requirement) & any(reselling_requirement) & _buyer.unit_possessed_is_new
 
-                    println(string(_buyer.id) * " wants to resell!")
-
                     requirements = surplus_requirement .* supply_requirement .* _buyer.surplus
-                    chosen_product = argmax(requirements)
 
-                    if _buyer.id == 1
+                    if buyer_behaviour == "deterministic"
 
-                        println("Buyer " * string(_buyer.id) * " bought product " * string(chosen_product) * " in iteration " * string(iter) * " and reselling")
-
+                        chosen_product = argmax(requirements)
+    
+                    elseif buyer_behaviour == "stochastic"
+    
+                        weight = u2w(requirements, 0.0)
+                        chosen_product = sample(1:length(sellers), Weights(weight))
+    
                     end
+    
 
                     _buyer.unit_for_sale = _buyer.unit_possessed
                     _buyer.quality_for_sale = _buyer.current_quality_of_unit_possessed
@@ -339,6 +469,11 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
                     _buyer.unit_possessed_time = iter
                     _buyer.unit_possessed_is_new = true
                     sellers[chosen_product].quantity_sold += 1
+                    push!(_buyer.realized_surplus_pm_history, requirements[chosen_product])
+
+                else
+
+                    push!(_buyer.realized_surplus_pm_history, 0.0)
 
                 end
 
@@ -347,18 +482,27 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
                 if any(surplus_requirement .& supply_requirement)
 
                     requirements = surplus_requirement .* supply_requirement .* _buyer.surplus
-                    chosen_product = argmax(requirements)
 
-                    if _buyer.id == 1
+                    if buyer_behaviour == "deterministic"
 
-                        println("Buyer " * string(_buyer.id) * " bought product " * string(chosen_product) * " in iteration " * string(iter))
-
+                        chosen_product = argmax(requirements)
+    
+                    elseif buyer_behaviour == "stochastic"
+    
+                        weight = u2w(requirements, 0.0)
+                        chosen_product = sample(1:length(sellers), Weights(weight))
+    
                     end
 
                     _buyer.unit_possessed = create_bool_purchase(num_sellers, chosen_product)
                     _buyer.unit_possessed_time = iter
                     _buyer.unit_possessed_is_new = true
                     sellers[chosen_product].quantity_sold += 1
+                    push!(_buyer.realized_surplus_pm_history, requirements[chosen_product])
+
+                else
+
+                    push!(_buyer.realized_surplus_pm_history, 0.0)
 
                 end
             end
@@ -394,8 +538,12 @@ function consumers_discover_q_d(buyers::Vector{buyer}, sellers::Vector{seller}, 
                 end
 
                 d_lb = in_boundaries(sellers[chosen_product].durability - ϵ_d, 0., 1.)
-                d_ub = in_boundaries(sellers[chosen_product].durability + ϵ_d, 0., 1.)
-                _buyer.durability_of_unit_possessed = rand(Uniform(d_lb, d_ub))
+                d_ub = in_boundaries(sellers[chosen_product].durability + ϵ_d, 0., 1.
+                if d_lb == d_ub
+                    _buyer.durability_of_unit_possessed = d_lb
+                else
+                    _buyer.durability_of_unit_possessed = rand(Uniform(d_lb, d_ub))
+                end
             end
         end
     end
@@ -409,21 +557,16 @@ function simulate_outcome_of_strategy(my_k, my_d, my_m, my_c, comp_k, comp_d, co
     s = LinRange(0:0.01:1.0)
 
     my_p = my_c * my_k / (1 - my_d) * my_m
-    
     my_w = s .* my_k / (1 - my_d) .- my_p
-
     my_w_d = s .* my_k / (1 - my_d) * (1 - my_d^2) .- my_p
 
     comp_w = [s .* ck / (1 - cd) .- cp for (ck, cd, cp) in zip(comp_k, comp_d, comp_p)]
 
     is_my_w_positive = my_w .>= 0
-
     is_my_w_d_positive = my_w_d .>= 0
-
     is_my_w_best = reduce(.*, [my_w .> cw for cw in comp_w])
 
     my_demand = count(is_my_w_best .& is_my_w_positive .& is_my_w_d_positive)
-
     my_profit = my_demand * (my_p - my_c * my_k / (1 - my_d))
 
     return my_profit, my_demand
@@ -505,7 +648,7 @@ function buyers_products_age(buyers::Vector{buyer}, iter::Int64)
 
 end
 
-function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{seller}, iter)
+function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{seller}, iter::Int64, buyer_behaviour::String)
 
     products_for_resale = any.(getfield.(buyers, :unit_for_sale))
 
@@ -513,23 +656,33 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
 
     if any(products_for_resale)
 
+        shuffle!(buyers)
+
         for _buyer in buyers
 
             if any(_buyer.unit_for_sale)
 
                 possessed_product = argmax(_buyer.unit_for_sale)
 
-                #println("Secondary market exchange!")
-
                 current_quality = getindex.(getfield.(buyers, :durability_expectation), possessed_product) .^ _buyer.age_for_sale .* getindex.(getfield.(buyers, :quality_expectation), possessed_product)
 
                 offers = getfield.(buyers, :std_reservation_price) .* sum_of_geom_series.(current_quality, getindex.(getfield.(buyers, :durability_expectation), possessed_product)) .* .!any.(getfield.(buyers, :unit_possessed))
-                
-                println((maximum(offers), _buyer.price_for_sale))
 
                 if any(offers .> _buyer.price_for_sale)
 
-                    chosen_buyer = argmax(offers .- _buyer.price_for_sale)
+                    if buyer_behaviour == "deterministic"
+
+                        chosen_buyer = argmax(offers .- _buyer.price_for_sale)
+
+                    elseif buyer_behaviour == "stochastic"
+
+                        u = max.(offers .- _buyer.price_for_sale, 0)
+
+                        weight = u2w(u, 0.0)
+
+                        chosen_buyer = sample(1:length(buyers), Weights(weight))
+
+                    end
 
                     reselling_quantity = reselling_quantity .+ _buyer.unit_for_sale
 
@@ -540,13 +693,53 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
                     buyers[chosen_buyer].current_quality_of_unit_possessed = _buyer.quality_for_sale
                     buyers[chosen_buyer].unit_possessed_is_new = false
 
+                    if length(_buyer.realized_surplus_sm_s_history) == iter       
+
+                        deleteat!(_buyer.realized_surplus_sm_b_history, iter)
+                        deleteat!(_buyer.realized_surplus_sm_s_history, iter)
+    
+                    end
+
+                    push!(_buyer.realized_surplus_sm_s_history, _buyer.price_for_sale)
+                    push!(_buyer.realized_surplus_sm_b_history, 0.0)
+
+                    if length(buyers[chosen_buyer].realized_surplus_sm_s_history) == iter       
+                                     
+                        deleteat!(buyers[chosen_buyer].realized_surplus_sm_b_history, iter)
+                        deleteat!(buyers[chosen_buyer].realized_surplus_sm_s_history, iter)
+    
+                    end
+
+                    push!(buyers[chosen_buyer].realized_surplus_sm_s_history, 0.0)
+                    push!(buyers[chosen_buyer].realized_surplus_sm_b_history, offers[chosen_buyer] - _buyer.price_for_sale)
+
                 end
 
                 _buyer.unit_for_sale = fill(false, length(_buyer.unit_for_sale))
                 _buyer.price_for_sale = 0.0
                 _buyer.age_for_sale = 0
 
+            else
+
+                if length(_buyer.realized_surplus_sm_b_history) != iter
+
+                    push!(_buyer.realized_surplus_sm_s_history, 0.0)
+                    push!(_buyer.realized_surplus_sm_b_history, 0.0)
+
+                end
+
             end
+
+        end
+
+        buyers = buyers[sortperm(getfield.(buyers, :id))]
+
+    else
+
+        for _buyer in buyers
+
+            push!(_buyer.realized_surplus_sm_s_history, 0.0)
+            push!(_buyer.realized_surplus_sm_b_history, 0.0)
 
         end
 
@@ -558,104 +751,78 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
 
     end
 
+    for _buyer in buyers
+        if length(_buyer.realized_surplus_sm_b_history) < iter
+            push!(_buyer.realized_surplus_sm_b_history, 0.0)
+            push!(_buyer.realized_surplus_sm_s_history, 0.0)
+        end
+    end
+
     return buyers, sellers
 
 end
 
+function TO_GO(maxIter, num_sellers, num_buyers, num_links, k, c, m, d, network_type, λ_ind, λ_wom, buyer_behaviour, determinism, qr, dr, mr)
 
-#################################### AUX FUNCTIONS ##############################################################
+    sellers = create_sellers(num_sellers, k, c, m, d, qr, dr, mr, determinism)
 
-num_sellers = 2
-k = [1.2, 0.8]
-c = [0.4, 0.5]
-m = [1.0, 1.0]
-d = [0.3, 0.3]
+    buyers_network = create_network(network_type, num_buyers = num_buyers, num_links = num_links)
+    buyers = create_buyers(num_buyers, num_sellers, buyers_network, k, d)
 
-num_buyers = 200
-num_links = 150
+    for iter in 0:maxIter
 
-sellers = create_sellers(num_sellers, k, c, m, d)
+        if iter == 0
 
-buyers_network = create_network("random", num_buyers = num_buyers, num_links = num_links)
-buyers = create_buyers(num_buyers, num_sellers, buyers_network, k, d)
+            # iter = 0
 
-getfield.(sellers, :quantity_sold)
+            sellers = sellers_choose_qp_k_d_m_stochastic(sellers, iter, num_buyers)
 
-maxIter = 150
+        elseif iter == 1
 
-for iter in 0:maxIter
+            # iter = 1
 
-    #println(iter)
+            buyers = consumers_compare_offers(buyers, sellers)
 
-    if iter == 0
+            buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter, buyer_behaviour)
 
-        # iter = 0
+            buyers = consumers_discover_q_d(buyers, sellers, iter)
 
-        sellers = sellers_choose_qp_k_d_m(sellers, iter, num_buyers)
+            buyers = consumers_update_expectations(buyers, iter, λ_ind, λ_wom)
 
-    elseif iter == 1
+            sellers = sellers_choose_qp_k_d_m_stochastic(sellers, iter, num_buyers)
 
-        # iter = 1
+            sellers = sellers_utilize_not_sold_products(sellers)
 
-        buyers = consumers_compare_offers(buyers, sellers)
+        elseif iter >= 2
 
-        buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter)
+            # iter = 2,3...,T
 
-        #countmap(map(x -> all(diff(x) .== 0) ? -1 : argmax(x), getfield.(buyers, :unit_possessed)))
+            buyers = buyers_products_age(buyers, iter)
 
-        buyers = consumers_discover_q_d(buyers, sellers, iter)
+            buyers = consumers_compare_offers(buyers, sellers)
 
-        #getfield.(buyers[any.(getfield.(buyers, :unit_possessed))], :durability_of_unit_possessed)
+            buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter, buyer_behaviour)
 
-        buyers = consumers_update_expectations(buyers, iter, 0.25, 0.25)
+            #getfield.(buyers[any.(getfield.(buyers, :unit_for_sale))], :price_for_sale)
 
-        sellers = sellers_choose_qp_k_d_m(sellers, iter, num_buyers)
+            buyers, sellers = buyers_choose_secondary_market(buyers, sellers, iter, buyer_behaviour)
 
-        sellers = sellers_utilize_not_sold_products(sellers)
+            buyers = consumers_discover_q_d(buyers, sellers, iter)
 
-    elseif iter >= 2
+            buyers = consumers_update_expectations(buyers, iter, λ_ind, λ_wom)
 
-        # iter = 2,3...,T
+            sellers = sellers_utilize_not_sold_products(sellers)
 
-        buyers = buyers_products_age(buyers, iter)
+            if iter < maxIter
 
-        buyers = consumers_compare_offers(buyers, sellers)
+                sellers = sellers_choose_qp_k_d_m_stochastic(sellers, iter, num_buyers)
 
-        buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter)
-
-        #getfield.(buyers[any.(getfield.(buyers, :unit_for_sale))], :price_for_sale)
-
-        buyers, sellers = buyers_choose_secondary_market(buyers, sellers, iter)
-
-        buyers = consumers_discover_q_d(buyers, sellers, iter)
-
-        buyers = consumers_update_expectations(buyers, iter, 0.25, 0.25)
-
-        sellers = sellers_utilize_not_sold_products(sellers)
-
-        if iter < maxIter
-
-            sellers = sellers_choose_qp_k_d_m(sellers, iter, num_buyers)
+            end
 
         end
 
     end
 
+    return (buyers = buyers, sellers = sellers)
+
 end
-
-
-plot(getfield.(sellers, :quantity_produced_history))
-plot!(getfield.(sellers, :quantity_sold_history))
-
-plot(getfield.(sellers, :reselling_history))
-
-sum.([any.(x) for x in getfield.(buyers, :unit_possessed_history)])
-
-plot(getindex.(getindex(getfield.(buyers, :surplus_history), 1), 1))
-
-plot(calculate_profit_history.(sellers))
-
-plot(calculate_price_history.(sellers))
-plot(getfield.(sellers, :durability_history))
-plot(getfield.(sellers, :quality_history))
-plot(getfield.(sellers, :margin_history))
