@@ -196,7 +196,7 @@ function sellers_choose_qp_k_d_m_stochastic(sellers::Vector{seller}, iter::Int64
 
     δ_k = 0.01
     δ_d = 0.01
-    δ_m = 0.01
+    δ_m = 0.00
 
     for _seller in sellers
 
@@ -321,6 +321,76 @@ function consumers_compare_offers(buyers::Vector{buyer}, sellers::Vector{seller}
     return buyers
 
 end
+
+buyers = sim_single.buyers
+secondary_market_exists = true
+
+function consumers_make_decision2(buyers::Vector{buyer}, sellers::Vector{seller}, iter::Int64, secondary_market_exists::Bool)
+
+    num_sellers = length(sellers)
+    num_buyers = length(buyers)
+
+    already_bougth = falses(num_buyers)
+
+    if iter == 1
+
+        ladder = collect(zip(vcat([fill(x, num_sellers) for x in 1:num_buyers]...), vcat(fill(collect(1:num_sellers), num_buyers)...), vcat(getfield.(buyers, :surplus)...)))
+
+        ordered_ladder = ladder[sortperm(getindex.(ladder,3), rev = true)]
+
+    elseif iter >= 2
+
+        surplus = getfield.(buyers, :surplus)
+        surplus_selling = [secondary_market_exists .* _buyer.reselling_probability .* _buyer.std_reservation_price * _buyer.unit_possessed_is_new * _buyer.current_quality_of_unit_possessed / (1 - _buyer.durability_of_unit_possessed) for _buyer in buyers]
+        surplus_total = [sur .+ sur_sel for (sur, sur_sel) in zip(surplus, surplus_selling)]
+
+        ladder = collect(zip(vcat([fill(x, num_sellers) for x in 1:num_buyers]...), vcat(fill(collect(1:num_sellers), num_buyers)...), vcat(surplus_total...)))
+
+        ordered_ladder = ladder[sortperm(getindex.(ladder,3), rev = true)]
+
+    end
+
+    for ladder_item in ordered_ladder
+
+        supply = getfield.(sellers, :quantity_produced) .- getfield.(sellers, :quantity_sold)
+
+        if (ladder_item[3] > 0) & (supply[ladder_item[2]] > 0) & !(already_bougth[ladder_item[1]])
+
+            chosen_product = ladder_item[2]
+            choosing_buyer = ladder_item[1]
+
+            if (iter >= 2) & any(buyers[choosing_buyer].unit_possessed)
+
+                buyers[choosing_buyer].unit_for_sale = buyers[choosing_buyer].unit_possessed
+                buyers[choosing_buyer].quality_for_sale = buyers[choosing_buyer].current_quality_of_unit_possessed
+                buyers[choosing_buyer].durability_of_unit_possessed = buyers[choosing_buyer].durability_of_unit_possessed
+                buyers[choosing_buyer].price_for_sale = buyers[choosing_buyer].std_reservation_price * buyers[choosing_buyer].current_quality_of_unit_possessed / (1 - buyers[choosing_buyer].durability_of_unit_possessed)
+                buyers[choosing_buyer].age_for_sale = iter - buyers[choosing_buyer].unit_possessed_time
+
+            end
+
+            buyers[choosing_buyer].unit_possessed_is_new = true
+            buyers[choosing_buyer].unit_possessed = create_bool_purchase(num_sellers, chosen_product)
+            buyers[choosing_buyer].unit_possessed_time = iter
+            sellers[chosen_product].quantity_sold += 1
+
+            already_bougth[ladder_item[1]] = true
+
+        end
+
+    end
+
+    for _seller in sellers
+        push!(_seller.quantity_sold_history, _seller.quantity_sold)
+    end
+
+    return buyers, sellers
+
+end
+
+
+
+
 
 function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller}, num_sellers::Int64, iter::Int64, buyer_behaviour::String, secondary_market_exists::Bool)
 
@@ -488,28 +558,6 @@ function consumers_discover_q_d(buyers::Vector{buyer}, sellers::Vector{seller}, 
     return buyers
 
 end
-
-function simulate_outcome_of_strategy(my_k, my_d, my_m, my_c, comp_k, comp_d, comp_p)
-
-    s = LinRange(0:0.01:1.0)
-
-    my_p = my_c * my_k / (1 - my_d) * my_m
-    my_w = s .* my_k / (1 - my_d) .- my_p
-    my_w_d = s .* my_k / (1 - my_d) * (1 - my_d^2) .- my_p
-
-    comp_w = [s .* ck / (1 - cd) .- cp for (ck, cd, cp) in zip(comp_k, comp_d, comp_p)]
-
-    is_my_w_positive = my_w .>= 0
-    is_my_w_d_positive = my_w_d .>= 0
-    is_my_w_best = reduce(.*, [my_w .> cw for cw in comp_w])
-
-    my_demand = count(is_my_w_best .& is_my_w_positive .& is_my_w_d_positive)
-    my_profit = my_demand * (my_p - my_c * my_k / (1 - my_d))
-
-    return my_profit, my_demand
-
-end
-
 
 function consumers_update_expectations(buyers, iter, λ_ind, λ_wom)
 
@@ -719,7 +767,7 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
 
 end
 
-function TO_GO(maxIter, num_sellers, num_buyers, num_links, k, c, m, d, network_type, λ_ind, λ_wom, buyer_behaviour, adaptation, increase_q, qr, dr, mr, μ_c, secondary_market_exists, rand_period = 50)
+function TO_GO(maxIter, num_sellers, num_buyers, num_links, k, c, m, d, network_type, λ_ind, λ_wom, buyer_behaviour, adaptation, increase_q, qr, dr, mr, μ_c, secondary_market_exists, rand_period = 20)
 
     sellers = create_sellers(num_sellers, k, c, m, d, qr, dr, mr, adaptation, increase_q)
 
@@ -740,7 +788,7 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, k, c, m, d, network_
 
             buyers = consumers_compare_offers(buyers, sellers)
 
-            buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter, buyer_behaviour, secondary_market_exists)
+            buyers, sellers = consumers_make_decision2(buyers, sellers, iter, secondary_market_exists)
 
             buyers = consumers_discover_q_d(buyers, sellers, iter)
 
@@ -758,7 +806,7 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, k, c, m, d, network_
 
             buyers = consumers_compare_offers(buyers, sellers)
 
-            buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter, buyer_behaviour, secondary_market_exists)
+            buyers, sellers = consumers_make_decision2(buyers, sellers, iter, secondary_market_exists)
 
             #getfield.(buyers[any.(getfield.(buyers, :unit_for_sale))], :price_for_sale)
 

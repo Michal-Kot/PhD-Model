@@ -54,3 +54,16 @@ function plot_phasediagram(_seller::seller, function_args::Vector)
     quiver(x,y,quiver=(d_x, d_y), color = :green)
     scatter!(x,y, xlabel = "Price", ylabel = "Profit", markershape = :none, markercolor = :white, markerstrokecolor = :white, series_annotations = points_labels, markersize = 0)
 end
+
+function plot_quantity(sellers, random_start = 50)
+
+    quantity_produced = getfield.(sim_single.sellers, :quantity_produced_history)
+    quantity_produced = [q[random_start:end] for q in quantity_produced]
+
+    quantity_sold = getfield.(sim_single.sellers, :quantity_sold_history)
+    quantity_sold = [q[random_start:end] for q in quantity_sold]
+
+    plot(quantity_produced)
+    plot!(quantity_sold)
+
+end

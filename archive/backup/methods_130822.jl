@@ -682,3 +682,104 @@ include(pwd() * "\\methods\\methods_visualization.jl")
 include(pwd() * "\\methods\\methods_aux.jl")
 
 __precompile__()
+
+
+function sellers_choose_qp_k_d_m_deterministic(sellers::Vector{seller}, iter::Int64, num_buyers::Int64)::Vector{seller}
+    for _seller in sellers
+        if iter == 0
+
+            _seller.quantity_produced = sample(1:num_buyers)
+
+        elseif iter >= 1
+
+            # 🍎 tu skończone, dopisać 
+
+            δ_k = 0.01
+            δ_d = 0.01
+            δ_m = 0.01
+
+            my_k = _seller.quality
+            my_k = my_k .+ [-δ_k, 0, δ_k]
+            my_k = my_k[(my_k .>= _seller.quality_range[1]) .& (my_k .<= _seller.quality_range[2])]
+
+            my_d = _seller.durability
+            my_d = my_d .+ [-δ_d, 0, δ_d]
+            my_d = my_d[(my_d .>= _seller.durability_range[1]) .& (my_d .<= _seller.durability_range[2])]
+
+            my_m = _seller.margin
+            my_m = my_m .+ [-δ_m, 0, δ_m]
+            my_m = my_m[(my_m .>= _seller.margin_range[1]) .& (my_m .<= _seller.margin_range[2])]
+
+            my_c = _seller.cost_coefficient
+
+            combinations = vec(collect(Iterators.product(my_k, my_d, my_m)))
+                
+            comp = copy(sellers)
+            comp = comp[Not(_seller.id)]
+
+            comp_k = getfield.(comp, :quality)
+            comp_d = getfield.(comp, :durability)
+            comp_p = calculate_price.(comp)
+
+            strategy_outcomes = []
+
+            for comb in combinations
+
+                my_k = comb[1]
+                my_d = comb[2]
+                my_m = comb[3]
+                
+                y = simulate_outcome_of_strategy(my_k, my_d, my_m, my_c, comp_k, comp_d, comp_p)
+                
+                push!(strategy_outcomes, (comb, y[1], y[2]))
+                    
+            end
+
+            #if _seller.determinism == "deterministic"
+
+            #best_strategy = getindex.(strategy_outcomes,1)[argmax(getindex.(strategy_outcomes,2))]    
+                
+            #elseif _seller.determinism == "stochastic"
+
+            weights = getindex.(strategy_outcomes,2)
+            weights = max.(0, weights)
+            best_strategy = sample(getindex.(strategy_outcomes,1), Weights(weights))
+
+            #end
+
+            new_quality = best_strategy[1]
+            new_durability = best_strategy[2]
+            new_margin = best_strategy[3]
+
+            # correction
+
+            produced_q = _seller.quantity_produced_history[end]
+            sold_q = _seller.quantity_sold_history[end]
+            
+            if produced_q > sold_q
+
+                planned_q = ceil(produced_q - rand() * (produced_q - sold_q))
+
+            elseif produced_q == sold_q
+
+                planned_q = ceil(produced_q * (1 + rand()))
+
+            end
+
+            _seller.quality = new_quality
+            _seller.durability = new_durability
+            _seller.margin = new_margin
+            _seller.quantity_produced = planned_q
+
+        end
+
+        push!(_seller.quantity_produced_history, _seller.quantity_produced)
+        push!(_seller.quality_history, _seller.quality)
+        push!(_seller.durability_history, _seller.durability)
+        push!(_seller.margin_history, _seller.margin)
+
+    end
+
+    return sellers
+
+end
