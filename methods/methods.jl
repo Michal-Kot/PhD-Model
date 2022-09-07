@@ -194,9 +194,9 @@ __precompile__()
 
 function sellers_choose_qp_k_d_m_stochastic(sellers::Vector{seller}, iter::Int64, num_buyers::Int64, randPeriod::Int64)::Vector{seller}
 
-    δ_k = 0.01
-    δ_d = 0.01
-    δ_m = 0.01
+    δ_k = rand() * 0.05
+    δ_d = rand() * 0.05
+    δ_m = rand() * 0.05
 
     for _seller in sellers
 
@@ -247,33 +247,13 @@ function sellers_choose_qp_k_d_m_stochastic(sellers::Vector{seller}, iter::Int64
 
             end
 
-            #if _seller.determinism == "deterministic"
-
-            #    best_strategy = possible_k_d_m[argmax(expected_π)]    
-                
-            #elseif _seller.determinism == "stochastic"
-
-            #if _seller.id == 1
-
-            #    println(round.(expected_π, digits=2))
-
-            #end
-
-            #possible_k_d_m = possible_k_d_m[expected_π .>= 0]
-            #expected_π = expected_π[expected_π .>= 0]
-
             weights = expected_π
-            #weights = max.(0, weights)
             weights = (weights .- minimum(weights)) ./ (maximum(weights) - minimum(weights))
             best_strategy = sample(possible_k_d_m, Weights(weights))
-
-            #end
 
             new_quality = _seller.quality + best_strategy[1] * δ_k
             new_durability = _seller.durability + best_strategy[2] * δ_d
             new_margin = _seller.margin + best_strategy[3] * δ_m
-
-            # correction
 
             produced_q = _seller.quantity_produced_history[end]
             sold_q = _seller.quantity_sold_history[end]
@@ -719,7 +699,7 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
 
 end
 
-function TO_GO(maxIter, num_sellers, num_buyers, num_links, k, c, m, d, network_type, λ_ind, λ_wom, buyer_behaviour, adaptation, increase_q, qr, dr, mr, μ_c, secondary_market_exists, rand_period = 50)
+function TO_GO(maxIter, num_sellers, num_buyers, num_links, k, c, m, d, network_type, λ_ind, λ_wom, buyer_behaviour, adaptation, increase_q, qr, dr, mr, μ_c, secondary_market_exists, rand_period = 10)
 
     sellers = create_sellers(num_sellers, k, c, m, d, qr, dr, mr, adaptation, increase_q)
 
