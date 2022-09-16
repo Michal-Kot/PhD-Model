@@ -10,6 +10,7 @@ ex1_v1_consumer_surplus = []
 ex1_v1_price = []
 ex1_v1_quantity_produced = []
 ex1_v1_quantity_sold = []
+ex1_v1_quantity_leased = []
 ex1_v1_producer_surplus_singleton = []
 
 ex1_v2_total_surplus = []
@@ -18,6 +19,7 @@ ex1_v2_consumer_surplus = []
 ex1_v2_price = []
 ex1_v2_quantity_produced = []
 ex1_v2_quantity_sold = []
+ex1_v2_quantity_leased = []
 ex1_v2_producer_surplus_singleton = []
 
 ex1_v12_λ = []
@@ -33,25 +35,29 @@ for i in 1:1000
 
     push!(ex1_v12_λ, [λ_ind, λ_wom])
 
-    ex1_v1_sim = TO_GO(150, 2, 200, 300, [1.0, 1.0], [0.5, 0.5], [1.0, 1.0], [0.3, 0.3], "random", λ_ind, λ_wom, "stochastic", [0.1, 0.1], [0.1, 0.1], [[0.5, 1.5], [0.5, 1.5]], [[0.2, 0.6], [0.2, 0.6]],[[0.,2.], [0.,2.]], 0.5, true)
+    ex1_v1_sim = TO_GO(250, 2, 200, 300, [1.0, 1.0], [0.5, 0.5], [1.0, 1.0], [0.3, 0.3], "random", λ_ind, λ_wom, "stochastic", [0.1, 0.1], [1.1, 1.1], [[0.5, 1.5], [0.5, 1.5]], [[0.2, 0.6], [0.2, 0.6]],[[0.8,2.], [0.8,2.]], 0.1, true, 0)
+
     push!(ex1_v1_total_surplus, calculate_surplus(ex1_v1_sim, "total", true))
     push!(ex1_v1_producer_surplus, calculate_surplus(ex1_v1_sim, "producer", true))
     push!(ex1_v1_consumer_surplus, calculate_surplus(ex1_v1_sim, "consumer,total",true))
     push!(ex1_v1_price, calculate_price_history.(ex1_v1_sim.sellers))
     push!(ex1_v1_quantity_produced, getfield.(ex1_v1_sim.sellers, :quantity_produced_history))
     push!(ex1_v1_quantity_sold, getfield.(ex1_v1_sim.sellers, :quantity_sold_history))
+    push!(ex1_v1_quantity_leased, getfield.(ex1_v1_sim.sellers, :quantity_leased_history))
     push!(ex1_v1_producer_surplus_singleton, calculate_profit_history.(ex1_v1_sim.sellers))
 
-    ex1_v2_sim = TO_GO(150, 2, 200, 300, [1.0, 1.0], [0.5, 0.5], [1.0, 1.0], [0.3, 0.3], "random", λ_ind, λ_wom, "stochastic",[0.1, 0.1], [0.1, 0.1], [[0.9, 1.5], [0.6, 1.1]], [[0.2, 0.5], [0.3, 0.6]],[[0.,2.], [0.,2.]], 0.5, true)
+    ex1_v2_sim = TO_GO(250, 2, 200, 300, [1.0, 1.0], [0.5, 0.5], [1.0, 1.0], [0.3, 0.3], "random", λ_ind, λ_wom, "stochastic",[0.1, 0.1], [1.1, 1.1], [[0.9, 1.5], [0.6, 1.1]], [[0.2, 0.5], [0.3, 0.6]],[[0.8,2.], [0.8,2.]], 0.1, true, 0)
     push!(ex1_v2_total_surplus, calculate_surplus(ex1_v2_sim, "total", true))
     push!(ex1_v2_producer_surplus, calculate_surplus(ex1_v2_sim, "producer", true))
     push!(ex1_v2_consumer_surplus, calculate_surplus(ex1_v2_sim, "consumer,total",true))
     push!(ex1_v2_price, calculate_price_history.(ex1_v2_sim.sellers))
     push!(ex1_v2_quantity_produced, getfield.(ex1_v2_sim.sellers, :quantity_produced_history))
     push!(ex1_v2_quantity_sold, getfield.(ex1_v2_sim.sellers, :quantity_sold_history))
+    push!(ex1_v2_quantity_leased, getfield.(ex1_v2_sim.sellers, :quantity_leased_history))
     push!(ex1_v2_producer_surplus_singleton, calculate_profit_history.(ex1_v2_sim.sellers))
 
 end
+
 
 L1 = getindex.(ex1_v12_λ, 1) 
 L2 = getindex.(ex1_v12_λ, 2)

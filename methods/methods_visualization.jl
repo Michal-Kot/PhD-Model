@@ -55,15 +55,29 @@ function plot_phasediagram(_seller::seller, function_args::Vector)
     scatter!(x,y, xlabel = "Price", ylabel = "Profit", markershape = :none, markercolor = :white, markerstrokecolor = :white, series_annotations = points_labels, markersize = 0)
 end
 
-function plot_quantity(sellers, random_start = 50)
+function plot_quantity(sellers, random_start = 50, legend_pos = :topleft)
 
     quantity_produced = getfield.(sim_single.sellers, :quantity_produced_history)
-    quantity_produced = [q[random_start:end] for q in quantity_produced]
+    quantity_produced = [q[(random_start+1):end] for q in quantity_produced]
 
     quantity_sold = getfield.(sim_single.sellers, :quantity_sold_history)
-    quantity_sold = [q[random_start:end] for q in quantity_sold]
+    quantity_sold = [q[(random_start+1):end] for q in quantity_sold]
 
-    plot(quantity_produced)
-    plot!(quantity_sold)
+    colors = palette(:tab10)[1:length(sellers)]
+
+    p = plot(legend = legend_pos)
+
+    for i in 1:length(sellers)
+
+        print(i)
+
+        plot!(quantity_produced[i], color = colors[i], label = "Firm " * string(i) * " produced Q")
+        plot!(quantity_sold[i], color = colors[i], linestyle = :dot, label = "Firm " * string(i) * " sold Q")
+
+    end
+
+    return p
 
 end
+
+plot()

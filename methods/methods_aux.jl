@@ -1,5 +1,10 @@
 #### AUX functions
 
+function sum_of_geom_series(a0,q)
+    return a0 ./ (1 .- q)
+end
+
+
 function in_boundaries(x::Float64,lb::Float64,ub::Float64)::Float64
     return max(min(x,ub),lb)
 end
@@ -23,6 +28,11 @@ function calculate_price(_seller::seller)::Float64
     return price
 end
 
+function calculate_lease(_seller::seller)::Float64
+    lease = calculate_cost(_seller) * _seller.margin * _seller.interest_rate * (1 - _seller.durability)
+    return lease
+end
+
 function calculate_price_history(_seller::seller)::Vector{Float64}
     price = calculate_cost_history(_seller) .* _seller.margin_history
     return price
@@ -32,9 +42,10 @@ function u2w(u::Vector{Float64}, p_min::Float64 = 0.1)::Vector{Float64}
 
     if p_min > 0
 
-        @assert p_min < 1.0
+        u_min = count(u .== minimum(u))
+
         ut = u .- minimum(u)
-        wgt = ut ./ sum(ut) .* (1 - p_min)
+        wgt = ut ./ sum(ut) .* (1 - u_min * p_min)
         wgt[argmin(u)] = p_min
 
     else
@@ -47,8 +58,9 @@ function u2w(u::Vector{Float64}, p_min::Float64 = 0.1)::Vector{Float64}
 end
 
 function calculate_profit_history(_seller::seller)::Vector{Float64}
-    profit = (calculate_price_history(_seller) .- calculate_cost_history(_seller)) .* _seller.quantity_sold_history
-    return profit
+    profit_history = _seller.selling_income_history .+ _seller.leasing_income_history .- _seller.cost_of_production_history .+ _seller.utilization_cost_history
+    #profit = _seller.quantity_sold_history .* calculate_price(_seller) .+ _seller.quantity_leased_history .* calculate_lease(_seller) .- _seller.quantity_produced_history .* calculate_cost_history(_seller) .+ _seller.utilization_cost_history
+    return profit_history
 end
 
 function calculate_average_elasticity(q,p;trim = 10)

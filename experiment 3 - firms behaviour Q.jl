@@ -40,7 +40,7 @@ for i in 1:1000
 
     push!(ex3_v12_i, [r1_i, r2_i])
 
-    ex3_v1_sim = TO_GO(150, 2, 200, 300, [1.0, 1.0], [0.5, 0.5], [1.0, 1.0], [0.4, 0.4], "random", 0.25, 0.25, "stochastic", [r1_d, r2_d], [r1_i, r2_i], [[0.5, 1.5], [0.5, 1.5]], [[0.2, 0.6], [0.2, 0.6]], [[0.,2.], [0.,2.]], 0.50, true)
+    ex3_v1_sim = TO_GO(150, 2, 200, 300, [1.0, 1.0], [0.5, 0.5], [1.0, 1.0], [0.4, 0.4], "random", 0.25, 0.25, "stochastic", [r1_d, r2_d], [r1_i, r2_i], [[0.5, 1.5], [0.5, 1.5]], [[0.2, 0.6], [0.2, 0.6]], [[0.,2.], [0.,2.]], 0.50, true, 0)
     push!(ex3_v1_total_surplus, calculate_surplus(ex3_v1_sim, "total", true))
     push!(ex3_v1_producer_surplus, calculate_surplus(ex3_v1_sim, "producer", true))
     push!(ex3_v1_consumer_surplus, calculate_surplus(ex3_v1_sim, "consumer,total",true))
@@ -49,7 +49,7 @@ for i in 1:1000
     push!(ex3_v1_quantity_sold, getfield.(ex3_v1_sim.sellers, :quantity_sold_history))
     push!(ex3_v1_producer_surplus_singleton, calculate_profit_history.(ex3_v1_sim.sellers))
 
-    ex3_v2_sim = TO_GO(150, 2, 200, 300, [1.0, 1.0], [0.5, 0.5], [1.0, 1.0], [0.4, 0.4], "random", 0.25, 0.25, "stochastic", [r1_d, r2_d], [r1_i, r2_i], [[0.5, 1.5], [0.5, 1.5]], [[0.2, 0.6], [0.2, 0.6]], [[0.,2.], [0.,2.]], 0.50, false)
+    ex3_v2_sim = TO_GO(150, 2, 200, 300, [1.0, 1.0], [0.5, 0.5], [1.0, 1.0], [0.4, 0.4], "random", 0.25, 0.25, "stochastic", [r1_d, r2_d], [r1_i, r2_i], [[0.5, 1.5], [0.5, 1.5]], [[0.2, 0.6], [0.2, 0.6]], [[0.,2.], [0.,2.]], 0.50, false, 0)
     push!(ex3_v2_total_surplus, calculate_surplus(ex3_v2_sim, "total", true))
     push!(ex3_v2_producer_surplus, calculate_surplus(ex3_v2_sim, "producer", true))
     push!(ex3_v2_consumer_surplus, calculate_surplus(ex3_v2_sim, "consumer,total",true))
@@ -87,7 +87,6 @@ ex4_p1 = heatmap(sort(unique(R1)), sort(unique(R2)), hm_dq[2:end,2:end], xlabel 
 
 ####
 
-sim_single.sellers[1]
 
 dR = R1 .- R2 # increase
 dR = round.(dR, digits=2)
