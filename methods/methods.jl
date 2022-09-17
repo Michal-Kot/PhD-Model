@@ -384,7 +384,7 @@ function consumers_compare_offers(buyers::Vector{buyer}, sellers::Vector{seller}
 
 end
 
-function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller}, num_sellers::Int64, iter::Int64, buyer_behaviour::String, secondary_market_exists::Bool)
+function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller}, num_sellers::Int64, iter::Int64, buyer_behaviour::String, secondary_market_exists::Bool, lease_available::Bool)
 
     for _seller in sellers
         _seller.selling_income = 0.0
@@ -424,8 +424,12 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
             buy_vs_keep = buy_surplus .> _buyer.expected_surplus
             lease_vs_keep = lease_surplus .> _buyer.expected_surplus
 
-            buy_requirement = any(buy_vs_keep .> 0)
-            lease_requirement = any(lease_vs_keep .> 0)
+            buy_requirement = buy_vs_keep .> 0
+            lease_requirement = lease_vs_keep .> 0
+
+            if !lease_available
+                lease_requirement = falses(length(lease_requirement))
+            end
 
             requirements = vcat(supply_requirement .* buy_requirement .* buy_surplus, supply_requirement .* lease_requirement .* lease_surplus)
 
@@ -441,7 +445,7 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
 
                     chosen_product = argmax(requirements)
                     decision = decisions[chosen_product]
-                    pm_surplus = requirements[chosen_product]
+                    pm_surplus = (utility .- buy_prices)[chosen_product]
 
                     if chosen_product > length(sellers)
                         chosen_product = chosen_product - length(sellers)
@@ -578,7 +582,12 @@ function consumers_pay_lease_or_buy(buyers::Vector{buyer}, sellers::Vector{selle
                     
                     sellers[chosen_product].leasing_income = sellers[chosen_product].leasing_income + _buyer.leasing_price_of_unit_possessed
 
-                    sellers[chosen_product].expected_income = sellers[chosen_product].expected_income + calculate_price(sellers[chosen_product])
+                    if _buyer.unit_possessed_time == iter
+
+                        sellers[chosen_product].expected_income = sellers[chosen_product].expected_income + calculate_price(sellers[chosen_product]) * sellers[chosen_product].interest_rate
+
+                    end
+
                 elseif !_buyer.unit_possessed_is_leased & (_buyer.unit_possessed_time == iter)
 
                     # price of purchase
@@ -849,7 +858,7 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
 
 end
 
-function TO_GO(maxIter, num_sellers, num_buyers, num_links, k, c, m, d, network_type, λ_ind, λ_wom, buyer_behaviour, adaptation, inrt, qr, dr, mr, μ_c, secondary_market_exists, rand_period = 10)
+function TO_GO(maxIter, num_sellers, num_buyers, num_links, k, c, m, d, network_type, λ_ind, λ_wom, buyer_behaviour, adaptation, inrt, qr, dr, mr, μ_c, secondary_market_exists, lease_available, rand_period = 10)
 
     sellers = create_sellers(num_sellers, k, c, m, d, qr, dr, mr, adaptation, inrt)
 
@@ -870,7 +879,7 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, k, c, m, d, network_
 
             buyers = consumers_compare_offers(buyers, sellers, iter)
 
-            buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter, buyer_behaviour, secondary_market_exists)
+            buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter, buyer_behaviour, secondary_market_exists, lease_available)
 
             sellers = consumers_pay_lease_or_buy(buyers, sellers, iter)
 
@@ -890,7 +899,7 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, k, c, m, d, network_
 
             buyers = consumers_compare_offers(buyers, sellers, iter)
 
-            buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter, buyer_behaviour, secondary_market_exists)
+            buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter, buyer_behaviour, secondary_market_exists, lease_available)
 
             sellers = consumers_pay_lease_or_buy(buyers, sellers, iter)
 
