@@ -2,10 +2,12 @@ include(pwd() * "\\methods\\methods.jl")
 
 #################################### AUX FUNCTIONS ##############################################################
 
-sim_single = TO_GO(250, 2, 200, 300, [1.0, 1.0], [0.5, 0.5], [1.1, 1.1], [0.4, 0.4], "random", 0.25, 0.25, "stochastic", [0.15, 0.15], [1.1, 1.1], [[0.5, 1.5], [0.5, 1.5]], [[0.2, 0.6], [0.2, 0.6]], [[0.8, 2.], [0.8, 2.]], 0.0, true, 0)
+sim_single = TO_GO(250, 2, 200, 300, [1.0, 1.0], [0.5, 0.5], [1.0, 1.0], [0.3, 0.3], "random", 0.25, 0.25, "stochastic",[0.1, 0.1], [1.1, 1.1], [[0.9, 1.5], [0.6, 1.1]], [[0.2, 0.5], [0.3, 0.6]],[[1.0,2.], [1.0,2.]], 0.0, true, true, 0)
+
+calculate_surplus(sim_single, "producer", true)
 
 plot(getfield.(sim_single.sellers, :selling_income_history))
-plot(getfield.(sim_single.sellers, :leasing_income_history))
+plot!(getfield.(sim_single.sellers, :leasing_income_history))
 
 plot(getfield.(sim_single.sellers, :expected_income_history))
 plot!(getfield.(sim_single.sellers, :selling_income_history) .+ getfield.(sim_single.sellers, :leasing_income_history))
@@ -60,8 +62,8 @@ plot(calculate_price_history.(sim_single.sellers))
 plot(calculate_profit_history.(sim_single.sellers))
 
 
-calculate_surplus(sim_single, "producer", true)
-plot(calculate_surplus(sim_single, "producer", false))
+plot(calculate_surplus(sim_single, "total", false))
+plot!(calculate_surplus(sim_single, "producer", false))
 plot!(calculate_surplus(sim_single, "consumer,pm", false))
 plot!(calculate_surplus(sim_single, "consumer,sm,b", false))
 plot!(calculate_surplus(sim_single, "consumer,sm,s", false))

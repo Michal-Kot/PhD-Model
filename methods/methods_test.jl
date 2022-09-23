@@ -341,7 +341,7 @@ function consumers_make_decision2(buyers::Vector{buyer}, sellers::Vector{seller}
     elseif iter >= 2
 
         surplus = getfield.(buyers, :surplus)
-        surplus_selling = [secondary_market_exists .* _buyer.reselling_probability .* _buyer.std_reservation_price * _buyer.unit_possessed_is_new * _buyer.current_quality_of_unit_possessed / (1 - _buyer.durability_of_unit_possessed) for _buyer in buyers]
+        surplus_selling = [secondary_market_exists .* _buyer.reselling_probability .* _buyer.std_reservation_price * _buyer.current_quality_of_unit_possessed / (1 - _buyer.durability_of_unit_possessed) * any(_buyer.unit_possessed) for _buyer in buyers]
         surplus_total = [sur .+ sur_sel for (sur, sur_sel) in zip(surplus, surplus_selling)]
 
         ladder = collect(zip(vcat([fill(x, num_sellers) for x in 1:num_buyers]...), vcat(fill(collect(1:num_sellers), num_buyers)...), vcat(surplus_total...)))

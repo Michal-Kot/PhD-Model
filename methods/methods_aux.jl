@@ -28,8 +28,13 @@ function calculate_price(_seller::seller)::Float64
     return price
 end
 
-function calculate_lease(_seller::seller)::Float64
+function calculate_lease_single(_seller::seller)::Float64
     lease = calculate_cost(_seller) * _seller.margin * _seller.interest_rate * (1 - _seller.durability)
+    return lease
+end
+
+function calculate_lease_total(_seller::seller)::Float64
+    lease = calculate_cost(_seller) * _seller.margin * _seller.interest_rate
     return lease
 end
 
@@ -59,7 +64,6 @@ end
 
 function calculate_profit_history(_seller::seller)::Vector{Float64}
     profit_history = _seller.selling_income_history .+ _seller.leasing_income_history .- _seller.cost_of_production_history .+ _seller.utilization_cost_history
-    #profit = _seller.quantity_sold_history .* calculate_price(_seller) .+ _seller.quantity_leased_history .* calculate_lease(_seller) .- _seller.quantity_produced_history .* calculate_cost_history(_seller) .+ _seller.utilization_cost_history
     return profit_history
 end
 
@@ -95,11 +99,11 @@ function calculate_surplus(sim_single, type::String, cumulated::Bool)
 
         if cumulated
 
-            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_pm_history)))
+            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_pm_history)) .- sum(getfield.(sim_single.buyers, :leasing_interest_history)))
 
         else
 
-            return sum(getfield.(sim_single.buyers, :realized_surplus_pm_history))
+            return sum(getfield.(sim_single.buyers, :realized_surplus_pm_history) .- getfield.(sim_single.buyers, :leasing_interest_history))
 
         end
 
@@ -132,11 +136,11 @@ function calculate_surplus(sim_single, type::String, cumulated::Bool)
 
         if cumulated
 
-            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_pm_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history)))
+            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_pm_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history))) - sum(sum(getfield.(sim_single.buyers, :leasing_interest_history)))
 
         else
 
-            return sum(getfield.(sim_single.buyers, :realized_surplus_pm_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history))
+            return sum(getfield.(sim_single.buyers, :realized_surplus_pm_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history)) - sum(getfield.(sim_single.buyers, :leasing_interest_history))
 
         end
 
@@ -157,11 +161,11 @@ function calculate_surplus(sim_single, type::String, cumulated::Bool)
 
         if cumulated
 
-            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_pm_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history))) + sum(sum(calculate_profit_history.(sim_single.sellers)))
+            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_pm_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history))) + sum(sum(calculate_profit_history.(sim_single.sellers))) - sum(sum(getfield.(sim_single.buyers, :leasing_interest_history)))
 
         else
 
-            return sum(getfield.(sim_single.buyers, :realized_surplus_pm_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history)) + sum(calculate_profit_history.(sim_single.sellers))
+            return sum(getfield.(sim_single.buyers, :realized_surplus_pm_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history)) + sum(calculate_profit_history.(sim_single.sellers)) - sum(getfield.(sim_single.buyers, :leasing_interest_history))
 
         end
 

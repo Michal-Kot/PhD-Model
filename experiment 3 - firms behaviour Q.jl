@@ -22,7 +22,7 @@ ex3_v2_quantity_sold = []
 ex3_v2_quantity_leased = []
 ex3_v2_producer_surplus_singleton = []
 
-for i in 1:100
+for i in 1:1000
 
     if (mod(i,10) == 0) | (i == 1)
         println(i)
@@ -62,6 +62,9 @@ plot_ecdf(ex3_v2_consumer_surplus, "not equal Q", "Producer Surplus", "Probabili
 
 ex2_p3 = plot_ecdf(sum.(sum.(ex3_v1_quantity_produced)), "equal Q", "Producer Surplus", "Probability", "ECDF", true)
 plot_ecdf(sum.(sum.(ex3_v2_quantity_produced)), "not equal Q", "Producer Surplus", "Probability", "ECDF", false)
+
+plot_ecdf(sum.(sum.(ex3_v1_quantity_sold)) .+ sum.(sum.(ex3_v1_quantity_leased)), "equal Q", "Producer Surplus", "Probability", "ECDF", true)
+plot_ecdf(sum.(sum.(ex3_v2_quantity_sold)) .+ sum.(sum.(ex3_v2_quantity_leased)), "not equal Q", "Producer Surplus", "Probability", "ECDF", false)
 
 plot_ecdf(sum.(sum.(ex3_v1_quantity_sold)), "equal Q", "Producer Surplus", "Probability", "ECDF", true)
 plot_ecdf(sum.(sum.(ex3_v2_quantity_sold)), "not equal Q", "Producer Surplus", "Probability", "ECDF", false)
