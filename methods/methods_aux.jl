@@ -4,6 +4,10 @@ function sum_of_geom_series(a0,q)
     return a0 ./ (1 .- q)
 end
 
+function sum_of_geom_series_finite(a0,q)
+    t = 1 ./ (1 .- q)
+    return a0 .* (1 .- q.^t) ./ (1 .- q)
+end
 
 function in_boundaries(x::Float64,lb::Float64,ub::Float64)::Float64
     return max(min(x,ub),lb)
@@ -14,12 +18,31 @@ function in_boundaries(x::Float64,lb::Int64,ub::Int64)::Float64
 end
 
 function calculate_cost(_seller::seller)::Float64
-    cost = sum_of_geom_series(_seller.quality, _seller.durability) * _seller.cost_coefficient
+    cost = sum_of_geom_series_finite(_seller.quality, _seller.durability) * ((_seller.quality * _seller.durability)^2) #_seller.cost_coefficient
     return cost
 end
 
+sum_of_geom_series
+
+function calculate_values(K, D, M, c, o_K, o_D, o_P, return_type)
+
+    s = LinRange(0:0.01:1)
+    o_U = s .* sum_of_geom_series_finite(o_K, o_D) .- o_P
+    U = s .* sum_of_geom_series_finite(K, D)  .- ((K*D)^2) .* sum_of_geom_series_finite(K, D) .* M
+    demand = sum((U .>= 0) .& (U .> o_U))
+    margin_amount = ((K*D)^2) * sum_of_geom_series_finite(K, D) * (M - 1)
+    profit = demand * margin_amount
+
+    if return_type == "profit"
+        return profit
+    elseif return_type == "demand"
+        return demand
+    end
+
+end
+
 function calculate_cost_history(_seller::seller)::Vector{Float64}
-    cost = sum_of_geom_series.(_seller.quality_history, _seller.durability_history) .* _seller.cost_coefficient
+    cost = sum_of_geom_series_finite.(_seller.quality_history, _seller.durability_history) .* ((_seller.quality_history .* _seller.durability_history) .^ 2)# _seller.cost_coefficient
     return cost
 end
 
@@ -33,10 +56,22 @@ function calculate_lease_single(_seller::seller)::Float64
     return lease
 end
 
+function lm_coef(k,d,m,q,o_k,o_d,o_p)
+
+    X = [fill(1, length(k)) k d m o_k o_d o_p]
+    y = q
+
+    coefs = inv((X')*X)*(X')*y
+
+    return coefs
+
+end
+
 function calculate_lease_total(_seller::seller)::Float64
     lease = calculate_cost(_seller) * _seller.margin * _seller.interest_rate
     return lease
 end
+
 
 function calculate_price_history(_seller::seller)::Vector{Float64}
     price = calculate_cost_history(_seller) .* _seller.margin_history
@@ -65,26 +100,6 @@ end
 function calculate_profit_history(_seller::seller)::Vector{Float64}
     profit_history = _seller.selling_income_history .+ _seller.leasing_income_history .- _seller.cost_of_production_history .+ _seller.utilization_cost_history
     return profit_history
-end
-
-function calculate_average_elasticity(q,p;trim = 10)
-    q = q[(trim+1):end]
-    p = p[(trim+1):end]
-    dq = diff(q) ./ mean(q)
-    dp = diff(p) ./ mean(p)
-    eqp = dq ./ dp
-    eqp = eqp[eqp .!= Inf]
-    eqp = eqp[eqp .!= -Inf]
-    eqp = eqp[.!isnan.(eqp)]
-    return mean(eqp)
-end
-
-function trim_outliers(x, trim = 5)
-    lb = percentile(x, trim)
-    ub = percentile(x, 100-trim)
-    y = copy(x)
-    y = y[(y .>= lb) .& (y .<= ub)]
-    return y
 end
 
 function create_bool_purchase(n::Int64,k::Int64)::Vector{Bool}
@@ -187,11 +202,6 @@ function cut_integer(x::Vector{Float64},k::Int64)
 
     return x_categorical, bin_up_bounds
 
-end
-
-
-function sum_of_geom_series_finite(a1,q,n)
-    a1 .* (1 .- q .^ n) ./ (1 .- q)
 end
 
 function calculate_expectation(sim_res, metric, cumulated = false)

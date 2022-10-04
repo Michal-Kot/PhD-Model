@@ -13,6 +13,7 @@ using DataFrames
 using SmoothingSplines
 using Random
 using Serialization
+using PlotlyJS
 
 ################################# STRUCTS ####################################################################
 
@@ -139,7 +140,7 @@ mutable struct buyer
     unit_possessed::Vector{Bool}
     unit_possessed_is_new::Bool
     unit_possessed_is_leased::Bool
-    unit_possessed_history::Vector{Vector{Bool}}
+    unit_buying_selling_history::Vector{}
     unit_possessed_time::Int64
     quality_of_unit_possessed::Float64
     quality_of_unit_possessed_history::Vector{Vector{Float64}}
@@ -159,8 +160,6 @@ mutable struct buyer
     realized_surplus_sm_s_history::Vector{Float64}
     reselling_probability::Float64
 end
-
-[rand(Uniform(x[1], x[2])) for x in [[1,2], [4,5]]]
 
 function create_buyers(num_buyers::Int64, num_sellers::Int64, network::SimpleGraph{Int64}, initial_quality_expectation_range::Vector{Vector{Float64}}, initial_durability_expectation_range::Vector{Vector{Float64}})::Vector{buyer}
     buyers_vector = []
@@ -231,7 +230,7 @@ include(pwd() * "\\methods\\methods_aux.jl")
 
 __precompile__()
 
-function sellers_choose_qp_k_d_m_stochastic(sellers::Vector{seller}, iter::Int64, num_buyers::Int64, randPeriod::Int64)::Vector{seller}
+function sellers_choose_qp_k_d_m_states(sellers::Vector{seller}, randPeriod::Int64, iter::Int64, num_buyers::Int64, profit_expected::Vector)::Vector{seller}
 
     """
 
@@ -246,7 +245,7 @@ function sellers_choose_qp_k_d_m_stochastic(sellers::Vector{seller}, iter::Int64
 
     for _seller in sellers
 
-        if iter <= randPeriod
+        if (iter <= randPeriod) & (randPeriod > 0)
 
             _seller.quality = in_boundaries(_seller.quality + sample([-δ_k, 0, δ_k], Weights([1/3, 1/3, 1/3])), _seller.quality_range[1], _seller.quality_range[2])
             _seller.durability = in_boundaries(_seller.durability + sample([-δ_d, 0, δ_d], Weights([1/3, 1/3, 1/3])), _seller.durability_range[1], _seller.durability_range[2])
@@ -254,91 +253,45 @@ function sellers_choose_qp_k_d_m_stochastic(sellers::Vector{seller}, iter::Int64
             _seller.quantity_produced = sample(1:floor(0.2*num_buyers))
 
         elseif iter >= (randPeriod + 1)
+            
+                #change phase
 
-            if (rand() < 1/3) & (iter >= 5)
-                #eval phase
+                δ_k = rand() * 0.05
+                δ_d = rand() * 0.05
+                δ_m = rand() * 0.05
 
-                if diff(_seller.expected_income_history .- _seller.cost_of_production_history)[end] < 0
+                K = [max(_seller.quality_range[1], _seller.quality - δ_k), _seller.quality, min(_seller.quality_range[2], _seller.quality + δ_k)]
 
-                    _seller.quality = _seller.quality_history[end-1]
-                    _seller.durability = _seller.durability_history[end-1]
-                    _seller.margin = _seller.margin_history[end-1]
+                D = [max(_seller.durability_range[1], _seller.durability - δ_d), _seller.durability, min(_seller.durability_range[2], _seller.durability + δ_d)]
 
-                    produced_q = _seller.quantity_produced_history[end]
-                    leased_q = _seller.quantity_leased_history[end]
-                    sold_q = _seller.quantity_sold_history[end]
+                M = [max(_seller.margin_range[1], _seller.margin - δ_m), _seller.margin, min(_seller.margin_range[2], _seller.margin + δ_m)]
 
-                    new_quantity = _seller.quantity_produced_history[end-1]
-                
-                    if produced_q > (sold_q + leased_q)
-    
-                        new_quantity = ceil(new_quantity - _seller.adaptation_rate * (produced_q - sold_q - leased_q))
-    
-                    end
+                o_k = mean(getfield.(sellers[Not(_seller.id)], :quality_history))[end]
 
-                    _seller.quantity_produced = new_quantity
+                o_d = mean(getfield.(sellers[Not(_seller.id)], :durability_history))[end]
 
-                end
-                
-            else
-                    #change phase
-                δ_k_history = sign.(diff(_seller.quality_history))
-                δ_d_history = sign.(diff(_seller.durability_history))
-                δ_m_history = sign.(diff(_seller.margin_history))
-                δ_q_history = sign.(diff(_seller.quantity_produced_history))
+                o_p = mean(calculate_price_history.(sellers[Not(_seller.id)]))[end]
 
-                δ_π_history = diff(_seller.expected_income_history .- _seller.cost_of_production_history)
+                expected_profit_around = [calculate_values(k, d, m, _seller.cost_coefficient, o_k, o_d, o_p, "profit") for k in K, d in D, m in M]
 
-                steps_k = [-1, 0, 1]
-                steps_d = [-1, 0, 1]
-                steps_m = [-1, 0, 1]
-                steps_q = [-1, 0, 1]
+                biased_expected_profit_around = expected_profit_around + rand(Normal(0 , 1 / 5 * std(expected_profit_around)),3,3,3)
 
-                steps_k = steps_k[((_seller.quality .+ [-1,0,1] .* δ_k) .>= _seller.quality_range[1]) .& ((_seller.quality .+ [-1,0,1] .* δ_k) .<= _seller.quality_range[2])]
+                optimal_profit_args = argmax(biased_expected_profit_around)
 
-                steps_d = steps_d[((_seller.durability .+ [-1,0,1] .* δ_d) .>= _seller.durability_range[1]) .& ((_seller.durability .+ [-1,0,1] .* δ_d) .<= _seller.durability_range[2])]
+                push!(profit_expected, (_seller.id, expected_profit_around[optimal_profit_args]))
 
-                steps_m = steps_m[((_seller.margin .+ [-1,0,1] .* δ_m) .>= _seller.margin_range[1]) .& ((_seller.margin .+ [-1,0,1] .* δ_m) .<= _seller.margin_range[2])]
-
-                steps_q = steps_q[(_seller.quantity_produced .+ [-1,0,1] .* δ_q) .>= 0]
-
-                possible_k_d_m_q = vec(collect(Iterators.product(steps_k, steps_d, steps_m, steps_q)))
-
-                expected_π = []
-
-                for kdmq in possible_k_d_m_q
-
-                    requirements = (δ_k_history .== kdmq[1]) .& (δ_d_history .== kdmq[2]) .& (δ_m_history .== kdmq[3]) .& (δ_q_history .== kdmq[4])
-
-                    if any(requirements)
-
-                        π_e = mean(δ_π_history[requirements])
-
-                        push!(expected_π, π_e)
-
-                    else
-
-                        push!(expected_π, 0)
-
-                    end
-
-                end
-
-                weights = expected_π .- minimum(expected_π) ./ (maximum(expected_π) - minimum(expected_π))
-                best_strategy = sample(possible_k_d_m_q, Weights(weights))
-
-                new_quality = _seller.quality + best_strategy[1] * δ_k
-                new_durability = _seller.durability + best_strategy[2] * δ_d
-                new_margin = _seller.margin + best_strategy[3] * δ_m
-                new_quantity = _seller.quantity_produced + best_strategy[4] * δ_q
+                new_quality = K[optimal_profit_args[1]]
+                new_durability = D[optimal_profit_args[2]]
+                new_margin = M[optimal_profit_args[3]] 
+                new_quantity = ceil(calculate_values(new_quality, new_durability, new_margin, _seller.cost_coefficient, o_k, o_d, o_p, "demand"))
 
                 produced_q = _seller.quantity_produced_history[end]
                 leased_q = _seller.quantity_leased_history[end]
                 sold_q = _seller.quantity_sold_history[end]
                 
-                if produced_q > (sold_q + leased_q)
+                if (produced_q > (sold_q + leased_q)) & (produced_q > 0)
 
-                    new_quantity = ceil(new_quantity - _seller.adaptation_rate * (produced_q - sold_q - leased_q))
+                    new_quantity = max(0, ceil(new_quantity - _seller.adaptation_rate * (produced_q - sold_q - leased_q)))
 
                 end
 
@@ -347,9 +300,11 @@ function sellers_choose_qp_k_d_m_stochastic(sellers::Vector{seller}, iter::Int64
                 _seller.margin = new_margin
                 _seller.quantity_produced = new_quantity
 
-            end
-
         end
+
+    end
+
+    for _seller in sellers
 
         push!(_seller.quantity_produced_history, _seller.quantity_produced)
         push!(_seller.quality_history, _seller.quality)
@@ -364,6 +319,7 @@ function sellers_choose_qp_k_d_m_stochastic(sellers::Vector{seller}, iter::Int64
 
 end
 
+
 function consumers_compare_offers(buyers::Vector{buyer}, sellers::Vector{seller}, iter::Int64)::Vector{buyer}
 
     """
@@ -377,7 +333,7 @@ function consumers_compare_offers(buyers::Vector{buyer}, sellers::Vector{seller}
 
     for _buyer in buyers
         if any(_buyer.unit_possessed)
-            _buyer.expected_surplus =  _buyer.std_reservation_price .* sum_of_geom_series(_buyer.durability_of_unit_possessed^(iter - _buyer.unit_possessed_time) * _buyer.quality_of_unit_possessed, _buyer.durability_of_unit_possessed)
+            _buyer.expected_surplus =  _buyer.std_reservation_price .* sum_of_geom_series_finite(_buyer.durability_of_unit_possessed^(iter - _buyer.unit_possessed_time) * _buyer.quality_of_unit_possessed, _buyer.durability_of_unit_possessed)
         else
             _buyer.expected_surplus = 0.0
         end
@@ -406,9 +362,9 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
         if any(supply_requirement)
 
             buy_prices = calculate_price.(sellers)
-            lease_prices = calculate_lease_single.(sellers) .* 1 ./ (1 .- _buyer.future_discount) #pv of leasing
+            lease_prices = calculate_lease_single.(sellers) .* (1 .- _buyer.future_discount .^ (1 ./ (1 .- getfield.(sellers, :durability)))) ./ (1 .- _buyer.future_discount) #pv of leasing
 
-            utility = _buyer.std_reservation_price .* sum_of_geom_series.(_buyer.quality_expectation, _buyer.durability_expectation) # buying/leasing expected utility
+            utility = _buyer.std_reservation_price .* sum_of_geom_series_finite.(_buyer.quality_expectation, _buyer.durability_expectation) # buying/leasing expected utility
 
             reselling_price = 0.0
 
@@ -475,7 +431,7 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
 
                         # if previous product was leased -> seller sells it immidiately
 
-                        sellers[argmax(_buyer.unit_possessed)].leasing_income = sellers[argmax(_buyer.unit_possessed)].leasing_income + _buyer.leasing_total
+                        #sellers[argmax(_buyer.unit_possessed)].leasing_income = sellers[argmax(_buyer.unit_possessed)].leasing_income + _buyer.leasing_total 
 
                     else
 
@@ -491,6 +447,8 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
 
                 end
 
+                push!(_buyer.unit_buying_selling_history, (t=iter, d="b", p=chosen_product))
+
                 pm_surplus = (utility .- buy_prices)[chosen_product]
 
                 _buyer.leasing_interest = 0.0
@@ -503,6 +461,7 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
                 push!(_buyer.realized_surplus_pm_history, pm_surplus)
 
                 sellers[chosen_product].selling_income = sellers[chosen_product].selling_income + calculate_price(sellers[chosen_product])
+
                 sellers[chosen_product].expected_income = sellers[chosen_product].expected_income + calculate_price(sellers[chosen_product])
 
             elseif (chosen_product > 0) & (decision == "lease")
@@ -515,7 +474,7 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
 
                         # if previous product was leased -> seller sells it immidiately
 
-                        sellers[argmax(_buyer.unit_possessed)].leasing_income = sellers[argmax(_buyer.unit_possessed)].leasing_income + + _buyer.leasing_total
+                        #sellers[argmax(_buyer.unit_possessed)].leasing_income = sellers[argmax(_buyer.unit_possessed)].leasing_income + + _buyer.leasing_total
 
                     else
 
@@ -531,6 +490,8 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
     
                 end
 
+                push!(_buyer.unit_buying_selling_history, (t=iter, d="l", p=chosen_product))
+
                 pm_surplus = utility[chosen_product]
 
                 _buyer.leasing_interest = calculate_lease_single(sellers[chosen_product])
@@ -541,7 +502,10 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
                 _buyer.unit_possessed_time = iter
                 sellers[chosen_product].quantity_leased += 1
                 push!(_buyer.realized_surplus_pm_history, pm_surplus)
-                sellers[chosen_product].expected_income = sellers[chosen_product].expected_income + calculate_lease_total(sellers[chosen_product])
+
+                sellers[chosen_product].leasing_income = sellers[chosen_product].leasing_income + calculate_price(sellers[chosen_product])
+
+                sellers[chosen_product].expected_income = sellers[chosen_product].expected_income + calculate_price(sellers[chosen_product])
 
             else
 
@@ -562,6 +526,7 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
         push!(_seller.quantity_sold_history, _seller.quantity_sold)
         push!(_seller.quantity_leased_history, _seller.quantity_leased)
         push!(_seller.selling_income_history, _seller.selling_income)
+        push!(_seller.leasing_income_history, _seller.leasing_income)
         push!(_seller.expected_income_history, _seller.expected_income)
 
     end
@@ -638,7 +603,7 @@ function sellers_utilize_not_sold_products(sellers::Vector{seller}, μ_c::Float6
 
     for _seller in sellers
 
-        push!(_seller.utilization_cost_history, μ_c * calculate_cost(_seller) * (_seller.quantity_produced - _seller.quantity_sold - _seller.quantity_leased))
+        push!(_seller.utilization_cost_history, (1 - μ_c) * calculate_cost(_seller) * (_seller.quantity_produced - _seller.quantity_sold - _seller.quantity_leased))
         _seller.quantity_sold = 0
         _seller.quantity_leased = 0
 
@@ -664,8 +629,8 @@ function buyers_products_age_and_lease(buyers::Vector{buyer}, sellers::Vector{se
 
                         # pays total left interests
 
-                        sellers[argmax(_buyer.unit_possessed)].leasing_income = sellers[argmax(_buyer.unit_possessed)].leasing_income + _buyer.leasing_total
-                        push!(_buyer.leasing_interest_history, _buyer.leasing_total)
+                        #sellers[argmax(_buyer.unit_possessed)].leasing_income = sellers[argmax(_buyer.unit_possessed)].leasing_income + _buyer.leasing_total
+                        push!(_buyer.leasing_interest_history, _buyer.leasing_total / (1 + sellers[argmax(_buyer.unit_possessed)].interest_rate))
 
                     else
 
@@ -674,6 +639,8 @@ function buyers_products_age_and_lease(buyers::Vector{buyer}, sellers::Vector{se
                         push!(_buyer.leasing_interest_history, 0.0)
 
                     end
+
+                    push!(_buyer.unit_buying_selling_history, (t=iter, d="d", p=argmax(_buyer.unit_possessed)))
 
                     _buyer.unit_possessed = fill(false, length(_buyer.unit_possessed))
                     _buyer.quality_of_unit_possessed = 0.0
@@ -696,7 +663,7 @@ function buyers_products_age_and_lease(buyers::Vector{buyer}, sellers::Vector{se
 
                         interest_paid = max(min(_buyer.leasing_interest, _buyer.leasing_total), 0)
 
-                        sellers[argmax(_buyer.unit_possessed)].leasing_income = sellers[argmax(_buyer.unit_possessed)].leasing_income + interest_paid
+                        #sellers[argmax(_buyer.unit_possessed)].leasing_income = sellers[argmax(_buyer.unit_possessed)].leasing_income + interest_paid / (1 + sellers[argmax(_buyer.unit_possessed)].interest_rate)
 
                         push!(_buyer.leasing_interest_history, interest_paid)
 
@@ -726,7 +693,7 @@ function buyers_products_age_and_lease(buyers::Vector{buyer}, sellers::Vector{se
 
                     interest_paid = max(min(_buyer.leasing_interest, _buyer.leasing_total), 0)
 
-                    sellers[argmax(_buyer.unit_possessed)].leasing_income = sellers[argmax(_buyer.unit_possessed)].leasing_income + interest_paid
+                    #sellers[argmax(_buyer.unit_possessed)].leasing_income = sellers[argmax(_buyer.unit_possessed)].leasing_income + interest_paid
 
                     push!(_buyer.leasing_interest_history, interest_paid)
 
@@ -756,12 +723,6 @@ function buyers_products_age_and_lease(buyers::Vector{buyer}, sellers::Vector{se
 
     end
 
-    for _seller in sellers
-
-        push!(_seller.leasing_income_history, _seller.leasing_income)
-
-    end
-
     return buyers, sellers
 
 end
@@ -786,7 +747,7 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
 
                     current_quality = getindex.(getfield.(buyers, :durability_expectation), possessed_product) .^ _buyer.age_for_sale .* getindex.(getfield.(buyers, :quality_expectation), possessed_product)
 
-                    offers = getfield.(buyers, :std_reservation_price) .* sum_of_geom_series.(current_quality, getindex.(getfield.(buyers, :durability_expectation), possessed_product)) .* .!any.(getfield.(buyers, :unit_possessed))
+                    offers = getfield.(buyers, :std_reservation_price) .* sum_of_geom_series_finite.(current_quality, getindex.(getfield.(buyers, :durability_expectation), possessed_product)) .* .!any.(getfield.(buyers, :unit_possessed))
 
                     if any(offers .> _buyer.price_for_sale)
 
@@ -803,6 +764,8 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
                             chosen_buyer = sample(1:length(buyers), Weights(weight))
 
                         end
+
+                        push!(_buyer.unit_buying_selling_history, (t=iter, d="s", p=argmax(_buyer.unit_for_sale)))
 
                         reselling_quantity = reselling_quantity .+ _buyer.unit_for_sale
 
@@ -907,13 +870,17 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
     buyers_network = create_network(network_type, num_buyers = num_buyers, num_links = num_links)
     buyers = create_buyers(num_buyers, num_sellers, buyers_network, kr, dr)
 
+    profit_expected = []
+
     for iter in 0:maxIter
 
         if iter == 0
 
             # iter = 0
 
-            sellers = sellers_choose_qp_k_d_m_stochastic(sellers, iter, num_buyers, rand_period)
+            #sellers = sellers_choose_qp_k_d_m_stochastic(sellers, iter, num_buyers, rand_period)
+
+            sellers = sellers_choose_qp_k_d_m_states(sellers, rand_period, iter, num_buyers, profit_expected)
 
         elseif iter == 1
 
@@ -927,7 +894,9 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
 
             buyers = consumers_update_expectations(buyers, iter, λ_ind, λ_wom)
 
-            sellers = sellers_choose_qp_k_d_m_stochastic(sellers, iter, num_buyers, rand_period)
+            #sellers = sellers_choose_qp_k_d_m_stochastic(sellers, iter, num_buyers, rand_period)
+
+            sellers = sellers_choose_qp_k_d_m_states(sellers, rand_period, iter, num_buyers, profit_expected)
 
             sellers = sellers_utilize_not_sold_products(sellers, μ_c)
 
@@ -953,7 +922,9 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
 
             if iter < maxIter
 
-                sellers = sellers_choose_qp_k_d_m_stochastic(sellers, iter, num_buyers, rand_period)
+                #sellers = sellers_choose_qp_k_d_m_stochastic(sellers, iter, num_buyers, rand_period)
+
+                sellers = sellers_choose_qp_k_d_m_states(sellers, rand_period, iter, num_buyers, profit_expected)
 
             end
 
@@ -961,6 +932,6 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
 
     end
 
-    return (buyers = buyers, sellers = sellers)
+    return (buyers = buyers, sellers = sellers, profit_expected = profit_expected)
 
 end

@@ -171,7 +171,7 @@ function plot_phasediagram(_seller::seller, function_args::Vector)
     d_y = diff(y)
     push!(d_y,0)
     labs = string.(1:length(x))
-    points_labels = ([mod(x,100) == 0 ? labs[x] : "" for x in 1:length(labs)])
+    points_labels = ([mod(x,100) == 0 ? labs[x] : "" for x in eachindex(labs)])
     points_labels[1] = "1"
     quiver(x,y,quiver=(d_x, d_y), color = :green)
     scatter!(x,y, xlabel = "Price", ylabel = "Profit", markershape = :none, markercolor = :white, markerstrokecolor = :white, series_annotations = points_labels, markersize = 0)

@@ -1,0 +1,222 @@
+function sellers_choose_qp_k_d_m_econometric(sellers::Vector{seller}, randPeriod::Int64, iter::Int64, num_buyers::Int64, coefs_vault::Vector)::Vector{seller}
+
+    """
+
+    Producers make decisions about changes in production process
+
+    """
+
+    for _seller in sellers
+
+        if iter <= randPeriod
+
+            _seller.quality = sample(_seller.quality_range[1]:0.05:_seller.quality_range[2])
+            _seller.durability = sample(_seller.durability_range[1]:0.05:_seller.durability_range[2])
+            _seller.margin = sample(_seller.margin_range[1]:0.05:_seller.margin_range[2])
+            _seller.quantity_produced = sample(1:floor(0.2*num_buyers))
+
+        elseif iter >= (randPeriod + 1)
+            
+                #change phase
+
+                δ_k = rand() * 0.05
+                δ_d = rand() * 0.05
+                δ_m = rand() * 0.05
+
+                #K = LinRange(_seller.quality_range[1]:0.05:_seller.quality_range[2])
+                #D = LinRange(_seller.durability_range[1]:0.05:_seller.durability_range[2])
+                #M = LinRange(_seller.margin_range[1]:0.05:_seller.margin_range[2])
+
+                K = [max(_seller.quality_range[1], _seller.quality - δ_k), _seller.quality, min(_seller.quality_range[2], _seller.quality + δ_k)]
+
+                D = [max(_seller.durability_range[1], _seller.durability - δ_d), _seller.durability, min(_seller.durability_range[2], _seller.durability + δ_d)]
+
+                M = [max(_seller.margin_range[1], _seller.margin - δ_m), _seller.margin, min(_seller.margin_range[2], _seller.margin + δ_m)]
+
+                demand_model = lm_coef(_seller.quality_history, 
+                _seller.durability_history, 
+                _seller.margin_history, 
+                _seller.quantity_sold_history .+ _seller.quantity_leased_history, 
+                mean(getfield.(sellers[Not(_seller.id)], :quality_history)), 
+                mean(getfield.(sellers[Not(_seller.id)], :durability_history)), 
+                mean(calculate_price_history.(sellers[Not(_seller.id)])))
+
+                competitors_effect = 
+                    mean(getfield.(sellers[Not(_seller.id)], :quality_history))[end] * demand_model[5] + 
+                    mean(getfield.(sellers[Not(_seller.id)], :durability_history))[end] * demand_model[6] + 
+                    mean(calculate_price_history.(sellers[Not(_seller.id)]))[end] * demand_model[7]
+
+                profit_array = [calculate_profit_sim(demand_model[1], k, demand_model[2], d, demand_model[3], m, demand_model[4], _seller.cost_coefficient, competitors_effect) for k in K, d in D, m in M]
+
+                optimal_profit_args = argmax(profit_array)
+
+                new_quality = K[optimal_profit_args[1]]
+                new_durability = D[optimal_profit_args[2]]
+                new_margin = M[optimal_profit_args[3]] 
+                new_quantity = ceil(demand_model[1] + demand_model[2] * new_quality + demand_model[3] * new_durability + demand_model[4] * new_margin + competitors_effect) + sample(1:15)
+
+                _seller.quality = new_quality
+                _seller.durability = new_durability
+                _seller.margin = new_margin
+                _seller.quantity_produced = new_quantity
+
+                push!(coefs_vault, (_seller.id, demand_model))
+
+        end
+
+    end
+
+    for _seller in sellers
+
+        push!(_seller.quantity_produced_history, _seller.quantity_produced)
+        push!(_seller.quality_history, _seller.quality)
+        push!(_seller.durability_history, _seller.durability)
+        push!(_seller.margin_history, _seller.margin)
+        _seller.cost_of_production = calculate_cost(_seller) * _seller.quantity_produced
+        push!(_seller.cost_of_production_history, _seller.cost_of_production)
+
+    end
+
+    return sellers
+
+end
+
+
+function sellers_choose_qp_k_d_m_stochastic(sellers::Vector{seller}, iter::Int64, num_buyers::Int64, randPeriod::Int64)::Vector{seller}
+
+    """
+
+    Producers make decisions about changes in production process
+
+    """
+
+    δ_k = rand() * 0.05
+    δ_d = rand() * 0.05
+    δ_m = rand() * 0.05
+    δ_q = sample(1:5)
+
+    for _seller in sellers
+
+        if iter <= randPeriod
+
+            _seller.quality = in_boundaries(_seller.quality + sample([-δ_k, 0, δ_k], Weights([1/3, 1/3, 1/3])), _seller.quality_range[1], _seller.quality_range[2])
+            _seller.durability = in_boundaries(_seller.durability + sample([-δ_d, 0, δ_d], Weights([1/3, 1/3, 1/3])), _seller.durability_range[1], _seller.durability_range[2])
+            _seller.margin = in_boundaries(_seller.margin + sample([-δ_m, 0, δ_m], Weights([1/3, 1/3, 1/3])), _seller.margin_range[1], _seller.margin_range[2])
+            _seller.quantity_produced = sample(1:floor(0.2*num_buyers))
+
+        elseif iter >= (randPeriod + 1)
+
+            if (rand() < 1/3) & (iter >= 5)
+                #eval phase
+
+                if diff(_seller.expected_income_history .- _seller.cost_of_production_history)[end] < 0
+
+                    _seller.quality = _seller.quality_history[end-1]
+                    _seller.durability = _seller.durability_history[end-1]
+                    _seller.margin = _seller.margin_history[end-1]
+
+                    produced_q = _seller.quantity_produced_history[end]
+                    leased_q = _seller.quantity_leased_history[end]
+                    sold_q = _seller.quantity_sold_history[end]
+
+                    new_quantity = _seller.quantity_produced_history[end-1]
+                
+                    if produced_q > (sold_q + leased_q)
+    
+                        new_quantity = ceil(new_quantity - _seller.adaptation_rate * (produced_q - sold_q - leased_q))
+    
+                    end
+
+                    _seller.quantity_produced = new_quantity
+
+                end
+                
+            else
+                    #change phase
+                δ_k_history = sign.(diff(_seller.quality_history))
+                δ_d_history = sign.(diff(_seller.durability_history))
+                δ_m_history = sign.(diff(_seller.margin_history))
+                δ_q_history = sign.(diff(_seller.quantity_produced_history))
+
+                δ_π_history = diff(_seller.expected_income_history .- _seller.cost_of_production_history)
+
+                steps_k = [-1, 0, 1]
+                steps_d = [-1, 0, 1]
+                steps_m = [-1, 0, 1]
+                steps_q = [-1, 0, 1]
+
+                steps_k = steps_k[((_seller.quality .+ [-1,0,1] .* δ_k) .>= _seller.quality_range[1]) .& ((_seller.quality .+ [-1,0,1] .* δ_k) .<= _seller.quality_range[2])]
+
+                steps_d = steps_d[((_seller.durability .+ [-1,0,1] .* δ_d) .>= _seller.durability_range[1]) .& ((_seller.durability .+ [-1,0,1] .* δ_d) .<= _seller.durability_range[2])]
+
+                steps_m = steps_m[((_seller.margin .+ [-1,0,1] .* δ_m) .>= _seller.margin_range[1]) .& ((_seller.margin .+ [-1,0,1] .* δ_m) .<= _seller.margin_range[2])]
+
+                steps_q = steps_q[(_seller.quantity_produced .+ [-1,0,1] .* δ_q) .>= 0]
+
+                possible_k_d_m_q = vec(collect(Iterators.product(steps_k, steps_d, steps_m, steps_q)))
+
+                expected_π = []
+
+                for kdmq in possible_k_d_m_q
+
+                    requirements = (δ_k_history .== kdmq[1]) .& (δ_d_history .== kdmq[2]) .& (δ_m_history .== kdmq[3]) .& (δ_q_history .== kdmq[4])
+
+                    if any(requirements)
+
+                        π_e = mean(δ_π_history[requirements])
+
+                        push!(expected_π, π_e)
+
+                    else
+
+                        push!(expected_π, 0)
+
+                    end
+
+                end
+
+                weights = expected_π .- minimum(expected_π) ./ (maximum(expected_π) - minimum(expected_π))
+                best_strategy = sample(possible_k_d_m_q, Weights(weights))
+
+                new_quality = _seller.quality + best_strategy[1] * δ_k
+                new_durability = _seller.durability + best_strategy[2] * δ_d
+                new_margin = _seller.margin + best_strategy[3] * δ_m
+                new_quantity = _seller.quantity_produced + best_strategy[4] * δ_q
+
+                produced_q = _seller.quantity_produced_history[end]
+                leased_q = _seller.quantity_leased_history[end]
+                sold_q = _seller.quantity_sold_history[end]
+                
+                if (produced_q > (sold_q + leased_q)) & (produced_q > 0)
+
+                    new_quantity = ceil(new_quantity - _seller.adaptation_rate * (produced_q - sold_q - leased_q))
+
+                end
+
+                if produced_q == 0
+
+                    new_quantity = new_quantity + 0.1 * maximum(_seller.quantity_produced_history)
+
+                end
+
+                _seller.quality = new_quality
+                _seller.durability = new_durability
+                _seller.margin = new_margin
+                _seller.quantity_produced = new_quantity
+
+            end
+
+        end
+
+        push!(_seller.quantity_produced_history, _seller.quantity_produced)
+        push!(_seller.quality_history, _seller.quality)
+        push!(_seller.durability_history, _seller.durability)
+        push!(_seller.margin_history, _seller.margin)
+        _seller.cost_of_production = calculate_cost(_seller) * _seller.quantity_produced
+        push!(_seller.cost_of_production_history, _seller.cost_of_production)
+
+    end
+
+    return sellers
+
+end

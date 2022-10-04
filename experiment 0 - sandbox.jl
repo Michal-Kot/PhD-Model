@@ -2,7 +2,189 @@ include(pwd() * "\\methods\\methods.jl")
 
 #################################### AUX FUNCTIONS ##############################################################
 
-sim_single = TO_GO(250, 2, 200, 300, [1.0, 1.0], [0.5, 0.5], [1.0, 1.0], [0.3, 0.3], "random", 0.25, 0.25, "stochastic",[0.1, 0.1], [1.1, 1.1], [[0.9, 1.5], [0.6, 1.1]], [[0.2, 0.5], [0.3, 0.6]],[[1.0,2.], [1.0,2.]], 0.0, true, true, 0)
+sim_single = TO_GO(300, 2, 200, 500, [0.4, 0.4], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [0.5, 0.5], [1., 1.], [[0.25, 0.75], [0.25, 0.75]], [[0.2, 0.8], [0.2, 0.8]], [[0.8,2.], [.8,2.]], 0.1, true, true, 1)
+
+Plots.plot(sim_single.sellers[1].quantity_produced_history .- sim_single.sellers[1].quantity_sold_history .- sim_single.sellers[1].quantity_leased_history)
+
+ex4_p1 = Plots.plot(calculate_profit_history.(sim_single.sellers), color = ["blue"  "orange"], xlabel = "t", ylabel = "Nadwyżka producenta", label = ["Producent 1" "Producent 2"], title = "Nadwyżka producenta")
+
+Plots.savefig(ex4_p1, pwd() * "\\plots\\ex4_prod surplus.svg")
+
+ex4_p21 = plot_quantity(sim_single.sellers,1)
+ex4_p22 = plot_quantity(sim_single.sellers,2)
+
+StatsPlots.groupedbar([sim_single.sellers[1].quantity_sold_history .+ sim_single.sellers[1].quantity_leased_history sim_single.sellers[2].quantity_sold_history .+ sim_single.sellers[2].quantity_leased_history], bar_position = :stack, linecolor = nothing)
+
+Plots.plot(sum(getfield.(sim_single.sellers, :quantity_produced_history)))
+
+Plots.savefig(ex4_p21, pwd() * "\\plots\\ex4_prod quant 1.svg")
+Plots.savefig(ex4_p22, pwd() * "\\plots\\ex4_prod quant 2.svg")
+
+Plots.plot(sim_single.sellers[1].quality_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Jakość / oczekiwana jakość", label = "Producent 1 - jakość")
+Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "blue", linewidth = 2, label = "Producent 1 - oczekiwana jakość", linestyle = :dot)
+Plots.plot!(sim_single.sellers[2].quality_history, color = "orange", linewidth = 2, label = "Producent 2 - jakość")
+Plots.plot!(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "orange", linewidth = 2, label = "Producent 2 - oczekiwana jakość", linestyle = :dot)
+
+Plots.plot(sim_single.sellers[1].durability_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Jakość / oczekiwana trwałość", label = "Producent 1 - trwałość")
+Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :durability_expectation_history)]), color = "blue", linewidth = 2, label = "Producent 1 - oczekiwana trwałość", linestyle = :dot)
+Plots.plot!(sim_single.sellers[2].durability_history, color = "orange", linewidth = 2, label = "Producent 2 - trwałość")
+Plots.plot!(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :durability_expectation_history)]), color = "orange", linewidth = 2, label = "Producent 2 - oczekiwana trwałość", linestyle = :dot)
+
+
+Plots.plot(sim_single.sellers[1].margin_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Marża", label = "Producent 1 - marża")
+Plots.plot!(sim_single.sellers[2].margin_history, color = "orange", linewidth = 2, label = "Producent 2 - marża")
+
+
+Plots.savefig(ex4_p3, pwd() * "\\plots\\ex4_qual dura exp.svg")
+
+ex4_p4 = Plots.plot(sim_single.sellers[1].margin_history .- 1, color = "blue", xlabel = "t", ylabel = "Marża %", label = "Producent 1", title = "Marża %")
+Plots.plot!(sim_single.sellers[2].margin_history .- 1, color = "orange", label = "Producent 2")
+
+Plots.savefig(ex4_p4, pwd() * "\\plots\\ex4_margin.svg")
+
+
+ex4_p5 = Plots.plot(calculate_price_history(sim_single.sellers[1]), color = "blue", xlabel = "t", ylabel = "Cena", label = "Producent 1", title = "Cena")
+Plots.plot!(calculate_price_history(sim_single.sellers[2]), color = "orange", label = "Producent 2")
+
+Plots.savefig(ex4_p5, pwd() * "\\plots\\ex4_price.svg")
+
+Plots.plot(getindex.(mean([b.quality_expectation_history for b in sim_single.buyers]),1) .- calculate_price_history(sim_single.sellers[1]))
+Plots.plot!(getindex.(mean([b.quality_expectation_history for b in sim_single.buyers]),2) .- calculate_price_history(sim_single.sellers[2]))
+
+any([mean(x[(end-100):end]) <= 1 for x in getfield.(sim_single.sellers, :quantity_produced_history)])
+
+ex4_v1_total_surplus = []
+ex4_v1_producer_surplus = []
+ex4_v1_consumer_surplus = []
+ex4_v1_price = []
+ex4_v1_quality = []
+ex4_v1_durability = []
+ex4_v1_margin = []
+ex4_v1_quantity_produced = []
+ex4_v1_quantity_sold = []
+ex4_v1_quantity_leased = []
+ex4_v1_producer_surplus_singleton = []
+ex4_v1_reselling = []
+ex4_v1_consumer_surplus_pm = []
+ex4_v1_consumer_surplus_sm_s = []
+ex4_v1_consumer_surplus_sm_b = []
+ex4_v1_market_dead = []
+ex4_v1_quality = []
+ex4_v1_durability = []
+ex4_v1_quality_exp = []
+ex4_v1_durability_exp = []
+
+ex4_v2_total_surplus = []
+ex4_v2_producer_surplus = []
+ex4_v2_consumer_surplus = []
+ex4_v2_price = []
+ex4_v2_quality = []
+ex4_v2_durability = []
+ex4_v2_margin = []
+ex4_v2_quantity_produced = []
+ex4_v2_quantity_sold = []
+ex4_v2_quantity_leased = []
+ex4_v2_producer_surplus_singleton = []
+ex4_v2_reselling = []
+ex4_v2_consumer_surplus_pm = []
+ex4_v2_consumer_surplus_sm_s = []
+ex4_v2_consumer_surplus_sm_b = []
+ex4_v2_market_dead = []
+ex4_v2_quality = []
+ex4_v2_durability = []
+ex4_v2_quality_exp = []
+ex4_v2_durability_exp = []
+
+ex4_v12_nn = []
+
+for i in 1:400
+
+    if (mod(i,10) == 0) | (i == 1)
+        println(i)
+    end
+
+    nn = sample(LinRange(0:25:400))
+
+    push!(ex4_v12_nn, nn)
+
+    ex4_v1_sim = TO_GO(800, 2, 200, nn, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [0.1, 0.1], [1., 1.], [[0.5, 1.5], [0.5, 1.5]], [[0.2, 0.6], [0.2, 0.6]], [[0.8,2.], [0.8,2.]], 0.1, true, true, 0)
+
+    push!(ex4_v1_total_surplus, calculate_surplus(ex4_v1_sim, "total", false))
+    push!(ex4_v1_producer_surplus, calculate_surplus(ex4_v1_sim, "producer", false))
+    push!(ex4_v1_consumer_surplus, calculate_surplus(ex4_v1_sim, "consumer,total", false))
+    push!(ex4_v1_price, calculate_price_history.(ex4_v1_sim.sellers))
+    push!(ex4_v1_quality, getfield.(ex4_v1_sim.sellers, :quality_history))
+    push!(ex4_v1_durability, getfield.(ex4_v1_sim.sellers, :durability_history))
+    push!(ex4_v1_margin, getfield.(ex4_v1_sim.sellers, :margin_history))
+    push!(ex4_v1_quantity_produced, getfield.(ex4_v1_sim.sellers, :quantity_produced_history))
+    push!(ex4_v1_quantity_sold, getfield.(ex4_v1_sim.sellers, :quantity_sold_history))
+    push!(ex4_v1_quantity_leased, getfield.(ex4_v1_sim.sellers, :quantity_leased_history))
+    push!(ex4_v1_producer_surplus_singleton, calculate_profit_history.(ex4_v1_sim.sellers))
+    push!(ex4_v1_reselling, getfield.(ex4_v1_sim.sellers, :reselling_history))
+    push!(ex4_v1_consumer_surplus_pm, calculate_surplus(ex4_v1_sim, "consumer,pm", false))
+    push!(ex4_v1_consumer_surplus_sm_b, calculate_surplus(ex4_v1_sim, "consumer,sm,b", false))
+    push!(ex4_v1_consumer_surplus_sm_s, calculate_surplus(ex4_v1_sim, "consumer,sm,s", false))
+    push!(ex4_v1_market_dead, [mean(x[(end-100):end]) <= 1 for x in getfield.(ex4_v1_sim.sellers, :quantity_produced_history)])
+    push!(ex4_v1_quality, getfield.(ex4_v1_sim.sellers, :quality_history))
+    push!(ex4_v1_durability, getfield.(ex4_v1_sim.sellers, :durability_history))
+    push!(ex4_v1_quality_exp, mean([b.quality_expectation_history for b in ex4_v1_sim.buyers]))
+    push!(ex4_v1_durability_exp, mean([b.durability_expectation_history for b in ex4_v1_sim.buyers]))
+
+    ex4_v2_sim = TO_GO(800, 2, 200, nn, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25,  "stochastic", [0.1, 0.1], [1.1, 1.1], [[1.0, 1.5], [0.5, 1.0]], [[0.3, 0.6], [0.2, 0.5]], [[.8, 2.], [.8, 2.]], 0.10, true, true, 0)
+    push!(ex4_v2_total_surplus, calculate_surplus(ex4_v2_sim, "total", false))
+    push!(ex4_v2_producer_surplus, calculate_surplus(ex4_v2_sim, "producer", false))
+    push!(ex4_v2_consumer_surplus, calculate_surplus(ex4_v2_sim, "consumer,total",false))
+    push!(ex4_v2_price, calculate_price_history.(ex4_v2_sim.sellers))
+    push!(ex4_v2_quality, getfield.(ex4_v2_sim.sellers, :quality_history))
+    push!(ex4_v2_durability, getfield.(ex4_v2_sim.sellers, :durability_history))
+    push!(ex4_v2_margin, getfield.(ex4_v2_sim.sellers, :margin_history))
+    push!(ex4_v2_quantity_produced, getfield.(ex4_v2_sim.sellers, :quantity_produced_history))
+    push!(ex4_v2_quantity_sold, getfield.(ex4_v2_sim.sellers, :quantity_sold_history))
+    push!(ex4_v2_quantity_leased, getfield.(ex4_v2_sim.sellers, :quantity_leased_history))
+    push!(ex4_v2_producer_surplus_singleton, calculate_profit_history.(ex4_v2_sim.sellers))
+    push!(ex4_v2_reselling, getfield.(ex4_v2_sim.sellers, :reselling_history))
+    push!(ex4_v2_consumer_surplus_pm, calculate_surplus(ex4_v2_sim, "consumer,pm", false))
+    push!(ex4_v2_consumer_surplus_sm_b, calculate_surplus(ex4_v2_sim, "consumer,sm,b", false))
+    push!(ex4_v2_consumer_surplus_sm_s, calculate_surplus(ex4_v2_sim, "consumer,sm,s", false))
+    push!(ex4_v2_market_dead, [mean(x[(end-100):end]) <= 1 for x in getfield.(ex4_v2_sim.sellers, :quantity_produced_history)])
+    push!(ex4_v2_quality, getfield.(ex4_v2_sim.sellers, :quality_history))
+    push!(ex4_v2_durability, getfield.(ex4_v2_sim.sellers, :durability_history))
+    push!(ex4_v2_quality_exp, mean([b.quality_expectation_history for b in ex4_v2_sim.buyers]))
+    push!(ex4_v2_durability_exp, mean([b.durability_expectation_history for b in ex4_v2_sim.buyers]))
+
+end
+
+Plots.plot(sort(unique(ex4_v12_nn)), [mean(all.(ex4_v1_market_dead)[ex4_v12_nn .== x]) for x in sort(unique(ex4_v12_nn))])
+
+
+
+
+Plots.plot(sim_single.sellers[1].margin_history)
+
+Plots.plot()
+
+Plots.plot(sum_of_geom_series.(getfield.(sim_single.sellers, :quality_history)[1], getfield.(sim_single.sellers, :durability_history)[1]), linewidth = 2, xlabel = "T", ylabel = "Użyteczność / oczekiwana jakość", label = "Użyteczność, producent 1", legend = :outerbottom)
+Plots.plot!(sum_of_geom_series.(getindex.(mean([b.quality_expectation_history for b in sim_single.buyers]), 1), getindex.(mean([b.durability_expectation_history for b in sim_single.buyers]), 1)) , label = "Oczekiwana użyteczność, producent 1")
+Plots.plot!(sum_of_geom_series.(getfield.(sim_single.sellers, :quality_history)[2], getfield.(sim_single.sellers, :durability_history)[2]), linewidth = 2, label = "Użyteczność, producent 2")
+Plots.plot!(sum_of_geom_series.(getindex.(mean([b.quality_expectation_history for b in sim_single.buyers]), 2), getindex.(mean([b.durability_expectation_history for b in sim_single.buyers]), 2)), label = "Oczekiwana użyteczność, producent 2")
+
+plot_phasediagram(sim_single.sellers[1])
+
+Plots.scatter( sim_single.sellers[1].quality_history .- mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), sim_single.sellers[1].quantity_produced_history, alpha = collect(1:1000) ./ 1000, markerstrokewidth = 0)
+
+Plots.scatter( sim_single.sellers[2].quality_history .- mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), sim_single.sellers[2].quantity_produced_history)
+
+plot_quantity(sim_single)
+
+Plots.scatter(sum_of_geom_series.(getfield.(sim_single.sellers, :quality_history)[1], getfield.(sim_single.sellers, :durability_history)[1]) .- sum_of_geom_series.(getindex.(mean([b.quality_expectation_history for b in sim_single.buyers]), 1), getindex.(mean([b.durability_expectation_history for b in sim_single.buyers]), 1)), calculate_profit_history.(sim_single.sellers)[1], smooth = true)
+
+Plots.plot(cumsum.(calculate_profit_history.(sim_single.sellers)))
+sum([count(getfield.(x, :d) .== "s") for x in getfield.(sim_single.buyers, :unit_buying_selling_history)])
+
+sum(sum(getfield.(sim_single.sellers, :reselling_history)))
+
+
+Plots.plot(getfield.(sim_single.sellers, :reselling_history))
 
 calculate_surplus(sim_single, "producer", true)
 

@@ -35,27 +35,27 @@ function plot_ecdf(is_new, metric, label; xlabel="", ylabel="", title="")
     end
 end
 
-function add_smoothing_spline(x,y,clr,λ=0.05)
+function add_smoothing_spline(x,y,clr,lbl,λ=0.05)
     spl = fit(SmoothingSpline, x, y, λ)
     y_hat = predict(spl)
-    plot!(sort(x), y_hat[sortperm(x)], label = "", color = clr)
+    plot!(sort(x), y_hat[sortperm(x)], label = lbl, color = clr)
 end
 
-function plot_phasediagram(_seller::seller, function_args::Vector)
+function plot_phasediagram(_seller::seller)
     x = calculate_price_history(_seller)
-    y = calculate_profit_history(_seller, function_args.γ, function_args.num_buyers)
+    y = calculate_profit_history(_seller)
     d_x = diff(x)
     push!(d_x, 0)
     d_y = diff(y)
     push!(d_y,0)
     labs = string.(1:length(x))
-    points_labels = ([mod(x,100) == 0 ? labs[x] : "" for x in 1:length(labs)])
+    points_labels = ([mod(x,100) == 0 ? labs[x] : "" for x in eachindex(labs)])
     points_labels[1] = "1"
     quiver(x,y,quiver=(d_x, d_y), color = :green)
     scatter!(x,y, xlabel = "Price", ylabel = "Profit", markershape = :none, markercolor = :white, markerstrokecolor = :white, series_annotations = points_labels, markersize = 0)
 end
 
-function plot_quantity(sellers, random_start = 50, legend_pos = :topleft)
+function plot_quantity(sellers, i, random_start = 0, legend_pos = :outerbottom)
 
     quantity_produced = getfield.(sim_single.sellers, :quantity_produced_history)
     quantity_produced = [q[(random_start+1):end] for q in quantity_produced]
@@ -63,21 +63,27 @@ function plot_quantity(sellers, random_start = 50, legend_pos = :topleft)
     quantity_sold = getfield.(sim_single.sellers, :quantity_sold_history)
     quantity_sold = [q[(random_start+1):end] for q in quantity_sold]
 
+    quantity_leased = getfield.(sim_single.sellers, :quantity_leased_history)
+    quantity_leased = [q[(random_start+1):end] for q in quantity_leased]
+
     colors = palette(:tab10)[1:length(sellers)]
 
-    p = plot(legend = legend_pos)
-
-    for i in 1:length(sellers)
-
-        print(i)
-
-        plot!(quantity_produced[i], color = colors[i], label = "Firm " * string(i) * " produced Q")
-        plot!(quantity_sold[i], color = colors[i], linestyle = :dot, label = "Firm " * string(i) * " sold Q")
-
-    end
-
-    return p
+    p=Plots.plot(quantity_produced[i], color = colors[i], label = "Firma " * string(i) * ": wielkość produkcji", legend = legend_pos, linewidth = 2, xlabel = "t", ylabel = "Wielkość produkcji", title = "Wielkość produkcji")
+    Plots.plot!(quantity_sold[i], color = colors[i], linestyle = :dot, label = "Firma " * string(i) * ": wielkość sprzedaży", linewidth = 2)
+    Plots.plot!(quantity_leased[i], color = colors[i], linestyle = :dash, label = "Firma " * string(i) * ": wielkość leasingu", linewidth = 2)
 
 end
 
-plot()
+function plot_buying_frequencies(sim_single)
+
+    reselling_buyers = [any(getfield.(x, :d) .== "s") for x in getfield.(sim_single.buyers, :unit_buying_selling_history)]
+
+    frequency_reselling_buyers = [count(getfield.(x, :d) .== "b") for x in getfield.(sim_single.buyers[reselling_buyers], :unit_buying_selling_history)]
+
+    frequency_not_reselling_buyers = [count(getfield.(x, :d) .== "b") for x in getfield.(sim_single.buyers[.!reselling_buyers], :unit_buying_selling_history)]
+
+    StatsPlots.histogram(frequency_reselling_buyers, alpha=0.25, label = "Reselling buyers", bins = length(unique(frequency_reselling_buyers)), normalize = true)
+
+    StatsPlots.histogram!(frequency_not_reselling_buyers, alpha = 0.25, label = "Not reselling buyers", bins = length(unique(frequency_not_reselling_buyers)), normalize = true)
+
+end
