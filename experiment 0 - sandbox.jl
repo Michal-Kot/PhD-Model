@@ -2,9 +2,19 @@ include(pwd() * "\\methods\\methods.jl")
 
 #################################### AUX FUNCTIONS ##############################################################
 
-sim_single = TO_GO(300, 2, 200, 500, [0.4, 0.4], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [0.5, 0.5], [1., 1.], [[0.25, 0.75], [0.25, 0.75]], [[0.2, 0.8], [0.2, 0.8]], [[0.8,2.], [.8,2.]], 0.1, true, true, 1)
+sim_single = TO_GO(250, 2, 300, 500, [0.4, 0.4], [1.25, 1.25], "random", 0.25, 0.25, "stochastic", 1.1, [[0.25, 0.75], [0.25, 0.75]], [[0.2, 0.8], [0.2, 0.8]], [[1.0, 2.], [1.0, 2.]], 0.1, true, true, 1)
 
-Plots.plot(sim_single.sellers[1].quantity_produced_history .- sim_single.sellers[1].quantity_sold_history .- sim_single.sellers[1].quantity_leased_history)
+Plots.plot(getindex.(sim_single.profit_expected[getindex.(sim_single.profit_expected,1) .== 1]
+,2))
+Plots.plot!(calculate_profit_history(sim_single.sellers[1])[3:end])
+
+StatsPlots.groupedbar(hcat(getfield.(sim_single.sellers, :reselling_history)...), bar_position = :stack, linecolor = nothing)
+
+Plots.plot(getindex.(sim_single.profit_expected[getindex.(sim_single.profit_expected,1) .== 2]
+,2))
+Plots.plot!(calculate_profit_history(sim_single.sellers[2])[3:end])
+
+Plots.plot(calculate_price_history.(sim_single.sellers))
 
 ex4_p1 = Plots.plot(calculate_profit_history.(sim_single.sellers), color = ["blue"  "orange"], xlabel = "t", ylabel = "Nadwyżka producenta", label = ["Producent 1" "Producent 2"], title = "Nadwyżka producenta")
 
@@ -29,7 +39,6 @@ Plots.plot(sim_single.sellers[1].durability_history, color = "blue", linewidth =
 Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :durability_expectation_history)]), color = "blue", linewidth = 2, label = "Producent 1 - oczekiwana trwałość", linestyle = :dot)
 Plots.plot!(sim_single.sellers[2].durability_history, color = "orange", linewidth = 2, label = "Producent 2 - trwałość")
 Plots.plot!(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :durability_expectation_history)]), color = "orange", linewidth = 2, label = "Producent 2 - oczekiwana trwałość", linestyle = :dot)
-
 
 Plots.plot(sim_single.sellers[1].margin_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Marża", label = "Producent 1 - marża")
 Plots.plot!(sim_single.sellers[2].margin_history, color = "orange", linewidth = 2, label = "Producent 2 - marża")
@@ -107,7 +116,7 @@ for i in 1:400
 
     push!(ex4_v12_nn, nn)
 
-    ex4_v1_sim = TO_GO(800, 2, 200, nn, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [0.1, 0.1], [1., 1.], [[0.5, 1.5], [0.5, 1.5]], [[0.2, 0.6], [0.2, 0.6]], [[0.8,2.], [0.8,2.]], 0.1, true, true, 0)
+    ex4_v1_sim = TO_GO(800, 2, 200, nn, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [0.1, 0.1], [1., 1.], [[0.5, 1.5], [0.5, 1.5]], [[0.2, 0.6], [0.2, 0.6]], [[0.8,2.], [0.8,2.]], 0.1, true, true, )
 
     push!(ex4_v1_total_surplus, calculate_surplus(ex4_v1_sim, "total", false))
     push!(ex4_v1_producer_surplus, calculate_surplus(ex4_v1_sim, "producer", false))

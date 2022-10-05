@@ -17,21 +17,36 @@ function in_boundaries(x::Float64,lb::Int64,ub::Int64)::Float64
     return max(min(x,ub),lb)
 end
 
-function calculate_cost(_seller::seller)::Float64
-    cost = sum_of_geom_series_finite(_seller.quality, _seller.durability) * ((_seller.quality * _seller.durability)^2) #_seller.cost_coefficient
-    return cost
+function probability_still_valid(d,t)
+    return (1-d)^(t-1)*d
 end
 
-sum_of_geom_series
+function cost_coefficient(k,d,cc)
+    return cc
+end
 
-function calculate_values(K, D, M, c, o_K, o_D, o_P, return_type)
+function softmax(x)
 
-    s = LinRange(0:0.01:1)
-    o_U = s .* sum_of_geom_series_finite(o_K, o_D) .- o_P
-    U = s .* sum_of_geom_series_finite(K, D)  .- ((K*D)^2) .* sum_of_geom_series_finite(K, D) .* M
-    demand = sum((U .>= 0) .& (U .> o_U))
-    margin_amount = ((K*D)^2) * sum_of_geom_series_finite(K, D) * (M - 1)
-    profit = demand * margin_amount
+    return exp.(x) ./ sum(exp.(x)) 
+
+end
+
+function calculate_state_profit(K::Float64, D::Float64, M::Float64, Q::Float64, o_K::Float64, o_D::Float64, o_P::Float64, N::Int64, μ_c::Float64, cc::Float64, return_type::String)
+
+    """
+
+    Funkcja licząca oczekiwany zysk z danego stanu. Wykorzystywana przez firmę do szacowania efektu zmiany stanu.
+
+    """
+
+    s = LinRange(0,1,N) # standard reservation price, założone dla N klientów
+    o_U = s .* sum_of_geom_series_finite(o_K, o_D) .- o_P # użyteczność dobra konkurencji, jeśli liczba konkurentów > 1, to o_k, o_D i o_P są średnimi
+    U = s .* sum_of_geom_series_finite(K, D)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D) .* M # użyteczność mojego dobra przy parametrach K, D, M
+    demand = sum((U .> 0) .& (U .> o_U) .& (rand(N) .< D)) # szacowany popyt. warunek 1: moja użyteczność > 0, warunek 2: moja użyteczność wyższa niż użyteczność dobra konkurencyjnego, warunek 3: oczekiwana liczba klientów poszukujących dobra - skalowanie dla dóbr trwałych > 1 okres
+
+    margin_amount = cost_coefficient(K, D, cc) * sum_of_geom_series_finite(K, D) * (M - 1) # marża na 1 sprzedanym produkcie
+
+    profit = demand * margin_amount + max(0, Q - demand) * (-μ_c) * cost_coefficient(K, D, cc) * sum_of_geom_series_finite(K, D) # oczekiwany zysk firmy
 
     if return_type == "profit"
         return profit
@@ -41,8 +56,14 @@ function calculate_values(K, D, M, c, o_K, o_D, o_P, return_type)
 
 end
 
+function calculate_cost(_seller::seller)::Float64
+    cost = sum_of_geom_series_finite(_seller.quality, _seller.durability) * cost_coefficient(_seller.quality, _seller.durability, _seller.cost_coefficient) #_seller.cost_coefficient
+    return cost
+end
+
+
 function calculate_cost_history(_seller::seller)::Vector{Float64}
-    cost = sum_of_geom_series_finite.(_seller.quality_history, _seller.durability_history) .* ((_seller.quality_history .* _seller.durability_history) .^ 2)# _seller.cost_coefficient
+    cost = sum_of_geom_series_finite.(_seller.quality_history, _seller.durability_history) .* cost_coefficient.(_seller.quality_history, _seller.durability_history, _seller.cost_coefficient) # _seller.cost_coefficient
     return cost
 end
 
@@ -51,32 +72,23 @@ function calculate_price(_seller::seller)::Float64
     return price
 end
 
-function calculate_lease_single(_seller::seller)::Float64
-    lease = calculate_cost(_seller) * _seller.margin * _seller.interest_rate * (1 - _seller.durability)
-    return lease
-end
-
-function lm_coef(k,d,m,q,o_k,o_d,o_p)
-
-    X = [fill(1, length(k)) k d m o_k o_d o_p]
-    y = q
-
-    coefs = inv((X')*X)*(X')*y
-
-    return coefs
-
-end
-
-function calculate_lease_total(_seller::seller)::Float64
-    lease = calculate_cost(_seller) * _seller.margin * _seller.interest_rate
-    return lease
-end
-
-
 function calculate_price_history(_seller::seller)::Vector{Float64}
     price = calculate_cost_history(_seller) .* _seller.margin_history
     return price
 end
+
+function calculate_lease_single(_seller::seller, interest_rate::Float64)::Float64
+    lease = calculate_cost(_seller) * _seller.margin * interest_rate * (1 - _seller.durability)
+    return lease
+end
+
+function calculate_lease_total(_seller::seller, interest_rate::Float64)::Float64
+    lease = calculate_cost(_seller) * _seller.margin * interest_rate
+    return lease
+end
+
+
+
 
 function u2w(u::Vector{Float64}, p_min::Float64 = 0.1)::Vector{Float64}
 
@@ -221,8 +233,3 @@ function calculate_expectation(sim_res, metric, cumulated = false)
     end
 
 end
-
-mean_c(x) = length(x) > 0 ? mean(x) : NaN
-
-maximum_c(x) = any(isnan(x)) ? maximum(x[.!isnan(x)]) : maximum(x)
-minimum_c(x) = any(isnan(x)) ? minimum(x[.!isnan(x)]) : minimum(x)

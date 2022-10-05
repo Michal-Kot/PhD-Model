@@ -27,7 +27,7 @@ ex1_v2_producer_surplus_singleton = []
 
 ex1_v12_λ = []
 
-for i in 1:500
+for i in 1:2000
 
     if (mod(i,10) == 0) | (i == 1)
         println(i)
@@ -38,7 +38,7 @@ for i in 1:500
 
     push!(ex1_v12_λ, [λ_ind, λ_wom])
 
-    ex1_v1_sim = TO_GO(250, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom, "stochastic", [0.1, 0.1], [1.1, 1.1], [[0.75, 1.25], [0.75, 1.25]], [[0.2, 0.6], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.10, true, true, 0)
+    ex1_v1_sim = TO_GO(250, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom, "stochastic", [0.1, 0.1], 1.1, [[0.25, 0.75], [0.25, 0.75]], [[0.2, 0.6], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.10, true, true, 1)
 
     push!(ex1_v1_total_surplus, calculate_surplus(ex1_v1_sim, "total", true))
     push!(ex1_v1_producer_surplus, calculate_surplus(ex1_v1_sim, "producer", true))
@@ -49,7 +49,7 @@ for i in 1:500
     push!(ex1_v1_quantity_leased, getfield.(ex1_v1_sim.sellers, :quantity_leased_history))
     push!(ex1_v1_producer_surplus_singleton, calculate_profit_history.(ex1_v1_sim.sellers))
 
-    ex1_v2_sim =     TO_GO(250, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom,  "stochastic", [0.1, 0.1], [1.1, 1.1], [[1.0, 1.5], [0.5, 1.0]], [[0.3, 0.6], [0.2, 0.5]], [[.8, 2.], [.8, 2.]], 0.10, true, true, 0)
+    ex1_v2_sim = TO_GO(250, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom,  "stochastic", [0.1, 0.1], 1.1, [[0.5,0.75], [0.25, 0.5]], [[0.2, 0.6], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.10, true, true, 0)
 
     push!(ex1_v2_total_surplus, calculate_surplus(ex1_v2_sim, "total", true))
     push!(ex1_v2_producer_surplus, calculate_surplus(ex1_v2_sim, "producer", true))
@@ -66,8 +66,8 @@ end
 L1 = getindex.(ex1_v12_λ, 1) 
 L2 = getindex.(ex1_v12_λ, 2)
 
-L1, L1u = cut_integer(L1, 5)
-L2, L2u = cut_integer(L2, 5)
+L1, L1u = cut_integer(L1, 10)
+L2, L2u = cut_integer(L2, 10)
 
 #### Total market surplus
 
@@ -77,15 +77,19 @@ hm_dq = [mean_c(ex1_v2_total_surplus[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort
 max_plot = maximum([maximum(hm_eq), maximum(hm_dq)])
 min_plot = minimum([minimum(hm_eq), minimum(hm_dq)])
 
-ex4_p1 = StatsPlots.heatmap(L1u, L2u, hm_eq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka całkowita, identyczna jakość", titlefontsize = 8)
+ex4_p1 = StatsPlots.heatmap(L1u, L2u, hm_eq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka całkowita, identyczna jakość", titlefontsize = 8, clim = (min_plot, max_plot))
+
+Plots.savefig(ex4_p1, pwd() * "\\Plots\\ex1_total surplus equal.svg")
 
 PlotlyJS.plot(PlotlyJS.contour(x = L1u, y = L2u, z=hm_eq,     colorscale="Hot", contours_start=min_plot, contours_end=max_plot, contours_size=50), Layout(xaxis_title = "λ_ind, produkty oceniane osobiście", yaxis_title = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka producenta , identyczna jakość"))
 
 savefig(ex4_p1, pwd() * "\\plots\\ex1_equal quality heatmap lambdas.svg")
 
-ex4_p2 = StatsPlots.heatmap(L1u, L2u, hm_dq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka całkowita, różna jakość", titlefontsize = 8)
+ex4_p2 = StatsPlots.heatmap(L1u, L2u, hm_dq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka całkowita, różna jakość", titlefontsize = 8, clim = (min_plot, max_plot))
 
-savefig(ex4_p2, pwd() * "\\plots\\ex1_different quality heatmap lambdas.svg")
+Plots.savefig(ex4_p2, pwd() * "\\plots\\ex1_total surplus different.svg")
+
+ex4_p2 = StatsPlots.heatmap(L1u, L2u, hm_dq ./ hm_eq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka całkowita, różna jakość", titlefontsize = 8)
 
 #%% Producer 1 surplus, better producer
 
@@ -122,12 +126,34 @@ mean(hm_better_eq[1:2,1:2]) / mean(hm_better_eq[(end-1):end, (end-1):end])
 mean(hm_better_dq[1:2,1:2]) / mean(hm_better_dq[(end-1):end, (end-1):end])
 mean(hm_worse_dq[1:2,1:2]) / mean(hm_worse_dq[(end-1):end, (end-1):end])
 
-Plots.heatmap(hm_better_eq, clim = (min_plot, max_plot))
-Plots.heatmap(hm_better_dq, clim = (min_plot, max_plot))
-Plots.heatmap(hm_worse_dq, clim = (min_plot, max_plot))
+ex4_p3 = StatsPlots.heatmap(L1u, L2u, hm_better_eq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka producenta, identyczna jakość", titlefontsize = 8, clim = (min_plot, max_plot))
 
-Plots.heatmap(hm_better_dq .- hm_better_eq)
-Plots.heatmap(hm_worse_dq .- hm_better_eq)
+Plots.savefig(ex4_p3, pwd() * "\\plots\\prod surplus equal.svg")
+
+ex4_p4 = StatsPlots.heatmap(L1u, L2u, hm_better_dq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka producenta, producent o wyższej jakości", titlefontsize = 8, clim = (min_plot, max_plot))
+
+Plots.savefig(ex4_p4, pwd() * "\\plots\\prod surplus better.svg")
+
+ex4_p5 = StatsPlots.heatmap(L1u, L2u, hm_worse_dq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka producenta, producent o niższej jakości", titlefontsize = 8, clim = (min_plot, max_plot))
+
+Plots.savefig(ex4_p5, pwd() * "\\plots\\prod surplus worse.svg")
+
+function split_matrix(A)
+    A_size = maximum.(axes(A))
+    rows = Int(floor(A_size[1] / 2))
+    cols = Int(floor(A_size[2] / 2))
+
+    upper_square = A[1:rows, 1:cols]
+    lower_square = A[(end - rows + 1):end, (end - cols + 1):end]
+
+    return (mean(upper_square) - mean(lower_square)) / mean(lower_square)
+end
+
+split_matrix(hm_better_eq)
+split_matrix(hm_better_dq)
+split_matrix(hm_worse_dq)
+
+
 
 #%% Eksperyment 2, liczba powiązań
 
