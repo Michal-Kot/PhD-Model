@@ -273,7 +273,7 @@ function sellers_choose_qp_k_d_m_states(sellers::Vector{seller}, randPeriod::Int
 
                 #optimal_profit_args = argmax(expected_profit_around)
 
-                push!(profit_expected, (_seller.id, expected_profit_around[optimal_profit_args]))
+                push!(profit_expected, (_seller.id, "p", expected_profit_around[optimal_profit_args]))
 
                 new_quality = K_range[optimal_profit_args[1]]
 
@@ -283,11 +283,21 @@ function sellers_choose_qp_k_d_m_states(sellers::Vector{seller}, randPeriod::Int
 
                 expected_demand = calculate_state_profit(new_quality, new_durability, new_margin, new_quantity, o_k, o_d, o_p, num_buyers, μ_c, _seller.cost_coefficient, "demand")
 
+                if iter == (randPeriod + 1)
+
+                    new_quantity = expected_demand
+
+                end
+
+                push!(profit_expected, (_seller.id, "qp", new_quantity))
+
                 if expected_demand > new_quantity
 
                     new_quantity = expected_demand
 
                 end
+
+                push!(profit_expected, (_seller.id, "ed", expected_demand))
 
 
                 #new_quantity = calculate_values(new_quality, new_durability, new_margin, cost_coefficient(new_quality, new_durability), o_k, o_d, o_p, num_buyers, "demand")
@@ -381,17 +391,16 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
             if iter >= 2
                 if any(_buyer.unit_possessed)
                     if !_buyer.unit_possessed_is_leased
-                        expected_surplus_from_possessed_product = _buyer.std_reservation_price * _buyer.current_quality_of_unit_possessed / (1 - _buyer.durability_of_unit_possessed)
-                        reselling_price = secondary_market_exists .* _buyer.reselling_probability .* expected_surplus_from_possessed_product
+                        reselling_price = secondary_market_exists .* _buyer.reselling_probability .* _buyer.expected_surplus
                     end
                 end
             end
 
-            buy_surplus = utility .+ reselling_price .- buy_prices
-            lease_surplus = utility .+ reselling_price .- lease_prices
+            buy_surplus = utility .+ reselling_price .- buy_prices .- _buyer.leasing_total ./ interest_rate
+            lease_surplus = utility .+ reselling_price .- lease_prices .-  _buyer.leasing_total ./ interest_rate
 
-            buy_vs_keep = buy_surplus .> (_buyer.expected_surplus .+ _buyer.leasing_total ./ interest_rate)
-            lease_vs_keep = lease_surplus .> (_buyer.expected_surplus .+ _buyer.leasing_total ./ interest_rate)
+            buy_vs_keep = buy_surplus .> _buyer.expected_surplus
+            lease_vs_keep = lease_surplus .> _buyer.expected_surplus
 
             buy_requirement = buy_vs_keep .> 0
             lease_requirement = lease_vs_keep .> 0
@@ -421,7 +430,7 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
 
                 elseif buyer_behaviour == "stochastic"
 
-                    weight = softmax(requirements)
+                    weight = requirements
                     chosen_product = sample(1:length(requirements), Weights(weight))
                     decision = decisions[chosen_product]
 
@@ -450,7 +459,7 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
                         _buyer.unit_for_sale = _buyer.unit_possessed
                         _buyer.quality_for_sale = _buyer.current_quality_of_unit_possessed
                         _buyer.durability_of_unit_possessed = _buyer.durability_of_unit_possessed
-                        _buyer.price_for_sale = expected_surplus_from_possessed_product
+                        _buyer.price_for_sale = _buyer.expected_surplus
                         _buyer.age_for_sale = iter - _buyer.unit_possessed_time
 
                     end
@@ -493,7 +502,7 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
                         _buyer.unit_for_sale = _buyer.unit_possessed
                         _buyer.quality_for_sale = _buyer.current_quality_of_unit_possessed
                         _buyer.durability_of_unit_possessed = _buyer.durability_of_unit_possessed
-                        _buyer.price_for_sale = expected_surplus_from_possessed_product
+                        _buyer.price_for_sale = _buyer.expected_surplus
                         _buyer.age_for_sale = iter - _buyer.unit_possessed_time
 
                     end

@@ -42,7 +42,7 @@ function calculate_state_profit(K::Float64, D::Float64, M::Float64, Q::Float64, 
     s = LinRange(0,1,N) # standard reservation price, założone dla N klientów
     o_U = s .* sum_of_geom_series_finite(o_K, o_D) .- o_P # użyteczność dobra konkurencji, jeśli liczba konkurentów > 1, to o_k, o_D i o_P są średnimi
     U = s .* sum_of_geom_series_finite(K, D)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D) .* M # użyteczność mojego dobra przy parametrach K, D, M
-    demand = sum((U .> 0) .& (U .> o_U) .& (rand(N) .< D)) # szacowany popyt. warunek 1: moja użyteczność > 0, warunek 2: moja użyteczność wyższa niż użyteczność dobra konkurencyjnego, warunek 3: oczekiwana liczba klientów poszukujących dobra - skalowanie dla dóbr trwałych > 1 okres
+    demand = sum((U .> 0) .& (U .> o_U) .& (rand(N) .< (1-D))) # szacowany popyt. warunek 1: moja użyteczność > 0, warunek 2: moja użyteczność wyższa niż użyteczność dobra konkurencyjnego, warunek 3: oczekiwana liczba klientów poszukujących dobra - skalowanie dla dóbr trwałych > 1 okres
 
     margin_amount = cost_coefficient(K, D, cc) * sum_of_geom_series_finite(K, D) * (M - 1) # marża na 1 sprzedanym produkcie
 

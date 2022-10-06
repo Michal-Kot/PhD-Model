@@ -38,7 +38,7 @@ for i in 1:2000
 
     push!(ex1_v12_λ, [λ_ind, λ_wom])
 
-    ex1_v1_sim = TO_GO(250, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom, "stochastic", [0.1, 0.1], 1.1, [[0.25, 0.75], [0.25, 0.75]], [[0.2, 0.6], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.10, true, true, 1)
+    ex1_v1_sim = TO_GO(500, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom, "stochastic", 1.1, [[0.25, 0.75], [0.25, 0.75]], [[0.2, 0.6], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.10, true, true, 1)
 
     push!(ex1_v1_total_surplus, calculate_surplus(ex1_v1_sim, "total", true))
     push!(ex1_v1_producer_surplus, calculate_surplus(ex1_v1_sim, "producer", true))
@@ -49,7 +49,7 @@ for i in 1:2000
     push!(ex1_v1_quantity_leased, getfield.(ex1_v1_sim.sellers, :quantity_leased_history))
     push!(ex1_v1_producer_surplus_singleton, calculate_profit_history.(ex1_v1_sim.sellers))
 
-    ex1_v2_sim = TO_GO(250, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom,  "stochastic", [0.1, 0.1], 1.1, [[0.5,0.75], [0.25, 0.5]], [[0.2, 0.6], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.10, true, true, 0)
+    ex1_v2_sim = TO_GO(500, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom,  "stochastic", 1.1, [[0.5,0.75], [0.25, 0.5]], [[0.2, 0.6], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.10, true, true, 0)
 
     push!(ex1_v2_total_surplus, calculate_surplus(ex1_v2_sim, "total", true))
     push!(ex1_v2_producer_surplus, calculate_surplus(ex1_v2_sim, "producer", true))
@@ -71,8 +71,8 @@ L2, L2u = cut_integer(L2, 10)
 
 #### Total market surplus
 
-hm_eq = [mean_c(ex1_v1_total_surplus[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
-hm_dq = [mean_c(ex1_v2_total_surplus[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
+hm_eq = [mean(ex1_v1_total_surplus[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
+hm_dq = [mean(ex1_v2_total_surplus[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
 
 max_plot = maximum([maximum(hm_eq), maximum(hm_dq)])
 min_plot = minimum([minimum(hm_eq), minimum(hm_dq)])
@@ -93,11 +93,11 @@ ex4_p2 = StatsPlots.heatmap(L1u, L2u, hm_dq ./ hm_eq, xlabel = "λ_ind, produkty
 
 #%% Producer 1 surplus, better producer
 
-hm_better_eq = [mean_c(sum.(getindex.(ex1_v1_producer_surplus_singleton, 1))[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
-hm_better_dq = [mean_c(sum.(getindex.(ex1_v2_producer_surplus_singleton, 1))[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
+hm_better_eq = [mean(sum.(getindex.(ex1_v1_producer_surplus_singleton, 1))[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
+hm_better_dq = [mean(sum.(getindex.(ex1_v2_producer_surplus_singleton, 1))[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
 
-hm_worse_eq = [mean_c(sum.(getindex.(ex1_v1_producer_surplus_singleton, 2))[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
-hm_worse_dq = [mean_c(sum.(getindex.(ex1_v2_producer_surplus_singleton, 2))[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
+hm_worse_eq = [mean(sum.(getindex.(ex1_v1_producer_surplus_singleton, 2))[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
+hm_worse_dq = [mean(sum.(getindex.(ex1_v2_producer_surplus_singleton, 2))[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
 
 max_plot = maximum([maximum(hm_better_eq), maximum(hm_better_dq), maximum(hm_worse_eq), maximum(hm_worse_dq)])
 min_plot = minimum([minimum(hm_better_eq), minimum(hm_better_dq),minimum(hm_worse_eq), minimum(hm_worse_dq)])

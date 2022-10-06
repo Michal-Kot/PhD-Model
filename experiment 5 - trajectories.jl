@@ -70,13 +70,12 @@ ex5_v4_consumer_surplus_pm = []
 ex5_v4_consumer_surplus_sm_s = []
 ex5_v4_consumer_surplus_sm_b = []
 
-for i in 1:800
+for i in 1:500
 
     if (mod(i,10) == 0) | (i == 1)
         println(i)
     end
-
-    ex5_v1_sim = TO_GO(250, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [0.1, 0.1], [1.1, 1.1], [[0.75, 1.25], [0.75, 1.25]], [[0.2, 0.6], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.10, true, true, 0)
+    ex5_v1_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", 1.1, [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.25, true, true, 1)
     push!(ex5_v1_total_surplus, calculate_surplus(ex5_v1_sim, "total", false))
     push!(ex5_v1_producer_surplus, calculate_surplus(ex5_v1_sim, "producer", false))
     push!(ex5_v1_consumer_surplus, calculate_surplus(ex5_v1_sim, "consumer,total", false))
@@ -93,7 +92,7 @@ for i in 1:800
     push!(ex5_v1_consumer_surplus_sm_b, calculate_surplus(ex5_v1_sim, "consumer,sm,b", false))
     push!(ex5_v1_consumer_surplus_sm_s, calculate_surplus(ex5_v1_sim, "consumer,sm,s", false))
 
-    ex5_v2_sim = TO_GO(250, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25,  "stochastic", [0.1, 0.1], [1.1, 1.1], [[1.0, 1.5], [0.5, 1.0]], [[0.3, 0.6], [0.2, 0.5]], [[.8, 2.], [.8, 2.]], 0.10, true, true, 0)
+    ex5_v2_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25,  "stochastic", 1.1, [[0.4, 0.8], [0.2, 0.6]], [[0.4, 0.8], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.25, true, true, 1)
     push!(ex5_v2_total_surplus, calculate_surplus(ex5_v2_sim, "total", false))
     push!(ex5_v2_producer_surplus, calculate_surplus(ex5_v2_sim, "producer", false))
     push!(ex5_v2_consumer_surplus, calculate_surplus(ex5_v2_sim, "consumer,total",false))
@@ -110,7 +109,7 @@ for i in 1:800
     push!(ex5_v2_consumer_surplus_sm_b, calculate_surplus(ex5_v2_sim, "consumer,sm,b", false))
     push!(ex5_v2_consumer_surplus_sm_s, calculate_surplus(ex5_v2_sim, "consumer,sm,s", false))
 
-    ex5_v3_sim = TO_GO(250, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [0.1, 0.1], [1.1, 1.1],  [[0.75, 1.25], [0.75, 1.25]], [[0.2, 0.6], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.10, true, false, 0)
+    ex5_v3_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", 1.1, [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.25, true, false, 1)
     push!(ex5_v3_total_surplus, calculate_surplus(ex5_v3_sim, "total", false))
     push!(ex5_v3_producer_surplus, calculate_surplus(ex5_v3_sim, "producer", false))
     push!(ex5_v3_consumer_surplus, calculate_surplus(ex5_v3_sim, "consumer,total",false))
@@ -128,7 +127,7 @@ for i in 1:800
     push!(ex5_v3_consumer_surplus_sm_s, calculate_surplus(ex5_v3_sim, "consumer,sm,s", false))
 
 
-    ex5_v4_sim = TO_GO(250, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25,  "stochastic", [0.1, 0.1], [1.1, 1.1], [[1.0, 1.5], [0.5, 1.0]], [[0.3, 0.6], [0.2, 0.5]], [[.8, 2.], [.8, 2.]], 0.10, true, false, 0)
+    ex5_v4_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25,  "stochastic", 1.1, [[0.40, 0.80], [0.20, 0.60]], [[0.4, 0.8], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.25, true, false, 1)
     push!(ex5_v4_total_surplus, calculate_surplus(ex5_v4_sim, "total", false))
     push!(ex5_v4_producer_surplus, calculate_surplus(ex5_v4_sim, "producer", false))
     push!(ex5_v4_consumer_surplus, calculate_surplus(ex5_v4_sim, "consumer,total",false))
@@ -154,6 +153,8 @@ ex5_p1 = plot_ecdf(true, mean.(mean.(ex5_v1_durability)), "Identyczna jakość, 
 plot_ecdf(false, mean.(mean.(ex5_v2_durability)), "Różna jakość, leasing możliwy")
 plot_ecdf(false, mean.(mean.(ex5_v3_durability)), "Identyczna jakość, leasing niemożliwy")
 plot_ecdf(false, mean.(mean.(ex5_v4_durability)), "Różna jakość, leasing niemożliwy")
+
+Plots.savefig(ex5_p1, pwd() * "\\plots\\ex2_ecdf durability.svg")
 
 # Ma to zastosowanie do średniej rynkowej trwałości, jak również trwałości wszystkich graczy rynkowych
 
@@ -210,54 +211,77 @@ ex5_v2_perc_leased = mean.(getindex.(ex5_v2_quantity_leased, 1)) ./ mean.(getind
 ex5_v3_perc_leased = mean.(getindex.(ex5_v3_quantity_leased, 1)) ./ mean.(getindex.(ex5_v3_quantity_produced, 1))
 ex5_v4_perc_leased = mean.(getindex.(ex5_v4_quantity_leased, 1)) ./ mean.(getindex.(ex5_v4_quantity_produced, 1))
 
-scatter(ex5_v1_perc_leased[mean.(getindex.(ex5_v1_durability,1)) .> 0.32], mean.(getindex.(ex5_v1_durability,1))[mean.(getindex.(ex5_v1_durability,1)) .> 0.32], smooth = true)
-scatter!(ex5_v2_perc_leased[mean.(getindex.(ex5_v2_durability,1)) .> 0.42], mean.(getindex.(ex5_v2_durability,1))[mean.(getindex.(ex5_v2_durability,1)) .> 0.42], smooth = true)
+ex5_p2 = Plots.scatter(ex5_v1_perc_leased[mean.(getindex.(ex5_v1_durability,1)) .> 0.32], mean.(getindex.(ex5_v1_durability,1))[mean.(getindex.(ex5_v1_durability,1)) .> 0.32], smooth = true, xlabel = "Udział produktów leasingowanych w całości produkcji", ylabel = "Średnia trwałość", title = "Trwałość produktów a udział leasingu", label = "Identyczna jakość", alpha = 0.25, markerstrokewidth = 0, linewidth = 3, linecolor = "blue")
+Plots.scatter!(ex5_v2_perc_leased[mean.(getindex.(ex5_v2_durability,1)) .> 0.42], mean.(getindex.(ex5_v2_durability,1))[mean.(getindex.(ex5_v2_durability,1)) .> 0.42], smooth = true, label = "Różna jakość", alpha = 0.25, markerstrokewidth = 0, linewidth = 3, linecolor = "red")
+
+Plots.savefig(ex5_p2, pwd() * "\\plots\\ex2_leasing vs durability.svg")
 
 # WAŻNE: Im wyższa jakość produktu, tym silnejszy wzrost nadwyżki producenta wraz ze wzrostem trwałości produktu. Producentom dóbr wysokiej jakości opłacalne jest dbanie o ich wysoką trwałość.
 
-scatter(mean.(getindex.(ex5_v1_durability,1)), mean.(getindex.(ex5_v1_producer_surplus_singleton,1)), smooth = true, markeralpha = 0.25, linewidth = 3, label = "Identyczna jakość, leasing możliwy", markerstrokewidth = 0)
-scatter!(mean.(getindex.(ex5_v2_durability,1)), mean.(getindex.(ex5_v2_producer_surplus_singleton,1)), smooth = true, markeralpha = 0.25, linewidth = 3, label = "Różna jakość, leasing możliwy", markerstrokewidth = 0)
-scatter!(mean.(getindex.(ex5_v3_durability,1)), mean.(getindex.(ex5_v3_producer_surplus_singleton,1)), smooth = true, markeralpha = 0.25, linewidth = 3, label = "Identyczna jakość, leasing niemożliwy", markerstrokewidth = 0)
-scatter!(mean.(getindex.(ex5_v4_durability,1)), mean.(getindex.(ex5_v4_producer_surplus_singleton,1)), smooth = true, markeralpha = 0.25, linewidth = 3, label = "Różna jakość, leasing niemożliwy", markerstrokewidth = 0)
+ex5_p3 = Plots.Plots.scatter(mean.(getindex.(ex5_v1_durability,1)), mean.(getindex.(ex5_v1_producer_surplus_singleton,1)), markeralpha = 0.05, label = nothing, markerstrokewidth = 0, xlabel = "Trwałość", ylabel = "Nadwyżka producenta", title = "Nadwyżka producenta a trwałość")
+plot_lm(mean.(getindex.(ex5_v1_durability,1)), mean.(getindex.(ex5_v1_producer_surplus_singleton,1)), "Identyczna jakość, leasing możliwy", "blue")
+
+Plots.scatter!(mean.(getindex.(ex5_v2_durability,1)), mean.(getindex.(ex5_v2_producer_surplus_singleton,1)), markeralpha = 0.05, label = nothing, markerstrokewidth = 0)
+plot_lm(mean.(getindex.(ex5_v2_durability,1)), mean.(getindex.(ex5_v2_producer_surplus_singleton,1)), "Różna jakość, leasing możliwy", "green")
+
+Plots.scatter!(mean.(getindex.(ex5_v3_durability,1)), mean.(getindex.(ex5_v3_producer_surplus_singleton,1)), markeralpha = 0.05, label = nothing, markerstrokewidth = 0)
+plot_lm(mean.(getindex.(ex5_v3_durability,1)), mean.(getindex.(ex5_v3_producer_surplus_singleton,1)), "Identyczna jakość, leasing niemożliwy", "orange")
+
+Plots.scatter!(mean.(getindex.(ex5_v4_durability,1)), mean.(getindex.(ex5_v4_producer_surplus_singleton,1)), markeralpha = 0.05, label = nothing, markerstrokewidth = 0)
+plot_lm(mean.(getindex.(ex5_v4_durability,1)), mean.(getindex.(ex5_v4_producer_surplus_singleton,1)), "Różna jakość, leasing niemożliwy", "red")
+
+Plots.savefig(ex5_p3, pwd() * "\\plots\\ex5 optimal dec for best quality.svg")
+
+Plots.scatter(mean.(getindex.(ex5_v1_durability,2)), mean.(getindex.(ex5_v1_producer_surplus_singleton,2)), markeralpha = 0.25, label = nothing, markerstrokewidth = 0)
 
 
-scatter(mean.(getindex.(ex5_v1_durability,2)), mean.(getindex.(ex5_v1_producer_surplus_singleton,2)), smooth = true, markeralpha = 0.25, linewidth = 3, label = "Identyczna jakość, leasing możliwy", markerstrokewidth = 0)
-scatter!(mean.(getindex.(ex5_v2_durability,2)), mean.(getindex.(ex5_v2_producer_surplus_singleton,2)), smooth = true, markeralpha = 0.25, linewidth = 3, label = "Różna jakość, leasing możliwy", markerstrokewidth = 0)
-scatter!(mean.(getindex.(ex5_v3_durability,2)), mean.(getindex.(ex5_v3_producer_surplus_singleton,2)), smooth = true, markeralpha = 0.25, linewidth = 3, label = "Identyczna jakość, leasing niemożliwy", markerstrokewidth = 0)
-scatter!(mean.(getindex.(ex5_v4_durability,2)), mean.(getindex.(ex5_v4_producer_surplus_singleton,2)), smooth = true, markeralpha = 0.25, linewidth = 3, label = "Różna jakość, leasing niemożliwy", markerstrokewidth = 0)
+Plots.scatter!(mean.(getindex.(ex5_v2_durability,2)), mean.(getindex.(ex5_v2_producer_surplus_singleton,2)), markeralpha = 0.25, label = nothing, markerstrokewidth = 0)
+plot_lm(mean.(getindex.(ex5_v2_durability,2)), mean.(getindex.(ex5_v2_producer_surplus_singleton,2)), "Różna jakość, leasing możliwy", "green")
 
+Plots.scatter!(mean.(getindex.(ex5_v3_durability,2)), mean.(getindex.(ex5_v3_producer_surplus_singleton,2)), markeralpha = 0.25, label = nothing, markerstrokewidth = 0)
+plot_lm(mean.(getindex.(ex5_v3_durability,2)), mean.(getindex.(ex5_v3_producer_surplus_singleton,2)), "Identyczna jakość, leasing niemożliwy", "orange")
+
+Plots.scatter!(mean.(getindex.(ex5_v4_durability,2)), mean.(getindex.(ex5_v4_producer_surplus_singleton,2)), markeralpha = 0.25, label = "Różna jakość, leasing niemożliwy", markerstrokewidth = 0)
+plot_lm(mean.(getindex.(ex5_v1_durability,2)), mean.(getindex.(ex5_v1_producer_surplus_singleton,2)), "Identyczna jakość, leasing możliwy", "blue")
+
+function plot_lm(x,y,lbl,col)
+
+    model_lm = GLM.lm(@formula(y~x), DataFrame(y = y, x = x))
+    y_hat = predict(model_lm, DataFrame(y = y, x = x))
+    Plots.plot!(sort(x),y_hat[sortperm(x)],label = lbl, color = col)
+
+end
+
+plot_lm(mean.(getindex.(ex5_v1_durability,2)), mean.(getindex.(ex5_v1_producer_surplus_singleton,2)))
+
+Plots.scatter(mean.(getindex.(ex5_v1_durability,2)), predict(ex5_m1, DataFrame(y = mean.(getindex.(ex5_v1_producer_surplus_singleton,2)), x = mean.(getindex.(ex5_v1_durability,2)))))
+
+Plots.plot(ex5_m1.fitted)
 
 # Wyższa jakość dóbr podnosi poziom dobrobytu. Zgodne z wynikiem Coase.
 
-scatter(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_total_surplus)), smooth = true, markeralpha = 0.25, linewidth = 3, label = "Identyczna jakość, leasing możliwy")
-scatter!(mean.(mean.(ex5_v2_durability)), sum.(sum.(ex5_v2_total_surplus)), smooth = true, markeralpha = 0.25, linewidth = 3, label = "Różna jakość, leasing możliwy")
-scatter!(mean.(mean.(ex5_v3_durability)), sum.(sum.(ex5_v3_total_surplus)), smooth = true, markeralpha = 0.25, linewidth = 3, label = "Identyczna jakość, leasing niemożliwy")
-scatter!(mean.(mean.(ex5_v4_durability)), sum.(sum.(ex5_v4_total_surplus)), smooth = true, markeralpha = 0.25, linewidth = 3, label = "Różna jakość, leasing niemożliwy")
+Plots.scatter(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_total_surplus)), smooth = true, markeralpha = 0.25, linewidth = 3, label = "Identyczna jakość, leasing możliwy")
+Plots.scatter!(mean.(mean.(ex5_v2_durability)), sum.(sum.(ex5_v2_total_surplus)), smooth = true, markeralpha = 0.25, linewidth = 3, label = "Różna jakość, leasing możliwy")
+Plots.scatter!(mean.(mean.(ex5_v3_durability)), sum.(sum.(ex5_v3_total_surplus)), smooth = true, markeralpha = 0.25, linewidth = 3, label = "Identyczna jakość, leasing niemożliwy")
+Plots.scatter!(mean.(mean.(ex5_v4_durability)), sum.(sum.(ex5_v4_total_surplus)), smooth = true, markeralpha = 0.25, linewidth = 3, label = "Różna jakość, leasing niemożliwy")
 
 # Nie istnieje statystycznie istotna zależność pomiędzy trwałością a nadwyżką konsumenta. 
 # Do sprawdzenia - czy ma na to wpływ c? 🍎
 
-scatter(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_consumer_surplus)))
-scatter!(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_producer_surplus)))
+Plots.scatter(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_consumer_surplus)))
+Plots.scatter!(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_producer_surplus)))
 
 # Ma za to wpływ na nadwyżkę na rynku wtórnym, co wydaje się poprawne.
 
-scatter(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_consumer_surplus_pm)), smooth=true)
-scatter(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_consumer_surplus_sm_b)), smooth=true)
-scatter(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_consumer_surplus_sm_s)), smooth=true)
+Plots.scatter(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_consumer_surplus_pm)), smooth=true)
+Plots.scatter(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_consumer_surplus_sm_b)), smooth=true)
+Plots.scatter(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_consumer_surplus_sm_s)), smooth=true)
 
-scatter(mean.(mean.(ex5_v1_durability)), mean.(mean.(ex5_v1_price)))
+Plots.scatter(mean.(mean.(ex5_v1_durability)), mean.(mean.(ex5_v1_price)))
 
 plot(sort(0.5 * mean.(mean.(ex5_v1_margin))))
 
-scatter!(mean.(mean.(ex5_v1_durability)), 0.5 * sum_of_geom_series.(mean.(mean.(ex5_v1_quality)), mean.(mean.(ex5_v1_durability))))
+Plots.scatter!(mean.(mean.(ex5_v1_durability)), 0.5 * sum_of_geom_series.(mean.(mean.(ex5_v1_quality)), mean.(mean.(ex5_v1_durability))))
 
-scatter(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_quantity_sold)), smooth = true)
-scatter(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_quantity_leased)))
-
-
-
-scatter(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_reselling)))
-scatter(mean.(mean.(ex5_v2_durability)), sum.(sum.(ex5_v2_reselling)))
-scatter(mean.(mean.(ex5_v3_durability)), sum.(sum.(ex5_v3_reselling)))
-scatter(mean.(mean.(ex5_v4_durability)), sum.(sum.(ex5_v4_reselling)), smooth = true)
+Plots.scatter(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_quantity_sold)), smooth = true)
+Plots.scatter(mean.(mean.(ex5_v1_durability)), sum.(sum.(ex5_v1_quantity_leased)))

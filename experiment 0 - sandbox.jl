@@ -2,17 +2,22 @@ include(pwd() * "\\methods\\methods.jl")
 
 #################################### AUX FUNCTIONS ##############################################################
 
-sim_single = TO_GO(250, 2, 300, 500, [0.4, 0.4], [1.25, 1.25], "random", 0.25, 0.25, "stochastic", 1.1, [[0.25, 0.75], [0.25, 0.75]], [[0.2, 0.8], [0.2, 0.8]], [[1.0, 2.], [1.0, 2.]], 0.1, true, true, 1)
-
-Plots.plot(getindex.(sim_single.profit_expected[getindex.(sim_single.profit_expected,1) .== 1]
-,2))
-Plots.plot!(calculate_profit_history(sim_single.sellers[1])[3:end])
+sim_single = TO_GO(250, 2, 300, 500, [0.4, 0.4], [1.25, 1.25], "random", 0.25, 0.25, "stochastic", 1.1, [[0.25, 0.75], [0.25, 0.75]], [[0.2, 0.8], [0.2, 0.8]], [[0.0, 2.], [0.0, 2.]], 0.5, true, true, 1)
 
 StatsPlots.groupedbar(hcat(getfield.(sim_single.sellers, :reselling_history)...), bar_position = :stack, linecolor = nothing)
 
-Plots.plot(getindex.(sim_single.profit_expected[getindex.(sim_single.profit_expected,1) .== 2]
-,2))
+Plots.plot(getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected,1) .== 1) .& (getindex.(sim_single.profit_expected,2) .== "p")],3))
+Plots.plot!(calculate_profit_history(sim_single.sellers[1])[3:end])
+
+Plots.plot(getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected,1) .== 2) .& (getindex.(sim_single.profit_expected,2) .== "p")],3))
 Plots.plot!(calculate_profit_history(sim_single.sellers[2])[3:end])
+
+Plots.plot(getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected,1) .== 1) .& (getindex.(sim_single.profit_expected,2) .== "ed")],3))
+Plots.plot!(getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected,1) .== 1) .& (getindex.(sim_single.profit_expected,2) .== "qp")],3))
+Plots.plot!(sim_single.sellers[1].quantity_produced_history)
+Plots.plot!(sim_single.sellers[1].quantity_sold_history .+ sim_single.sellers[1].quantity_leased_history)
+
+Plots.plot(calculate_profit_history(sim_single.sellers[1])[3:end])
 
 Plots.plot(calculate_price_history.(sim_single.sellers))
 
