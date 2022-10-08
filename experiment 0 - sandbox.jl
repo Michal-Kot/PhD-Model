@@ -2,7 +2,7 @@ include(pwd() * "\\methods\\methods.jl")
 
 #################################### AUX FUNCTIONS ##############################################################
 
-sim_single = TO_GO(100, 2, 1000, 2000, [0.4, 0.4], [1.25, 1.25], "random", 0.25, 0.25, "stochastic", 1.1, [[0.25, 0.75], [0.25, 0.75]], [[0.5, 0.95], [0.5, 0.95]], [[0.0, 2.], [0.0, 2.]], 0.1, true, true, 1)
+sim_single = TO_GO(100, 2, 100, 200, [0.4, 0.4], [1.25, 1.25], "random", 0.25, 0.25, "stochastic", 1.1, [[0.25, 0.75], [0.25, 0.75]], [[0.5, 0.95], [0.5, 0.95]], [[0.0, 2.], [0.0, 2.]], 0.1, true, true, 1, 1, "softmax")
 
 Plots.plot(getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected,1) .== 1) .& (getindex.(sim_single.profit_expected,2) .== "p")],3))
 Plots.plot!(calculate_profit_history(sim_single.sellers[1])[3:end])
@@ -42,7 +42,7 @@ Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_
 Plots.plot!(sim_single.sellers[2].quality_history, color = "orange", linewidth = 2, label = "Producent 2 - jakość")
 Plots.plot!(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "orange", linewidth = 2, label = "Producent 2 - oczekiwana jakość", linestyle = :dot)
 
-Plots.plot(sim_single.sellers[1].durability_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Trwałość / oczekiwana trwałość", label = "Producent 1 - trwałość", ylim = (0.5,0.96))
+Plots.plot(sim_single.sellers[1].durability_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Trwałość / oczekiwana trwałość", label = "Producent 1 - trwałość", ylim = (0.5,0.96), legend = :bottomright)
 Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :durability_expectation_history)]), color = "blue", linewidth = 2, label = "Producent 1 - oczekiwana trwałość", linestyle = :dot)
 Plots.plot!(sim_single.sellers[2].durability_history, color = "orange", linewidth = 2, label = "Producent 2 - trwałość")
 Plots.plot!(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :durability_expectation_history)]), color = "orange", linewidth = 2, label = "Producent 2 - oczekiwana trwałość", linestyle = :dot)

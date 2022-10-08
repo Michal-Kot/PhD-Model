@@ -27,7 +27,7 @@ ex1_v2_producer_surplus_singleton = []
 
 ex1_v12_λ = []
 
-for i in 1:1500
+for i in 1:500
 
     if (mod(i,10) == 0) | (i == 1)
         println(i)
@@ -38,7 +38,7 @@ for i in 1:1500
 
     push!(ex1_v12_λ, [λ_ind, λ_wom])
 
-    ex1_v1_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom, "stochastic", 1.1, [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.25, true, true, 1)
+    ex1_v1_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom, "stochastic", 1.1, [[0.2, 0.8], [0.2, 0.8]], [[0.5, 0.95], [0.5, 0.95]], [[.8, 2.], [.8, 2.]], 0.25, true, true, 1, 1, "relu")
 
     push!(ex1_v1_total_surplus, calculate_surplus(ex1_v1_sim, "total", true))
     push!(ex1_v1_producer_surplus, calculate_surplus(ex1_v1_sim, "producer", true))
@@ -49,7 +49,7 @@ for i in 1:1500
     push!(ex1_v1_quantity_leased, getfield.(ex1_v1_sim.sellers, :quantity_leased_history))
     push!(ex1_v1_producer_surplus_singleton, calculate_profit_history.(ex1_v1_sim.sellers))
 
-    ex1_v2_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom,  "stochastic", 1.1, [[0.4, 0.8], [0.2, 0.6]], [[0.4, 0.8], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.25, true, true, 1)
+    ex1_v2_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom, "stochastic", 1.1, [[0.4, 0.8], [0.2, 0.6]], [[0.5, 0.95], [0.5, 0.95]], [[.8, 2.], [.8, 2.]], 0.25, true, true, 1, 1, "relu")
 
     push!(ex1_v2_total_surplus, calculate_surplus(ex1_v2_sim, "total", true))
     push!(ex1_v2_producer_surplus, calculate_surplus(ex1_v2_sim, "producer", true))
@@ -62,6 +62,7 @@ for i in 1:1500
 
 end
 
+ex1_v1_consumer_surplus
 
 L1 = getindex.(ex1_v12_λ, 1) 
 L2 = getindex.(ex1_v12_λ, 2)
@@ -81,15 +82,9 @@ ex4_p1 = StatsPlots.heatmap(L1u, L2u, hm_eq, xlabel = "λ_ind, produkty oceniane
 
 Plots.savefig(ex4_p1, pwd() * "\\Plots\\ex1_total surplus equal.svg")
 
-PlotlyJS.plot(PlotlyJS.contour(x = L1u, y = L2u, z=hm_eq,     colorscale="Hot", contours_start=min_plot, contours_end=max_plot, contours_size=50), Layout(xaxis_title = "λ_ind, produkty oceniane osobiście", yaxis_title = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka producenta , identyczna jakość"))
-
-savefig(ex4_p1, pwd() * "\\plots\\ex1_equal quality heatmap lambdas.svg")
-
 ex4_p2 = StatsPlots.heatmap(L1u, L2u, hm_dq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka całkowita, różna jakość", titlefontsize = 8, clim = (min_plot, max_plot))
 
 Plots.savefig(ex4_p2, pwd() * "\\plots\\ex1_total surplus different.svg")
-
-ex4_p2 = StatsPlots.heatmap(L1u, L2u, hm_dq ./ hm_eq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka całkowita, różna jakość", titlefontsize = 8)
 
 #%% Producer 1 surplus, better producer
 
@@ -146,7 +141,7 @@ function split_matrix(A)
     upper_square = A[1:rows, 1:cols]
     lower_square = A[(end - rows + 1):end, (end - cols + 1):end]
 
-    return (mean(upper_square) - mean(lower_square)) / mean(lower_square)
+    return (mean(upper_square) - mean(lower_square))
 end
 
 split_matrix(hm_better_eq)
