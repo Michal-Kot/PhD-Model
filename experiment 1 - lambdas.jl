@@ -27,7 +27,7 @@ ex1_v2_producer_surplus_singleton = []
 
 ex1_v12_λ = []
 
-for i in 1:2000
+for i in 1:1500
 
     if (mod(i,10) == 0) | (i == 1)
         println(i)
@@ -38,7 +38,7 @@ for i in 1:2000
 
     push!(ex1_v12_λ, [λ_ind, λ_wom])
 
-    ex1_v1_sim = TO_GO(500, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom, "stochastic", 1.1, [[0.25, 0.75], [0.25, 0.75]], [[0.2, 0.6], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.10, true, true, 1)
+    ex1_v1_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom, "stochastic", 1.1, [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.25, true, true, 1)
 
     push!(ex1_v1_total_surplus, calculate_surplus(ex1_v1_sim, "total", true))
     push!(ex1_v1_producer_surplus, calculate_surplus(ex1_v1_sim, "producer", true))
@@ -49,7 +49,7 @@ for i in 1:2000
     push!(ex1_v1_quantity_leased, getfield.(ex1_v1_sim.sellers, :quantity_leased_history))
     push!(ex1_v1_producer_surplus_singleton, calculate_profit_history.(ex1_v1_sim.sellers))
 
-    ex1_v2_sim = TO_GO(500, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom,  "stochastic", 1.1, [[0.5,0.75], [0.25, 0.5]], [[0.2, 0.6], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.10, true, true, 0)
+    ex1_v2_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom,  "stochastic", 1.1, [[0.4, 0.8], [0.2, 0.6]], [[0.4, 0.8], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.25, true, true, 1)
 
     push!(ex1_v2_total_surplus, calculate_surplus(ex1_v2_sim, "total", true))
     push!(ex1_v2_producer_surplus, calculate_surplus(ex1_v2_sim, "producer", true))
@@ -66,8 +66,8 @@ end
 L1 = getindex.(ex1_v12_λ, 1) 
 L2 = getindex.(ex1_v12_λ, 2)
 
-L1, L1u = cut_integer(L1, 10)
-L2, L2u = cut_integer(L2, 10)
+L1, L1u = cut_integer(L1, 5)
+L2, L2u = cut_integer(L2, 5)
 
 #### Total market surplus
 

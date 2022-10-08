@@ -1,6 +1,6 @@
 #### AUX functions
 
-function sum_of_geom_series(a0,q)
+function sum_of_geom_series_infinite(a0,q)
     return a0 ./ (1 .- q)
 end
 
@@ -40,13 +40,13 @@ function calculate_state_profit(K::Float64, D::Float64, M::Float64, Q::Float64, 
     """
 
     s = LinRange(0,1,N) # standard reservation price, założone dla N klientów
-    o_U = s .* sum_of_geom_series_finite(o_K, o_D) .- o_P # użyteczność dobra konkurencji, jeśli liczba konkurentów > 1, to o_k, o_D i o_P są średnimi
-    U = s .* sum_of_geom_series_finite(K, D)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D) .* M # użyteczność mojego dobra przy parametrach K, D, M
+    o_U = s .* sum_of_geom_series_infinite(o_K, o_D) .- o_P # użyteczność dobra konkurencji, jeśli liczba konkurentów > 1, to o_k, o_D i o_P są średnimi
+    U = s .* sum_of_geom_series_infinite(K, D)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) .* M # użyteczność mojego dobra przy parametrach K, D, M
     demand = sum((U .> 0) .& (U .> o_U) .& (rand(N) .< (1-D))) # szacowany popyt. warunek 1: moja użyteczność > 0, warunek 2: moja użyteczność wyższa niż użyteczność dobra konkurencyjnego, warunek 3: oczekiwana liczba klientów poszukujących dobra - skalowanie dla dóbr trwałych > 1 okres
 
-    margin_amount = cost_coefficient(K, D, cc) * sum_of_geom_series_finite(K, D) * (M - 1) # marża na 1 sprzedanym produkcie
+    margin_amount = cost_coefficient(K, D, cc) * sum_of_geom_series_infinite(K, D) * (M - 1) # marża na 1 sprzedanym produkcie
 
-    profit = demand * margin_amount + max(0, Q - demand) * (-μ_c) * cost_coefficient(K, D, cc) * sum_of_geom_series_finite(K, D) # oczekiwany zysk firmy
+    profit = demand * margin_amount + max(0, Q - demand) * (-μ_c) * cost_coefficient(K, D, cc) * sum_of_geom_series_infinite(K, D) # oczekiwany zysk firmy
 
     if return_type == "profit"
         return profit
@@ -57,13 +57,13 @@ function calculate_state_profit(K::Float64, D::Float64, M::Float64, Q::Float64, 
 end
 
 function calculate_cost(_seller::seller)::Float64
-    cost = sum_of_geom_series_finite(_seller.quality, _seller.durability) * cost_coefficient(_seller.quality, _seller.durability, _seller.cost_coefficient) #_seller.cost_coefficient
+    cost = sum_of_geom_series_infinite(_seller.quality, _seller.durability) * cost_coefficient(_seller.quality, _seller.durability, _seller.cost_coefficient) #_seller.cost_coefficient
     return cost
 end
 
 
 function calculate_cost_history(_seller::seller)::Vector{Float64}
-    cost = sum_of_geom_series_finite.(_seller.quality_history, _seller.durability_history) .* cost_coefficient.(_seller.quality_history, _seller.durability_history, _seller.cost_coefficient) # _seller.cost_coefficient
+    cost = sum_of_geom_series_infinite.(_seller.quality_history, _seller.durability_history) .* cost_coefficient.(_seller.quality_history, _seller.durability_history, _seller.cost_coefficient) # _seller.cost_coefficient
     return cost
 end
 

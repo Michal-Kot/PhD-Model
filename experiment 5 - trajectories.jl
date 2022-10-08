@@ -92,7 +92,7 @@ for i in 1:500
     push!(ex5_v1_consumer_surplus_sm_b, calculate_surplus(ex5_v1_sim, "consumer,sm,b", false))
     push!(ex5_v1_consumer_surplus_sm_s, calculate_surplus(ex5_v1_sim, "consumer,sm,s", false))
 
-    ex5_v2_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25,  "stochastic", 1.1, [[0.4, 0.8], [0.2, 0.6]], [[0.4, 0.8], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.25, true, true, 1)
+    ex5_v2_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25,  "stochastic", 1.1, [[0.4, 0.8], [0.2, 0.6]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.25, true, true, 1)
     push!(ex5_v2_total_surplus, calculate_surplus(ex5_v2_sim, "total", false))
     push!(ex5_v2_producer_surplus, calculate_surplus(ex5_v2_sim, "producer", false))
     push!(ex5_v2_consumer_surplus, calculate_surplus(ex5_v2_sim, "consumer,total",false))
@@ -127,7 +127,7 @@ for i in 1:500
     push!(ex5_v3_consumer_surplus_sm_s, calculate_surplus(ex5_v3_sim, "consumer,sm,s", false))
 
 
-    ex5_v4_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25,  "stochastic", 1.1, [[0.40, 0.80], [0.20, 0.60]], [[0.4, 0.8], [0.2, 0.6]], [[.8, 2.], [.8, 2.]], 0.25, true, false, 1)
+    ex5_v4_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25,  "stochastic", 1.1, [[0.4, 0.8], [0.2, 0.6]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.25, true, false, 1)
     push!(ex5_v4_total_surplus, calculate_surplus(ex5_v4_sim, "total", false))
     push!(ex5_v4_producer_surplus, calculate_surplus(ex5_v4_sim, "producer", false))
     push!(ex5_v4_consumer_surplus, calculate_surplus(ex5_v4_sim, "consumer,total",false))

@@ -36,7 +36,7 @@ ex3_v2_consumer_surplus_pm = []
 ex3_v2_consumer_surplus_sm_s = []
 ex3_v2_consumer_surplus_sm_b = []
 
-for i in 1:1000
+for i in 1:2000
 
     if (mod(i,10) == 0) | (i == 1)
         println(i)

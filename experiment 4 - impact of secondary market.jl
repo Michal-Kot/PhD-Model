@@ -2,7 +2,7 @@
 
 include(pwd() * "\\methods\\methods.jl")
 
-# Impact on social communication of simulation dynamics
+# Impact of secondary market on model dynamics.
 
 ex4_v1_total_surplus = []
 ex4_v1_producer_surplus = []
@@ -48,13 +48,13 @@ ex4_v4_reselling = []
 ex4_v4_producer_surplus_singleton = []
 ex4_v4_buying_history = []
 
-for i in 1:1000
+for i in 1:250
 
     if (mod(i,10) == 0) | (i == 1)
         println(i)
     end
 
-    ex4_v1_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", 1.1, [[0.25, 0.75], [0.25, 0.75]], [[0.2, 0.6], [0.2, 0.6]], [[0, 2.], [.0, 2.]], 0.5, true, true, 1)
+    ex4_v1_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", 1.1, [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.25, true, true, 1)
     push!(ex4_v1_total_surplus, calculate_surplus(ex4_v1_sim, "total", true))
     push!(ex4_v1_producer_surplus, calculate_surplus(ex4_v1_sim, "producer", true))
     push!(ex4_v1_consumer_surplus, calculate_surplus(ex4_v1_sim, "consumer,total",true))
@@ -66,7 +66,7 @@ for i in 1:1000
     push!(ex4_v1_reselling, getfield.(ex4_v1_sim.sellers, :reselling_history))
     push!(ex4_v1_buying_history, getfield.(ex4_v1_sim.buyers, :unit_buying_selling_history))
 
-    ex4_v2_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", 1.1, [[0.5, 0.75], [0.25, 0.5]], [[0.4, 0.6], [0.2, 0.4]], [[0, 2.], [.0, 2.]], 0.5, true, true, 1)
+    ex4_v2_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", 1.1, [[0.5, 0.75], [0.25, 0.5]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.25, true, true, 1)
     push!(ex4_v2_total_surplus, calculate_surplus(ex4_v2_sim, "total", true))
     push!(ex4_v2_producer_surplus, calculate_surplus(ex4_v2_sim, "producer", true))
     push!(ex4_v2_consumer_surplus, calculate_surplus(ex4_v2_sim, "consumer,total",true))
@@ -78,7 +78,7 @@ for i in 1:1000
     push!(ex4_v2_reselling, getfield.(ex4_v2_sim.sellers, :reselling_history))
     push!(ex4_v2_buying_history, getfield.(ex4_v2_sim.buyers, :unit_buying_selling_history))
 
-    ex4_v3_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", 1.1, [[0.25, 0.75], [0.25, 0.75]], [[0.2, 0.6], [0.2, 0.6]], [[0, 2.], [.0, 2.]], 0.5, false, true, 1)
+    ex4_v3_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", 1.1, [[0.25, 0.75], [0.25, 0.75]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.25, false, true, 1)
     push!(ex4_v3_total_surplus, calculate_surplus(ex4_v3_sim, "total", true))
     push!(ex4_v3_producer_surplus, calculate_surplus(ex4_v3_sim, "producer", true))
     push!(ex4_v3_consumer_surplus, calculate_surplus(ex4_v3_sim, "consumer,total",true))
@@ -90,7 +90,7 @@ for i in 1:1000
     push!(ex4_v3_reselling, getfield.(ex4_v3_sim.sellers, :reselling_history))
     push!(ex4_v3_buying_history, getfield.(ex4_v3_sim.buyers, :unit_buying_selling_history))
 
-    ex4_v4_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25,  "stochastic", 1.1, [[0.5, 0.75], [0.25, 0.5]], [[0.4, 0.6], [0.2, 0.4]], [[0, 2.], [.0, 2.]], 0.5, false, true, 1)
+    ex4_v4_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", 0.25, 0.25,  "stochastic", 1.1, [[0.5, 0.75], [0.25, 0.5]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.25, false, true, 1)
     push!(ex4_v4_total_surplus, calculate_surplus(ex4_v4_sim, "total", true))
     push!(ex4_v4_producer_surplus, calculate_surplus(ex4_v4_sim, "producer", true))
     push!(ex4_v4_consumer_surplus, calculate_surplus(ex4_v4_sim, "consumer,total",true))
