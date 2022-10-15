@@ -43,7 +43,7 @@ function create_weights(x::Vector, method::String, scale::Bool = true)
 
     y = copy(x)
 
-    @assert (method == "softmax") | (method == "relu")
+    @assert (method == "softmax") | (method == "relu") | (method == "argmax")
 
     if method == "softmax"
 
@@ -59,31 +59,48 @@ function create_weights(x::Vector, method::String, scale::Bool = true)
 
         return max.(0,y)
 
+    elseif method == "argmax"
+
+        w = fill(0, maximum(axes(y,1)))
+        w[argmax(y)] = 1
+
+        return w
+
     end
 
 end
 
-function calculate_state_profit(K::Float64, e_K::Float64, D::Float64, e_D::Float64, M::Float64, Q::Float64, o_K::Float64, o_D::Float64, o_P::Float64, N::Int64, μ_c::Float64, cc::Float64, return_type::String, t_ahead::Int64=1)
-
+function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64, eD_dist::Vector{Float64}, M::Float64, Q::Float64, o_K::Float64, o_D::Float64, o_P::Float64, N::Int64, μ_c::Float64, cc::Float64, ρ_dist::Vector{Float64}, return_type::String)
     """
 
     Funkcja licząca oczekiwany zysk z danego stanu. Wykorzystywana przez firmę do szacowania efektu zmiany stanu.
 
     """
 
-    s = LinRange(0,1,N) # standard reservation price, założone dla N klientów
-    o_U = s .* sum_of_geom_series_infinite(o_K, o_D) .- o_P # użyteczność dobra konkurencji, jeśli liczba konkurentów > 1, to o_k, o_D i o_P są średnimi
-    U = s .* sum_of_geom_series_infinite(e_K, e_D)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) .* M # użyteczność mojego dobra przy parametrach K, D, M
-    demand = [sum((U .> 0) .& (U .> o_U) .& (rand(N) .< (1-D))) for t in 1:t_ahead] # szacowany popyt. warunek 1: moja użyteczność > 0, warunek 2: moja użyteczność wyższa niż użyteczność dobra konkurencyjnego, warunek 3: oczekiwana liczba klientów poszukujących dobra - skalowanie dla dóbr trwałych > 1 okres
+    s = rand(Uniform(0, 1), N) # standard reservation price, założone dla N klientów
 
-    margin_amount = cost_coefficient(K, D, cc) * sum_of_geom_series_infinite(K, D) * (M - 1) # marża na 1 sprzedanym produkcie
+    eK = sample(eK_dist, N)
+    eD = sample(eD_dist, N)
+    eρ = sample(ρ_dist, N)
 
-    profit = sum(demand .* margin_amount .+ max.(0, Q .- demand) .* (-μ_c) .* cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D)) # oczekiwany zysk firmy
+    o_U = s .* sum_of_geom_series_infinite(o_K, eρ * o_D) .- o_P # użyteczność dobra konkurencji, jeśli liczba konkurentów > 1, to o_k, o_D i o_P są średnimi
+
+    Us = s .* sum_of_geom_series_infinite.(eK, eρ .* eD)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) .* M # użyteczność mojego dobra przy parametrach K, D, M
+
+    Ul = s .* sum_of_geom_series_infinite.(eK, eρ .* eD) .- cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) .* M .* (1.1) .* (1-D) .* (1 .- eρ .^ (1 / (1-D))) ./ (1 .- eρ)
+    
+    U = max(Us, Ul)
+
+    demand = sum((U .> 0) .& (U .> o_U) .& (rand(N) .< (1-D))) # szacowany popyt. warunek 1: moja użyteczność > 0, warunek 2: moja użyteczność wyższa niż użyteczność dobra konkurencyjnego, warunek 3: oczekiwana liczba klientów poszukujących dobra - skalowanie dla dóbr trwałych > 1 okres
+
+    price = cost_coefficient(K, D, cc) * sum_of_geom_series_infinite(K, D) * M # marża na 1 sprzedanym produkcie
+
+    profit = min(demand,Q) .* price .+ max.(0, Q .- demand) .* (1 - μ_c) .* cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) - Q * cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D)  # oczekiwany zysk firmy
 
     if return_type == "profit"
         return profit
     elseif return_type == "demand"
-        return sum(demand)
+        return demand
     end
 
 end
@@ -141,9 +158,9 @@ function u2w(u::Vector{Float64}, p_min::Float64 = 0.1)::Vector{Float64}
     return wgt
 end
 
-function calculate_profit_history(_seller::seller)::Vector{Float64}
+function calculate_profit_history(_seller::seller; trim=1)::Vector{Float64}
     profit_history = _seller.selling_income_history .+ _seller.leasing_income_history .- _seller.cost_of_production_history .+ _seller.utilization_cost_history
-    return profit_history
+    return profit_history[trim:end]
 end
 
 function create_bool_purchase(n::Int64,k::Int64)::Vector{Bool}
@@ -248,7 +265,7 @@ end
 function cut_integer(x::Vector{Float64},k::Int64)
 
     bin_width = 1 / k * (maximum(x) - minimum(x)) 
-    bin_up_bounds = collect(1:k) .* bin_width
+    bin_up_bounds = minimum(x) .+ collect(1:k) .* bin_width
     
     x_categorical = fill(k, length(x))
     

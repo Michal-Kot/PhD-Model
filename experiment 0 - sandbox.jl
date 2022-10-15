@@ -2,7 +2,13 @@ include(pwd() * "\\methods\\methods.jl")
 
 #################################### AUX FUNCTIONS ##############################################################
 
-sim_single = TO_GO(100, 2, 100, 200, [0.4, 0.4], [1.25, 1.25], "random", 0.25, 0.25, "stochastic", 1.1, [[0.25, 0.75], [0.25, 0.75]], [[0.5, 0.95], [0.5, 0.95]], [[0.0, 2.], [0.0, 2.]], 0.1, true, true, 1, 1, "softmax")
+sim_single = TO_GO(100, 2, 300, 300, [0.4, 0.4], [1.1, 1.1], "random", 0.5, 0.5, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.5, 0.95], [0.5, 0.95]], [[0.8, 2.], [0.8, 2.]], 0.1, true, true, 1, [0.7, 1.0], "softmax", [true, false], 0.1)
+
+function trim_first(x; trimmed = 3)
+    return x[trimmed:end]
+end
+
+ex4_p1 = Plots.plot(calculate_profit_history.(sim_single.sellers; trim=5), color = ["blue"  "orange"], xlabel = "t", ylabel = "Nadwyżka producenta", label = ["Producent bada konsumentów" "Producent nie bada konsumentów"], title = "Nadwyżka producenta")
 
 Plots.plot(getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected,1) .== 1) .& (getindex.(sim_single.profit_expected,2) .== "p")],3))
 Plots.plot!(calculate_profit_history(sim_single.sellers[1])[3:end])
@@ -17,16 +23,19 @@ Plots.plot!(getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_ex
 Plots.plot!(sim_single.sellers[1].quantity_produced_history)
 Plots.plot!(sim_single.sellers[1].quantity_sold_history .+ sim_single.sellers[1].quantity_leased_history)
 
-Plots.plot(calculate_profit_history(sim_single.sellers[1])[3:end])
+
 
 Plots.plot(calculate_price_history.(sim_single.sellers))
 
-ex4_p1 = Plots.plot(calculate_profit_history.(sim_single.sellers), color = ["blue"  "orange"], xlabel = "t", ylabel = "Nadwyżka producenta", label = ["Producent 1" "Producent 2"], title = "Nadwyżka producenta")
+
 
 Plots.savefig(ex4_p1, pwd() * "\\plots\\ex4_prod surplus.svg")
 
-ex4_p21 = plot_quantity(sim_single.sellers,1)
-ex4_p22 = plot_quantity(sim_single.sellers,2)
+ex4_p21 = plot_quantity(sim_single.sellers,1; trim = 3)
+ex4_p22 = plot_quantity(sim_single.sellers,2; trim = 3)
+
+Plots.savefig(ex4_p21, pwd() * "\\plots\\quantity research.svg")
+Plots.savefig(ex4_p22, pwd() * "\\plots\\quantity no research.svg")
 
 StatsPlots.groupedbar([sim_single.sellers[1].quantity_sold_history .+ sim_single.sellers[1].quantity_leased_history sim_single.sellers[2].quantity_sold_history .+ sim_single.sellers[2].quantity_leased_history], bar_position = :stack, linecolor = nothing)
 
@@ -37,18 +46,30 @@ Plots.plot(sum(getfield.(sim_single.sellers, :quantity_produced_history)))
 Plots.savefig(ex4_p21, pwd() * "\\plots\\ex4_prod quant 1.svg")
 Plots.savefig(ex4_p22, pwd() * "\\plots\\ex4_prod quant 2.svg")
 
-Plots.plot(sim_single.sellers[1].quality_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Jakość / oczekiwana jakość", label = "Producent 1 - jakość")
-Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "blue", linewidth = 2, label = "Producent 1 - oczekiwana jakość", linestyle = :dot)
-Plots.plot!(sim_single.sellers[2].quality_history, color = "orange", linewidth = 2, label = "Producent 2 - jakość")
-Plots.plot!(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "orange", linewidth = 2, label = "Producent 2 - oczekiwana jakość", linestyle = :dot)
+sim_single.sellers[1].quality_history .- mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)])
+sim_single.sellers[2].quality_history .- mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectation_history)])
 
-Plots.plot(sim_single.sellers[1].durability_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Trwałość / oczekiwana trwałość", label = "Producent 1 - trwałość", ylim = (0.5,0.96), legend = :bottomright)
+Plots.plot(sim_single.sellers[1].quality_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Jakość / oczekiwana jakość", label = "Producent bada konsumentów - jakość", legend = :bottomleft)
+Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "blue", linewidth = 2, label = "Oczekiwana jakość", linestyle = :dot)
+Plots.plot!(sim_single.sellers[2].quality_history, color = "orange", linewidth = 2, label = "Producent nie bada konsumentów - jakość")
+Plots.plot!(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "orange", linewidth = 2, label = "Oczekiwana jakość", linestyle = :dot)
+
+function durability_to_days(d)
+    1 / (1-d)
+end
+    
+Plots.plot(durability_to_days.(sim_single.sellers[1].durability_history), color = "blue", linewidth = 2, xlabel = "t", ylabel = "Trwałość / oczekiwana trwałość", label = "Producent 1 - trwałość")
+Plots.plot!(durability_to_days.(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :durability_expectation_history)])), color = "blue", linewidth = 2, label = "Producent 1 - oczekiwana trwałość", linestyle = :dot)
+Plots.plot!(durability_to_days.(sim_single.sellers[2].durability_history), color = "orange", linewidth = 2, label = "Producent 2 - trwałość")
+Plots.plot!(durability_to_days.(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :durability_expectation_history)])), color = "orange", linewidth = 2, label = "Producent 2 - oczekiwana trwałość", linestyle = :dot)
+
+Plots.plot(sim_single.sellers[1].durability_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Trwałość / oczekiwana trwałość", label = "Producent 1 - trwałość")
 Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :durability_expectation_history)]), color = "blue", linewidth = 2, label = "Producent 1 - oczekiwana trwałość", linestyle = :dot)
 Plots.plot!(sim_single.sellers[2].durability_history, color = "orange", linewidth = 2, label = "Producent 2 - trwałość")
 Plots.plot!(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :durability_expectation_history)]), color = "orange", linewidth = 2, label = "Producent 2 - oczekiwana trwałość", linestyle = :dot)
 
-Plots.plot(sim_single.sellers[1].margin_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Marża", label = "Producent 1 - marża")
-Plots.plot!(sim_single.sellers[2].margin_history, color = "orange", linewidth = 2, label = "Producent 2 - marża")
+Plots.plot(sim_single.sellers[1].margin_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Marża", label = "Producent nie bada konsumentów - marża", legend = :topleft, ylim = (1,2.0))
+Plots.plot!(sim_single.sellers[2].margin_history, color = "orange", linewidth = 2, label = "Producent bada konsumentów - marża")
 
 
 Plots.savefig(ex4_p3, pwd() * "\\plots\\ex4_qual dura exp.svg")

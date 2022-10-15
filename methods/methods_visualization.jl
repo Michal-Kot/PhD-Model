@@ -27,6 +27,14 @@ function plot_margin(sim_res, res_perc)
     end
 end
 
+function plot_ecdf(is_new, metric, label; xlabel="", ylabel="", title="", xlim, ylim)
+    if is_new
+        Plots.plot(sort(metric), (1:length(metric))./length(metric), xlabel = xlabel, ylabel = ylabel, title = title, label = label, legend=:bottomright, legendfontsize = 6, xlim=xlim, ylim=ylim)
+    else
+        Plots.plot!(sort(metric), (1:length(metric))./length(metric), label = label)
+    end
+end
+
 function plot_ecdf(is_new, metric, label; xlabel="", ylabel="", title="")
     if is_new
         Plots.plot(sort(metric), (1:length(metric))./length(metric), xlabel = xlabel, ylabel = ylabel, title = title, label = label, legend=:bottomright, legendfontsize = 6)
@@ -55,7 +63,7 @@ function plot_phasediagram(_seller::seller)
     scatter!(x,y, xlabel = "Price", ylabel = "Profit", markershape = :none, markercolor = :white, markerstrokecolor = :white, series_annotations = points_labels, markersize = 0)
 end
 
-function plot_quantity(sellers, i, random_start = 0, legend_pos = :outerbottom)
+function plot_quantity(sellers, i, random_start = 0, legend_pos = :outerbottom; trim=3)
 
     quantity_produced = getfield.(sim_single.sellers, :quantity_produced_history)
     quantity_produced = [q[(random_start+1):end] for q in quantity_produced]
@@ -68,9 +76,9 @@ function plot_quantity(sellers, i, random_start = 0, legend_pos = :outerbottom)
 
     colors = palette(:tab10)[1:length(sellers)]
 
-    p=Plots.plot(quantity_produced[i], color = colors[i], label = "Firma " * string(i) * ": wielkość produkcji", legend = legend_pos, linewidth = 2, xlabel = "t", ylabel = "Wielkość produkcji", title = "Wielkość produkcji")
-    Plots.plot!(quantity_sold[i], color = colors[i], linestyle = :dot, label = "Firma " * string(i) * ": wielkość sprzedaży", linewidth = 2)
-    Plots.plot!(quantity_leased[i], color = colors[i], linestyle = :dash, label = "Firma " * string(i) * ": wielkość leasingu", linewidth = 2)
+    p=Plots.plot(quantity_produced[i][trim:end], color = colors[i], label = "Firma " * string(i) * ": wielkość produkcji", legend = legend_pos, linewidth = 2, xlabel = "t", ylabel = "Wielkość produkcji", title = "Wielkość produkcji")
+    Plots.plot!(quantity_sold[i][trim:end], color = colors[i], linestyle = :dot, label = "Firma " * string(i) * ": wielkość sprzedaży", linewidth = 2)
+    Plots.plot!(quantity_leased[i][trim:end], color = colors[i], linestyle = :dash, label = "Firma " * string(i) * ": wielkość leasingu", linewidth = 2)
 
 end
 

@@ -27,18 +27,18 @@ ex1_v2_producer_surplus_singleton = []
 
 ex1_v12_λ = []
 
-for i in 1:500
+for i in 1:750
 
-    if (mod(i,10) == 0) | (i == 1)
+    #if (mod(i,10) == 0) | (i == 1)
         println(i)
-    end
+    #end
 
     λ_ind = rand()
     λ_wom = rand()
 
     push!(ex1_v12_λ, [λ_ind, λ_wom])
 
-    ex1_v1_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom, "stochastic", 1.1, [[0.2, 0.8], [0.2, 0.8]], [[0.5, 0.95], [0.5, 0.95]], [[.8, 2.], [.8, 2.]], 0.25, true, true, 1, 1, "relu")
+    ex1_v1_sim = TO_GO(200, 2, 200, 300, [0.4, 0.4], [1.1, 1.1], "random", λ_ind, λ_wom, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.5, 0.95], [0.5, 0.95]], [[0.8, 2.], [0.8, 2.]], 0.1, true, true, 1, [0.7, 1.0], "softmax", [true, false])
 
     push!(ex1_v1_total_surplus, calculate_surplus(ex1_v1_sim, "total", true))
     push!(ex1_v1_producer_surplus, calculate_surplus(ex1_v1_sim, "producer", true))
@@ -49,20 +49,12 @@ for i in 1:500
     push!(ex1_v1_quantity_leased, getfield.(ex1_v1_sim.sellers, :quantity_leased_history))
     push!(ex1_v1_producer_surplus_singleton, calculate_profit_history.(ex1_v1_sim.sellers))
 
-    ex1_v2_sim = TO_GO(300, 2, 200, 300, [0.5, 0.5], [1.0, 1.0], "random", λ_ind, λ_wom, "stochastic", 1.1, [[0.4, 0.8], [0.2, 0.6]], [[0.5, 0.95], [0.5, 0.95]], [[.8, 2.], [.8, 2.]], 0.25, true, true, 1, 1, "relu")
-
-    push!(ex1_v2_total_surplus, calculate_surplus(ex1_v2_sim, "total", true))
-    push!(ex1_v2_producer_surplus, calculate_surplus(ex1_v2_sim, "producer", true))
-    push!(ex1_v2_consumer_surplus, calculate_surplus(ex1_v2_sim, "consumer,total",true))
-    push!(ex1_v2_price, calculate_price_history.(ex1_v2_sim.sellers))
-    push!(ex1_v2_quantity_produced, getfield.(ex1_v2_sim.sellers, :quantity_produced_history))
-    push!(ex1_v2_quantity_sold, getfield.(ex1_v2_sim.sellers, :quantity_sold_history))
-    push!(ex1_v2_quantity_leased, getfield.(ex1_v2_sim.sellers, :quantity_leased_history))
-    push!(ex1_v2_producer_surplus_singleton, calculate_profit_history.(ex1_v2_sim.sellers))
-
 end
 
-ex1_v1_consumer_surplus
+
+ex3_p1 = plot_ecdf(true, mean.(getindex.(ex1_v1_producer_surplus_singleton, 1)), "Producent bada oczekiwania konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
+plot_ecdf(false, mean.(getindex.(ex1_v1_producer_surplus_singleton, 2)), "Producent nie bada oczekiwań konsumentów")
+
 
 L1 = getindex.(ex1_v12_λ, 1) 
 L2 = getindex.(ex1_v12_λ, 2)
@@ -73,65 +65,22 @@ L2, L2u = cut_integer(L2, 5)
 #### Total market surplus
 
 hm_eq = [mean(ex1_v1_total_surplus[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
-hm_dq = [mean(ex1_v2_total_surplus[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
 
-max_plot = maximum([maximum(hm_eq), maximum(hm_dq)])
-min_plot = minimum([minimum(hm_eq), minimum(hm_dq)])
-
-ex4_p1 = StatsPlots.heatmap(L1u, L2u, hm_eq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka całkowita, identyczna jakość", titlefontsize = 8, clim = (min_plot, max_plot))
+ex4_p1 = StatsPlots.heatmap(L1u, L2u, hm_eq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka całkowita, identyczna jakość", titlefontsize = 8)
 
 Plots.savefig(ex4_p1, pwd() * "\\Plots\\ex1_total surplus equal.svg")
 
-ex4_p2 = StatsPlots.heatmap(L1u, L2u, hm_dq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka całkowita, różna jakość", titlefontsize = 8, clim = (min_plot, max_plot))
+#%% Producer 1 surplus, worse producer
 
-Plots.savefig(ex4_p2, pwd() * "\\plots\\ex1_total surplus different.svg")
+hm_worse_eq = [mean(sum.(getindex.(ex1_v1_producer_surplus_singleton, 1))[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
 
-#%% Producer 1 surplus, better producer
+hm_better_eq = [mean(sum.(getindex.(ex1_v1_producer_surplus_singleton, 2))[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
 
-hm_better_eq = [mean(sum.(getindex.(ex1_v1_producer_surplus_singleton, 1))[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
-hm_better_dq = [mean(sum.(getindex.(ex1_v2_producer_surplus_singleton, 1))[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
+ex4_p3 = StatsPlots.heatmap(L1u, L2u, hm_better_eq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka producenta, identyczna jakość", titlefontsize = 8)
 
-hm_worse_eq = [mean(sum.(getindex.(ex1_v1_producer_surplus_singleton, 2))[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
-hm_worse_dq = [mean(sum.(getindex.(ex1_v2_producer_surplus_singleton, 2))[(L1 .== l1) .& (L2 .== l2)]) for l1 in sort(unique(L1)), l2 in sort(unique(L2))]'
+ex4 = StatsPlots.heatmap(L1u, L2u, hm_worse_eq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka producenta, identyczna jakość", titlefontsize = 8)
 
-max_plot = maximum([maximum(hm_better_eq), maximum(hm_better_dq), maximum(hm_worse_eq), maximum(hm_worse_dq)])
-min_plot = minimum([minimum(hm_better_eq), minimum(hm_better_dq),minimum(hm_worse_eq), minimum(hm_worse_dq)])
-
-p_eq = PlotlyJS.plot(PlotlyJS.contour(x = L1u, y = L2u, z=hm_better_eq, colorscale="Electric", contours_start=min_plot, contours_end=max_plot, contours_size=(max_plot - min_plot)/8), Layout(xaxis_title = "λ_ind, produkty oceniane osobiście", yaxis_title = "λ_wom, produkty oceniane przez sąsiadów", title = "", titlefontsize = 6))
-
-p_dq_b = PlotlyJS.plot(PlotlyJS.contour(x = L1u, y = L2u, z=hm_better_dq, colorscale="Electric", contours_start=min_plot, contours_end=max_plot, contours_size=(max_plot - min_plot)/8), Layout(xaxis_title = "λ_ind, produkty oceniane osobiście", yaxis_title = "λ_wom, produkty oceniane przez sąsiadów", title = ""))
-
-p_dq_w = PlotlyJS.plot(PlotlyJS.contour(x = L1u, y = L2u, z=hm_worse_eq, colorscale="Electric", contours_start=min_plot, contours_end=max_plot, contours_size=(max_plot - min_plot)/8), Layout(xaxis_title = "λ_ind, produkty oceniane osobiście", yaxis_title = "λ_wom, produkty oceniane przez sąsiadów", title = ""))
-
-PlotlyJS.savefig(p_eq, pwd() * "\\Plots\\EX1_equal.svg")
-
-PlotlyJS.savefig(p_dq_w, pwd() * "\\Plots\\EX1_worse.svg")
-
-PlotlyJS.savefig(p_dq_b, pwd() * "\\Plots\\EX1_better.svg")
-
-PlotlyJS.plot(PlotlyJS.contour(x = L1u, y = L2u, z = hm_better_dq .- hm_worse_dq))
-
-PlotlyJS.plot(PlotlyJS.contour(x = L1u, y = L2u, z = hm_better_dq .- hm_better_eq))
-
-###
-
-UnequalVarianceTTest(mean.(getindex.(ex1_v2_producer_surplus_singleton, 1)), mean.(getindex.(ex1_v2_producer_surplus_singleton, 2)))
-
-mean(hm_better_eq[1:2,1:2]) / mean(hm_better_eq[(end-1):end, (end-1):end])
-mean(hm_better_dq[1:2,1:2]) / mean(hm_better_dq[(end-1):end, (end-1):end])
-mean(hm_worse_dq[1:2,1:2]) / mean(hm_worse_dq[(end-1):end, (end-1):end])
-
-ex4_p3 = StatsPlots.heatmap(L1u, L2u, hm_better_eq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka producenta, identyczna jakość", titlefontsize = 8, clim = (min_plot, max_plot))
-
-Plots.savefig(ex4_p3, pwd() * "\\plots\\prod surplus equal.svg")
-
-ex4_p4 = StatsPlots.heatmap(L1u, L2u, hm_better_dq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka producenta, producent o wyższej jakości", titlefontsize = 8, clim = (min_plot, max_plot))
-
-Plots.savefig(ex4_p4, pwd() * "\\plots\\prod surplus better.svg")
-
-ex4_p5 = StatsPlots.heatmap(L1u, L2u, hm_worse_dq, xlabel = "λ_ind, produkty oceniane osobiście", ylabel = "λ_wom, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka producenta, producent o niższej jakości", titlefontsize = 8, clim = (min_plot, max_plot))
-
-Plots.savefig(ex4_p5, pwd() * "\\plots\\prod surplus worse.svg")
+Plots.savefig(ex4_p3, pwd() * "\\plots\\ex1_prod surplus equal.svg")
 
 function split_matrix(A)
     A_size = maximum.(axes(A))
@@ -145,8 +94,7 @@ function split_matrix(A)
 end
 
 split_matrix(hm_better_eq)
-split_matrix(hm_better_dq)
-split_matrix(hm_worse_dq)
+split_matrix(hm_worse_eq)
 
 
 
