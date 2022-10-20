@@ -4,7 +4,8 @@ function sum_of_geom_series_infinite(a0,q)
     return a0 ./ (1 .- q.^2)
 end
 
-function sum_of_geom_series_finite(a0,q;t)
+function sum_of_geom_series_finite(a0,q)
+    t = 1 ./ (1 .- q)
     return a0 .* (1 .- q.^t) ./ (1 .- q)
 end
 
@@ -14,6 +15,10 @@ end
 
 function in_boundaries(x::Float64,lb::Int64,ub::Int64)::Float64
     return max(min(x,ub),lb)
+end
+
+function probability_still_valid(d,t)
+    return (1-d)^(t-1)*d
 end
 
 function cost_coefficient(k,d,cc)
@@ -65,7 +70,7 @@ function create_weights(x::Vector, method::String, scale::Bool = true)
 
 end
 
-function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64, eD_dist::Vector{Float64}, M::Float64, Q::Float64, o_K::Float64, o_D::Float64, o_P::Float64, N::Int64, μ_c::Float64, cc::Float64, ρ_dist::Vector{Float64}, return_type::String, product_life::Int64, interest_rate::Float64)
+function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64, eD_dist::Vector{Float64}, M::Float64, Q::Float64, o_K::Float64, o_D::Float64, o_P::Float64, N::Int64, μ_c::Float64, cc::Float64, ρ_dist::Vector{Float64}, return_type::String)
     """
 
     Funkcja licząca oczekiwany zysk z danego stanu. Wykorzystywana przez firmę do szacowania efektu zmiany stanu.
@@ -78,19 +83,19 @@ function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64
     eD = sample(eD_dist, N)
     eρ = sample(ρ_dist, N)
 
-    o_U = s .* sum_of_geom_series_finite(o_K, eρ * o_D; t = product_life) .- o_P # użyteczność dobra konkurencji, jeśli liczba konkurentów > 1, to o_k, o_D i o_P są średnimi
+    o_U = s .* sum_of_geom_series_infinite(o_K, eρ * o_D) .- o_P # użyteczność dobra konkurencji, jeśli liczba konkurentów > 1, to o_k, o_D i o_P są średnimi
 
-    Us = s .* sum_of_geom_series_finite.(eK, eρ .* eD; t = product_life)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) .* M # użyteczność mojego dobra przy parametrach K, D, M
+    Us = s .* sum_of_geom_series_infinite.(eK, eρ .* eD)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) .* M # użyteczność mojego dobra przy parametrach K, D, M
 
-    Ul = s .* sum_of_geom_series_finite.(eK, eρ .* eD; t = product_life) .- cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life) .* M .* interest_rate / product_life .* (1 .- eρ .^ product_life) ./ (1 .- eρ)
+    Ul = s .* sum_of_geom_series_infinite.(eK, eρ .* eD) .- cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) .* M .* (1.1) .* (1-D) .* (1 .- eρ .^ (1 / (1-D))) ./ (1 .- eρ)
     
     U = max(Us, Ul)
 
-    demand = sum((U .> 0) .& (U .> o_U) .& (rand(N) .< 1/product_life)) # szacowany popyt. warunek 1: moja użyteczność > 0, warunek 2: moja użyteczność wyższa niż użyteczność dobra konkurencyjnego, warunek 3: oczekiwana liczba klientów poszukujących dobra - skalowanie dla dóbr trwałych > 1 okres
+    demand = sum((U .> 0) .& (U .> o_U) .& (rand(N) .< (1-D))) # szacowany popyt. warunek 1: moja użyteczność > 0, warunek 2: moja użyteczność wyższa niż użyteczność dobra konkurencyjnego, warunek 3: oczekiwana liczba klientów poszukujących dobra - skalowanie dla dóbr trwałych > 1 okres
 
-    price = cost_coefficient(K, D, cc) * sum_of_geom_series_finite(K, D; t = product_life) * M # marża na 1 sprzedanym produkcie
+    price = cost_coefficient(K, D, cc) * sum_of_geom_series_infinite(K, D) * M # marża na 1 sprzedanym produkcie
 
-    profit = min(demand,Q) .* price .+ max.(0, Q .- demand) .* (1 - μ_c) .* cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life) - Q * cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life)  # oczekiwany zysk firmy
+    profit = min(demand,Q) .* price .+ max.(0, Q .- demand) .* (1 - μ_c) .* cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) - Q * cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D)  # oczekiwany zysk firmy
 
     if return_type == "profit"
         return profit
@@ -100,34 +105,34 @@ function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64
 
 end
 
-function calculate_cost(_seller::seller; product_life::Int64)::Float64
-    cost = sum_of_geom_series_finite(_seller.quality, _seller.durability; t=product_life) * cost_coefficient(_seller.quality, _seller.durability, _seller.cost_coefficient) #_seller.cost_coefficient
+function calculate_cost(_seller::seller)::Float64
+    cost = sum_of_geom_series_infinite(_seller.quality, _seller.durability) * cost_coefficient(_seller.quality, _seller.durability, _seller.cost_coefficient) #_seller.cost_coefficient
     return cost
 end
 
 
-function calculate_cost_history(_seller::seller; product_life::Int64)::Vector{Float64}
-    cost = sum_of_geom_series_finite.(_seller.quality_history, _seller.durability_history; t = product_life) .* cost_coefficient.(_seller.quality_history, _seller.durability_history, _seller.cost_coefficient)
+function calculate_cost_history(_seller::seller)::Vector{Float64}
+    cost = sum_of_geom_series_infinite.(_seller.quality_history, _seller.durability_history) .* cost_coefficient.(_seller.quality_history, _seller.durability_history, _seller.cost_coefficient) # _seller.cost_coefficient
     return cost
 end
 
-function calculate_price(_seller::seller; product_life::Int64)::Float64
-    price = calculate_cost(_seller; product_life =  product_life) * _seller.margin
+function calculate_price(_seller::seller)::Float64
+    price = calculate_cost(_seller) * _seller.margin
     return price
 end
 
-function calculate_price_history(_seller::seller; product_life::Int64)::Vector{Float64}
-    price = calculate_cost_history(_seller; product_life =  product_life) .* _seller.margin_history
+function calculate_price_history(_seller::seller)::Vector{Float64}
+    price = calculate_cost_history(_seller) .* _seller.margin_history
     return price
 end
 
-function calculate_lease_single(_seller::seller; interest_rate::Float64, product_life::Int64)::Float64
-    lease = calculate_cost(_seller; product_life = product_life) * _seller.margin * interest_rate / product_life
+function calculate_lease_single(_seller::seller, interest_rate::Float64)::Float64
+    lease = calculate_cost(_seller) * _seller.margin * interest_rate * (1 - _seller.durability)
     return lease
 end
 
-function calculate_lease_total(_seller::seller; interest_rate::Float64, product_life::Int64)::Float64
-    lease = calculate_cost(_seller; product_life = product_life) * _seller.margin * interest_rate
+function calculate_lease_total(_seller::seller, interest_rate::Float64)::Float64
+    lease = calculate_cost(_seller) * _seller.margin * interest_rate
     return lease
 end
 

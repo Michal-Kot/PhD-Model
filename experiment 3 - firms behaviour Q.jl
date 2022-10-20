@@ -17,21 +17,10 @@ ex3_v1_buying_history = []
 ex3_v1_quality = []
 ex3_v1_durability = []
 ex3_v1_margin = []
-
-ex3_v2_total_surplus = []
-ex3_v2_producer_surplus = []
-ex3_v2_consumer_surplus = []
-ex3_v2_price = []
-ex3_v2_quantity_produced = []
-ex3_v2_quantity_sold = []
-ex3_v2_quantity_leased = []
-ex3_v2_reselling = []
-ex3_v2_producer_surplus_singleton = []
-ex3_v2_buying_history = []
-ex3_v2_quality = []
-ex3_v2_durability = []
-ex3_v2_margin = []
-
+ex3_v1_quality_exp = []
+ex3_v1_durability_exp = []
+ex3_v1_quality_std = []
+ex3_v1_durability_std = []
 
 for i in 1:100
 
@@ -39,23 +28,34 @@ for i in 1:100
         println(i)
     end
 
-    ex3_v1_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.5, 0.95], [0.5, 0.95]], [[.8, 2.], [.8, 2.]], 0.10, true, true, 1, [0.7, 1.], "softmax", [false, true])
+    ex3_v1_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], 0.50, true, true, 1, [0.7, 1.], "softmax", [false, true], [0, 0.1], 5)
 
     push!(ex3_v1_total_surplus, calculate_surplus(ex3_v1_sim, "total", true))
     push!(ex3_v1_producer_surplus, calculate_surplus(ex3_v1_sim, "producer", true))
     push!(ex3_v1_consumer_surplus, calculate_surplus(ex3_v1_sim, "consumer,total",true))
-    push!(ex3_v1_quality, getfield.(ex3_v1_sim.sellers, :quality_history))
-    push!(ex3_v1_durability, getfield.(ex3_v1_sim.sellers, :durability_history))
-    push!(ex3_v1_margin, getfield.(ex3_v1_sim.sellers, :margin_history))
-    push!(ex3_v1_price, calculate_price_history.(ex3_v1_sim.sellers))
-    push!(ex3_v1_quantity_produced, getfield.(ex3_v1_sim.sellers, :quantity_produced_history))
-    push!(ex3_v1_quantity_sold, getfield.(ex3_v1_sim.sellers, :quantity_sold_history))
-    push!(ex3_v1_quantity_leased, getfield.(ex3_v1_sim.sellers, :quantity_leased_history))
-    push!(ex3_v1_producer_surplus_singleton, calculate_profit_history.(ex3_v1_sim.sellers))
-    push!(ex3_v1_reselling, getfield.(ex3_v1_sim.sellers, :reselling_history))
-    push!(ex3_v1_buying_history, getfield.(ex3_v1_sim.buyers, :unit_buying_selling_history))
+    push!(ex3_v1_quality, trim_first.(getfield.(ex3_v1_sim.sellers, :quality_history); trimmed = 5))
+    push!(ex3_v1_durability, trim_first.(getfield.(ex3_v1_sim.sellers, :durability_history); trimmed = 5))
+    push!(ex3_v1_margin, trim_first.(getfield.(ex3_v1_sim.sellers, :margin_history); trimmed = 5))
+    push!(ex3_v1_price, trim_first.(calculate_price_history.(ex3_v1_sim.sellers; product_life = 5); trimmed = 5))
+    push!(ex3_v1_quantity_produced, trim_first.(getfield.(ex3_v1_sim.sellers, :quantity_produced_history); trimmed = 5))
+    push!(ex3_v1_quantity_sold, trim_first.(getfield.(ex3_v1_sim.sellers, :quantity_sold_history); trimmed = 5))
+    push!(ex3_v1_quantity_leased, trim_first.(getfield.(ex3_v1_sim.sellers, :quantity_leased_history); trimmed = 5))
+    push!(ex3_v1_producer_surplus_singleton, trim_first.(calculate_profit_history.(ex3_v1_sim.sellers); trimmed = 5))
+    push!(ex3_v1_reselling, trim_first.(getfield.(ex3_v1_sim.sellers, :reselling_history); trimmed = 5))
+    push!(ex3_v1_buying_history, trim_first.(getfield.(ex3_v1_sim.buyers, :unit_buying_selling_history); trimmed = 5))
+    push!(ex3_v1_quality_exp, trim_first.(mean([b.quality_expectation_history for b in ex3_v1_sim.buyers]); trimmed = 5))
+    push!(ex3_v1_durability_exp, trim_first.(mean([b.durability_expectation_history for b in ex3_v1_sim.buyers]); trimmed = 5))
+    push!(ex3_v1_quality_std, [std(mean.([getindex.(x,1) for x in getfield.(ex3_v1_sim.buyers, :quality_expectation_history)])), std(mean.([getindex.(x,2) for x in getfield.(ex3_v1_sim.buyers, :quality_expectation_history)]))])
+    push!(ex3_v1_durability_std, [std(mean.([getindex.(x,1) for x in getfield.(ex3_v1_sim.buyers, :durability_expectation_history)])), std(mean.([getindex.(x,2) for x in getfield.(ex3_v1_sim.buyers, :durability_expectation_history)]))])
+
 
 end
+
+Plots.scatter(getindex.(ex3_v1_quality_std, 1), mean.(getindex.(ex3_v1_producer_surplus_singleton, 1)), smooth = true)
+Plots.scatter!(getindex.(ex3_v1_quality_std, 2), mean.(getindex.(ex3_v1_producer_surplus_singleton, 2)), smooth = true)
+
+StatsPlots.histogram(getindex.(ex3_v1_quality_std, 1), alpha = 0.2)
+StatsPlots.histogram!(getindex.(ex3_v1_quality_std, 2), alpha = 0.2)
 
 Plots.plot(mean(getindex.(ex3_v1_margin,1)))
 Plots.plot!(mean(getindex.(ex3_v1_margin,2)))
@@ -66,10 +66,18 @@ Plots.plot!(mean(getindex.(ex3_v1_quality,2)))
 Plots.plot(mean(getindex.(ex3_v1_durability,1)))
 Plots.plot!(mean(getindex.(ex3_v1_durability,2)))
 
-ex3_p1 = plot_ecdf(true, mean.(getindex.(ex3_v1_producer_surplus_singleton, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
-plot_ecdf(false, mean.(getindex.(ex3_v1_producer_surplus_singleton, 2)), "Producent bada oczekiwania konsumentów")
+ex3_p1 = plot_ecdf(true, sum.(getindex.(ex3_v1_producer_surplus_singleton, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
+plot_ecdf(false, sum.(getindex.(ex3_v1_producer_surplus_singleton, 2)), "Producent bada oczekiwania konsumentów")
 
-Plots.savefig(ex3_p1, pwd() * "\\plots\\surplus with and without market research.svg")
+mean(sum.(getindex.(ex3_v1_producer_surplus_singleton, 1)))
+mean(sum.(getindex.(ex3_v1_producer_surplus_singleton, 2)))
+
+
+ex3_v1_quality_exp[1][1]
+getindex.(ex3_v1_quality_exp, 1)
+getindex.(ex3_v1_producer_surplus_singleton, 1)
+
+Plots.savefig(ex3_p1, pwd() * "\\plots\\ex1\\surplus with and without market research.svg")
 
 Plots.plot(trim_first(mean(getindex.(ex3_v1_producer_surplus_singleton, 1)), trimmed = 20))
 Plots.plot!(trim_first(mean(getindex.(ex3_v1_producer_surplus_singleton, 2)), trimmed = 20))
@@ -88,28 +96,28 @@ Plots.plot!(trim_first(mean(getindex.(ex3_v1_producer_surplus_singleton, 2)); tr
 ex3_p2 = plot_ecdf(true, mean.(getindex.(ex3_v1_quality, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Średnia jakość", ylabel = "F(x)", title = "Dystrybuanta empiryczna - średnia jakość")
 plot_ecdf(false, mean.(getindex.(ex3_v1_quality, 2)), "Producent bada oczekiwania konsumentów")
 
-Plots.savefig(ex3_p2, pwd() * "\\plots\\quality with and without market research.svg")
+Plots.savefig(ex3_p2, pwd() * "\\plots\\ex1\\quality with and without market research.svg")
 
 ex3_p3 = plot_ecdf(true, mean.(getindex.(ex3_v1_durability, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Średnia trwałość", ylabel = "F(x)", title = "Dystrybuanta empiryczna - średnia trwałość")
 plot_ecdf(false, mean.(getindex.(ex3_v1_durability, 2)), "Producent bada oczekiwania konsumentów")
 
-Plots.savefig(ex3_p3, pwd() * "\\plots\\durability with and without market research.svg")
+Plots.savefig(ex3_p3, pwd() * "\\plots\\ex1\\durability with and without market research.svg")
 
 ex3_p4 = plot_ecdf(true, mean.(getindex.(ex3_v1_quantity_produced, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Wielkość produkcji", ylabel = "F(x)", title = "Dystrybuanta empiryczna - wielkość produkcji")
 plot_ecdf(false, mean.(getindex.(ex3_v1_quantity_produced, 2)), "Producent bada oczekiwania konsumentów")
 
-Plots.savefig(ex3_p4, pwd() * "\\plots\\ex1 prod quan with and without market research.svg")
+Plots.savefig(ex3_p4, pwd() * "\\plots\\ex1\\prod quan with and without market research.svg")
 
 ex3_p5 = plot_ecdf(true, mean.(getindex.(ex3_v1_margin, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Średnia marża", ylabel = "F(x)", title = "Dystrybuanta empiryczna - średnia marża")
 plot_ecdf(false, mean.(getindex.(ex3_v1_margin, 2)), "Producent bada oczekiwania konsumentów")
 
-Plots.savefig(ex3_p5, pwd() * "\\plots\\ex1 prod quan with and without market research.svg")
+Plots.savefig(ex3_p5, pwd() * "\\plots\\ex1\\prod quan with and without market research.svg")
 
 ex3_p6 = plot_ecdf(true, sum.(getindex.(ex3_v1_quantity_sold, 1)) .+ sum.(getindex.(ex3_v1_quantity_leased, 1)), "
 Producent nie bada oczekiwań konsumentów", xlabel = "Wielkość sprzedaży i leasingu", ylabel = "F(x)", title = "Dystrybuanta empiryczna - popyt")
 plot_ecdf(false, sum.(getindex.(ex3_v1_quantity_sold, 2)) .+ sum.(getindex.(ex3_v1_quantity_leased, 2)), "Producent bada oczekiwania konsumentów")
 
-Plots.savefig(ex3_p6, pwd() * "\\plots\\sell quan with and without market research.svg")
+Plots.savefig(ex3_p6, pwd() * "\\plots\\ex1\\sell quan with and without market research.svg")
 
 ################################################################################################
 

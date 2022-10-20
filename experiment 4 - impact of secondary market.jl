@@ -37,17 +37,17 @@
     ex4_v3_producer_surplus_singleton = []
     ex4_v3_buying_history = []
 
-    for i in 1:500
+    for i in 1:400
 
         if (mod(i,10) == 0) | (i == 1)
             println(i)
         end
 
-        ex4_v1_sim = TO_GO(200, 2, 200, 300, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.5, 0.95], [0.5, 0.95]], [[0.8, 2.], [0.8, 2.]], 0.1, true, true, 1, [0.7, 1.0], "softmax", [true, true])
+        ex4_v1_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.5, 0.95], [0.5, 0.95]], [[0.8, 2.], [0.8, 2.]], 0.1, true, true, 1, [0.7, 1.0], "softmax", [false, true], [0, 0.1], 5)
         push!(ex4_v1_total_surplus, calculate_surplus(ex4_v1_sim, "total", true))
         push!(ex4_v1_producer_surplus, calculate_surplus(ex4_v1_sim, "producer", true))
         push!(ex4_v1_consumer_surplus, calculate_surplus(ex4_v1_sim, "consumer,total",true))
-        push!(ex4_v1_price, calculate_price_history.(ex4_v1_sim.sellers))
+        push!(ex4_v1_price, calculate_price_history.(ex4_v1_sim.sellers; product_life = 5))
         push!(ex4_v1_quantity_produced, getfield.(ex4_v1_sim.sellers, :quantity_produced_history))
         push!(ex4_v1_quantity_sold, getfield.(ex4_v1_sim.sellers, :quantity_sold_history))
         push!(ex4_v1_quantity_leased, getfield.(ex4_v1_sim.sellers, :quantity_leased_history))
@@ -55,11 +55,12 @@
         push!(ex4_v1_reselling, getfield.(ex4_v1_sim.sellers, :reselling_history))
         push!(ex4_v1_buying_history, getfield.(ex4_v1_sim.buyers, :unit_buying_selling_history))
 
-        ex4_v2_sim = TO_GO(200, 2, 200, 300, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.5, 0.95], [0.5, 0.95]], [[0.8, 2.], [0.8, 2.]], 0.1, true, true, 1, [0.7, 1.0], "softmax", [true, false])
+        ex4_v2_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.5, 0.95], [0.5, 0.95]], [[0.8, 2.], [0.8, 2.]], 0.1, true, true, 1, [0.7, 1.0], "softmax", [false, true], [0, 0.1], 5)
+
         push!(ex4_v2_total_surplus, calculate_surplus(ex4_v2_sim, "total", true))
         push!(ex4_v2_producer_surplus, calculate_surplus(ex4_v2_sim, "producer", true))
         push!(ex4_v2_consumer_surplus, calculate_surplus(ex4_v2_sim, "consumer,total",true))
-        push!(ex4_v2_price, calculate_price_history.(ex4_v2_sim.sellers))
+        push!(ex4_v2_price, calculate_price_history.(ex4_v2_sim.sellers; product_life = 5))
         push!(ex4_v2_quantity_produced, getfield.(ex4_v2_sim.sellers, :quantity_produced_history))
         push!(ex4_v2_quantity_sold, getfield.(ex4_v2_sim.sellers, :quantity_sold_history))
         push!(ex4_v2_quantity_leased, getfield.(ex4_v2_sim.sellers, :quantity_leased_history))
@@ -67,11 +68,11 @@
         push!(ex4_v2_reselling, getfield.(ex4_v2_sim.sellers, :reselling_history))
         push!(ex4_v2_buying_history, getfield.(ex4_v2_sim.buyers, :unit_buying_selling_history))
 
-        ex4_v3_sim = TO_GO(200, 2, 200, 300, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.5, 0.95], [0.5, 0.95]], [[0.8, 2.], [0.8, 2.]], 0.1, true, true, 1, [0.7, 1.0], "softmax", [false, false])
+        ex4_v3_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.5, 0.95], [0.5, 0.95]], [[0.8, 2.], [0.8, 2.]], 0.1, true, true, 1, [0.7, 1.0], "softmax", [false, false], [0, 0.1], 5)
         push!(ex4_v3_total_surplus, calculate_surplus(ex4_v3_sim, "total", true))
         push!(ex4_v3_producer_surplus, calculate_surplus(ex4_v3_sim, "producer", true))
         push!(ex4_v3_consumer_surplus, calculate_surplus(ex4_v3_sim, "consumer,total",true))
-        push!(ex4_v3_price, calculate_price_history.(ex4_v3_sim.sellers))
+        push!(ex4_v3_price, calculate_price_history.(ex4_v3_sim.sellers; product_life = 5))
         push!(ex4_v3_quantity_produced, getfield.(ex4_v3_sim.sellers, :quantity_produced_history))
         push!(ex4_v3_quantity_sold, getfield.(ex4_v3_sim.sellers, :quantity_sold_history))
         push!(ex4_v3_quantity_leased, getfield.(ex4_v3_sim.sellers, :quantity_leased_history))
@@ -83,11 +84,18 @@
 
 # Istnienie rynku wtórnego podnosi dobrobyt
 
-ex4_p1 = plot_ecdf(true, ex4_v1_total_surplus, "Obaj gracze wykonują badania", xlabel = "Całkowita nadwyżka", ylabel = "F(x)", title = "Dystrybuanta empiryczna - nadwyżka całkowita")
-plot_ecdf(false, ex4_v2_total_surplus, "Jeden gracz wykonuje badania")
-plot_ecdf(false, ex4_v3_total_surplus, "Żaden gracz nie wykonuje badań")
+function trim_outliers(x, p = 1)
+    lower_bound = percentile(x, p)
+    upper_bound = percentile(x,100-p)
+    y = x[(x .>= lower_bound) .& (x .<= upper_bound)]
+    return y
+end
 
-Plots.savefig(ex4_p1, pwd() * "\\plots\\total surplus research.svg")
+ex4_p1 = plot_ecdf(true, trim_outliers(ex4_v1_total_surplus,1), "Obaj gracze wykonują badania", xlabel = "Całkowita nadwyżka", ylabel = "F(x)", title = "Dystrybuanta empiryczna - nadwyżka całkowita")
+plot_ecdf(false, trim_outliers(ex4_v2_total_surplus), "Jeden gracz wykonuje badania")
+plot_ecdf(false, trim_outliers(ex4_v3_total_surplus), "Żaden gracz nie wykonuje badań")
+
+Plots.savefig(ex4_p1, pwd() * "\\plots\\ex2\\total surplus research.svg")
 
 # ... oraz nadwyżkę konsumenta ...
 
@@ -95,7 +103,7 @@ ex4_p2 = plot_ecdf(true, ex4_v1_consumer_surplus, "Obaj gracze wykonują badania
 plot_ecdf(false, ex4_v2_consumer_surplus, "Jeden gracz wykonuje badania")
 plot_ecdf(false, ex4_v3_consumer_surplus, "Żaden gracz nie wykonuje badań")
 
-Plots.savefig(ex4_p2, pwd() * "\\plots\\consumer surplus research.svg")
+Plots.savefig(ex4_p2, pwd() * "\\plots\\ex2\\consumer surplus research.svg")
 
 # ... a także nadwyżkę producenta ...
 
@@ -103,17 +111,14 @@ ex4_p3 = plot_ecdf(true, ex4_v1_producer_surplus, "Obaj gracze wykonują badania
 plot_ecdf(false, ex4_v2_producer_surplus, "Jeden gracz wykonuje badania")
 plot_ecdf(false, ex4_v3_producer_surplus, "Żaden gracz nie wykonuje badań")
 
-Plots.savefig(ex4_p3, pwd() * "\\plots\\producer surplus research.svg")
-
-UnequalVarianceTTest(float.(ex4_v1_producer_surplus), float.(ex4_v3_producer_surplus))
-UnequalVarianceTTest(float.(ex4_v2_producer_surplus), float.(ex4_v4_producer_surplus))
+Plots.savefig(ex4_p3, pwd() * "\\plots\\ex2\\producer surplus research.svg")
 
 # Efekt istnienia rynku wtórnego nie jest istotny w przypadku rynku dóbr homogenicznych, ale jest istotny dla rynku, na którym występuje pionowe zróżnicowanie
 
 ex4_p4 = plot_ecdf(true, mean.(getindex.(ex4_v1_producer_surplus_singleton,1)), "Obaj producenci badają rynek", xlabel = "Nadwyżka producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - nadwyżka producenta")
 plot_ecdf(false, mean.(getindex.(ex4_v1_producer_surplus_singleton,2)), "")
 
-Plots.savefig(ex4_p4, pwd() * "\\plots\\producer surplus research both.svg")
+Plots.savefig(ex4_p4, pwd() * "\\plots\\ex2\\producer surplus research both.svg")
 
 ex4_p5 = plot_ecdf(true, mean.(getindex.(ex4_v2_producer_surplus_singleton,1)), "Jeden producent bada rynek", xlabel = "Nadwyżka producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - nadwyżka producenta")
 plot_ecdf(false, mean.(getindex.(ex4_v2_producer_surplus_singleton,2)), "")
@@ -129,13 +134,15 @@ ex4_p7 = plot_ecdf(true, sum.(sum.(ex4_v1_quantity_leased)) .+ sum.(sum.(ex4_v1_
 plot_ecdf(false,  sum.(sum.(ex4_v2_quantity_leased)) .+ sum.(sum.(ex4_v2_quantity_sold)), "Jeden gracz wykonuje badania")
 plot_ecdf(false,  sum.(sum.(ex4_v3_quantity_leased)) .+ sum.(sum.(ex4_v3_quantity_sold)), "Żaden gracz nie wykonuje badań")
 
-Plots.savefig(ex4_p7, pwd() * "\\plots\\quantity sold leased.svg")
+Plots.savefig(ex4_p7, pwd() * "\\plots\\ex2\\quantity sold leased.svg")
 
 ex4_p8 = plot_ecdf(true, sum.(sum.(ex4_v1_quantity_produced)) .- sum.(sum.(ex4_v1_quantity_leased)) .- sum.(sum.(ex4_v1_quantity_sold)), "Obaj gracze wykonują badania", xlabel = "Liczba niesprzedanych sztuk", ylabel = "F(x)", title = "Dystrybuanta empiryczna - liczba niesprzedanych sztuk", xlim = (0, 20000), ylim = (0,1))
 plot_ecdf(false,  sum.(sum.(ex4_v2_quantity_produced)) .- sum.(sum.(ex4_v2_quantity_leased)) .- sum.(sum.(ex4_v2_quantity_sold)), "Jeden gracz wykonuje badania", xlim = (0, 20000), ylim = (0,1))
 plot_ecdf(false,  sum.(sum.(ex4_v3_quantity_produced)) .- sum.(sum.(ex4_v3_quantity_leased)) .- sum.(sum.(ex4_v3_quantity_sold)), "Żaden gracz nie wykonuje badań", xlim = (0, 20000), ylim = (0,1))
 
 sum(sum.(sum.(ex4_v1_quantity_leased)) .+ sum.(sum.(ex4_v1_quantity_sold))) / sum( sum.(sum.(ex4_v1_quantity_produced)))
+
+getindex.(ex4_v1_quality)
 
 sum(sum.(sum.(ex4_v2_quantity_leased)) .+ sum.(sum.(ex4_v2_quantity_sold))) / sum( sum.(sum.(ex4_v2_quantity_produced)))
 

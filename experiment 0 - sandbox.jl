@@ -2,13 +2,22 @@ include(pwd() * "\\methods\\methods.jl")
 
 #################################### AUX FUNCTIONS ##############################################################
 
-sim_single = TO_GO(100, 2, 300, 300, [0.4, 0.4], [1.1, 1.1], "random", 0.5, 0.5, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.5, 0.95], [0.5, 0.95]], [[0.8, 2.], [0.8, 2.]], 0.1, true, true, 1, [0.7, 1.0], "softmax", [true, false], 0.1)
+sim_single = TO_GO(5, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], 0.50, true, true, 1, [0.7, 1.], "softmax", [false, true], [0, 0.2], 5)
+
+println(sum.(calculate_profit_history.(sim_single.sellers; trim=3)))
+
+Plots.plot(sim_single.sellers[1].quality_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Jakość / oczekiwana jakość", label = "Producent nie bada konsumentów - jakość", legend = :bottomleft)
+Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "blue", linewidth = 2, label = "Oczekiwana jakość", linestyle = :dot)
+Plots.plot!(sim_single.sellers[2].quality_history, color = "orange", linewidth = 2, label = "Producent bada konsumentów - jakość")
+Plots.plot!(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "orange", linewidth = 2, label = "Oczekiwana jakość", linestyle = :dot)
 
 function trim_first(x; trimmed = 3)
     return x[trimmed:end]
 end
 
-ex4_p1 = Plots.plot(calculate_profit_history.(sim_single.sellers; trim=5), color = ["blue"  "orange"], xlabel = "t", ylabel = "Nadwyżka producenta", label = ["Producent bada konsumentów" "Producent nie bada konsumentów"], title = "Nadwyżka producenta")
+ex4_p1 = Plots.plot(calculate_profit_history.(sim_single.sellers; trim=3), color = ["blue"  "orange"], xlabel = "t", ylabel = "Nadwyżka producenta", label = ["Producent nie bada konsumentów" "Producent  bada konsumentów"], title = "Nadwyżka producenta")
+
+sum.(calculate_profit_history.(sim_single.sellers; trim=5))
 
 Plots.plot(getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected,1) .== 1) .& (getindex.(sim_single.profit_expected,2) .== "p")],3))
 Plots.plot!(calculate_profit_history(sim_single.sellers[1])[3:end])
@@ -23,10 +32,8 @@ Plots.plot!(getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_ex
 Plots.plot!(sim_single.sellers[1].quantity_produced_history)
 Plots.plot!(sim_single.sellers[1].quantity_sold_history .+ sim_single.sellers[1].quantity_leased_history)
 
-
-
 Plots.plot(calculate_price_history.(sim_single.sellers))
-
+Plots.plot(getfield.(sim_single.sellers, :margin_history))
 
 
 Plots.savefig(ex4_p1, pwd() * "\\plots\\ex4_prod surplus.svg")
@@ -49,9 +56,11 @@ Plots.savefig(ex4_p22, pwd() * "\\plots\\ex4_prod quant 2.svg")
 sim_single.sellers[1].quality_history .- mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)])
 sim_single.sellers[2].quality_history .- mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectation_history)])
 
-Plots.plot(sim_single.sellers[1].quality_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Jakość / oczekiwana jakość", label = "Producent bada konsumentów - jakość", legend = :bottomleft)
+0.95/0.05*0.4*2
+
+Plots.plot(sim_single.sellers[1].quality_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Jakość / oczekiwana jakość", label = "Producent nie bada konsumentów - jakość", legend = :bottomleft)
 Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "blue", linewidth = 2, label = "Oczekiwana jakość", linestyle = :dot)
-Plots.plot!(sim_single.sellers[2].quality_history, color = "orange", linewidth = 2, label = "Producent nie bada konsumentów - jakość")
+Plots.plot!(sim_single.sellers[2].quality_history, color = "orange", linewidth = 2, label = "Producent  bada konsumentów - jakość")
 Plots.plot!(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "orange", linewidth = 2, label = "Oczekiwana jakość", linestyle = :dot)
 
 function durability_to_days(d)

@@ -42,11 +42,17 @@ ex5_v2_consumer_surplus_sm_b = []
 ex5_v2_quality_exp = []
 ex5_v2_durability_exp = []
 
-for i in 1:250
+for i in 1:500
 
     if (mod(i,10) == 0) | (i == 1)
         println(i)
     end
+
+    rs = sample(1:10000)
+
+    println(rs)
+
+    Random.seed!(rs)
 
     ex5_v1_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.5, 0.95], [0.5, 0.95]], [[0.8, 2.], [0.8, 2.]], 0.1, true, true, 1, [0.7, 1.0], "softmax", [true, false])
 
@@ -67,6 +73,8 @@ for i in 1:250
     push!(ex5_v1_consumer_surplus_sm_s, calculate_surplus(ex5_v1_sim, "consumer,sm,s", false))
     push!(ex5_v1_quality_exp, mean([b.quality_expectation_history for b in ex5_v1_sim.buyers]))
     push!(ex5_v1_durability_exp, mean([b.durability_expectation_history for b in ex5_v1_sim.buyers]))
+
+    Random.seed!(rs)
 
     ex5_v2_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.5, 0.95], [0.5, 0.95]], [[0.8, 2.], [0.8, 2.]], 0.1, false, true, 1, [0.7, 1.0], "softmax", [true, false])
 
@@ -90,12 +98,34 @@ for i in 1:250
 
 end
 
+
+
 # Różnice w jakości nie mają istotnego wpływu na kształtowanie się trwałości produktów. Leasing ma istotny wpływ
 
-ex5_p1 = plot_ecdf(true, mean.(mean.(ex5_v1_durability)), "Identyczna jakość, leasing możliwy"; xlabel = "Średnia trwałość dóbr", ylabel = "F(x)", title = "Dystrybuanta empiryczna - Trwałość")
-plot_ecdf(false, mean.(mean.(ex5_v2_durability)), "Różna jakość, leasing możliwy")
-plot_ecdf(false, mean.(mean.(ex5_v3_durability)), "Identyczna jakość, leasing niemożliwy")
-plot_ecdf(false, mean.(mean.(ex5_v4_durability)), "Różna jakość, leasing niemożliwy")
+ex5_p1 = plot_ecdf(true, mean.(getindex.(ex5_v1_producer_surplus_singleton, 1)), "Rynek wtórny istnieje, producent bada"; xlabel = "Nadwyżka producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - Trwałość")
+plot_ecdf(false, mean.(getindex.(ex5_v1_producer_surplus_singleton, 2)), "Rynek wtórny istnieje, producent nie bada")
+plot_ecdf(false, mean.(getindex.(ex5_v2_producer_surplus_singleton, 1)), "Rynek wtórny nie istnieje, producent bada")
+plot_ecdf(false, mean.(getindex.(ex5_v2_producer_surplus_singleton, 2)), "Rynek wtórny nie istnieje, producent nie bada")
+
+Plots.plot(mean.(getindex.(ex5_v1_quality, 1)))
+Plots.plot!(mean.([getindex.(x,1) for x in ex5_v1_quality_exp]))
+
+RMSE(x,y) = sqrt(sum((x .- y).^2) / maximum(axes(x,1)))
+
+RMSE(mean.(getindex.(ex5_v1_quality, 1)), mean.([getindex.(x,1) for x in ex5_v1_quality_exp]))
+
+RMSE(mean.(getindex.(ex5_v1_quality, 2)), mean.([getindex.(x,2) for x in ex5_v1_quality_exp]))
+
+Plots.plot(mean.(getindex.(ex5_v1_quality, 2)))
+Plots.plot!(mean.([getindex.(x,2) for x in ex5_v1_quality_exp]))
+
+RMSE(mean.(getindex.(ex5_v2_quality, 1)), mean.([getindex.(x,1) for x in ex5_v2_quality_exp]))
+
+RMSE(mean.(getindex.(ex5_v2_quality, 2)), mean.([getindex.(x,2) for x in ex5_v2_quality_exp]))
+
+
+ex5_p2 = plot_ecdf(true, mean.(getindex.(ex5_v1_producer_surplus_singleton, 1)), "Identyczna jakość, leasing możliwy"; xlabel = "Nadwyżka producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - Trwałość")
+plot_ecdf(false, mean.(getindex.(ex5_v1_producer_surplus_singleton, 2)), "Różna jakość, leasing możliwy")
 
 UnequalVarianceTTest(mean.(mean.(ex5_v1_durability)), mean.(mean.(ex5_v3_durability)))
 
