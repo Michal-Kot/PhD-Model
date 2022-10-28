@@ -2,7 +2,9 @@ include(pwd() * "\\methods\\methods.jl")
 
 #################################### AUX FUNCTIONS ##############################################################
 
-sim_single = TO_GO(5, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], 0.50, true, true, 1, [0.7, 1.], "softmax", [false, true], [0, 0.2], 5)
+sim_single = TO_GO(50, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], 0.50, true, 1, [0.7, 1.], "softmax", [true, true], [0.1, 0.1], 5, false)
+
+
 
 println(sum.(calculate_profit_history.(sim_single.sellers; trim=3)))
 
@@ -11,9 +13,7 @@ Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_
 Plots.plot!(sim_single.sellers[2].quality_history, color = "orange", linewidth = 2, label = "Producent bada konsumentów - jakość")
 Plots.plot!(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "orange", linewidth = 2, label = "Oczekiwana jakość", linestyle = :dot)
 
-function trim_first(x; trimmed = 3)
-    return x[trimmed:end]
-end
+
 
 ex4_p1 = Plots.plot(calculate_profit_history.(sim_single.sellers; trim=3), color = ["blue"  "orange"], xlabel = "t", ylabel = "Nadwyżka producenta", label = ["Producent nie bada konsumentów" "Producent  bada konsumentów"], title = "Nadwyżka producenta")
 
@@ -63,14 +63,7 @@ Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_
 Plots.plot!(sim_single.sellers[2].quality_history, color = "orange", linewidth = 2, label = "Producent  bada konsumentów - jakość")
 Plots.plot!(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "orange", linewidth = 2, label = "Oczekiwana jakość", linestyle = :dot)
 
-function durability_to_days(d)
-    1 / (1-d)
-end
-    
-Plots.plot(durability_to_days.(sim_single.sellers[1].durability_history), color = "blue", linewidth = 2, xlabel = "t", ylabel = "Trwałość / oczekiwana trwałość", label = "Producent 1 - trwałość")
-Plots.plot!(durability_to_days.(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :durability_expectation_history)])), color = "blue", linewidth = 2, label = "Producent 1 - oczekiwana trwałość", linestyle = :dot)
-Plots.plot!(durability_to_days.(sim_single.sellers[2].durability_history), color = "orange", linewidth = 2, label = "Producent 2 - trwałość")
-Plots.plot!(durability_to_days.(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :durability_expectation_history)])), color = "orange", linewidth = 2, label = "Producent 2 - oczekiwana trwałość", linestyle = :dot)
+
 
 Plots.plot(sim_single.sellers[1].durability_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Trwałość / oczekiwana trwałość", label = "Producent 1 - trwałość")
 Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :durability_expectation_history)]), color = "blue", linewidth = 2, label = "Producent 1 - oczekiwana trwałość", linestyle = :dot)

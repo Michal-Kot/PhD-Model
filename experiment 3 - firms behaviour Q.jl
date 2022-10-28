@@ -22,13 +22,13 @@ ex3_v1_durability_exp = []
 ex3_v1_quality_std = []
 ex3_v1_durability_std = []
 
-for i in 1:100
+for i in 1:1
 
     if (mod(i,10) == 0) | (i == 1)
         println(i)
     end
 
-    ex3_v1_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], 0.50, true, true, 1, [0.7, 1.], "softmax", [false, true], [0, 0.1], 5)
+    ex3_v1_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], 0.50, true, 1, [0.7, 1.], "softmax", [false, true], [0, 0.1], 5, false)
 
     push!(ex3_v1_total_surplus, calculate_surplus(ex3_v1_sim, "total", true))
     push!(ex3_v1_producer_surplus, calculate_surplus(ex3_v1_sim, "producer", true))
@@ -39,7 +39,6 @@ for i in 1:100
     push!(ex3_v1_price, trim_first.(calculate_price_history.(ex3_v1_sim.sellers; product_life = 5); trimmed = 5))
     push!(ex3_v1_quantity_produced, trim_first.(getfield.(ex3_v1_sim.sellers, :quantity_produced_history); trimmed = 5))
     push!(ex3_v1_quantity_sold, trim_first.(getfield.(ex3_v1_sim.sellers, :quantity_sold_history); trimmed = 5))
-    push!(ex3_v1_quantity_leased, trim_first.(getfield.(ex3_v1_sim.sellers, :quantity_leased_history); trimmed = 5))
     push!(ex3_v1_producer_surplus_singleton, trim_first.(calculate_profit_history.(ex3_v1_sim.sellers); trimmed = 5))
     push!(ex3_v1_reselling, trim_first.(getfield.(ex3_v1_sim.sellers, :reselling_history); trimmed = 5))
     push!(ex3_v1_buying_history, trim_first.(getfield.(ex3_v1_sim.buyers, :unit_buying_selling_history); trimmed = 5))
@@ -54,8 +53,8 @@ end
 Plots.scatter(getindex.(ex3_v1_quality_std, 1), mean.(getindex.(ex3_v1_producer_surplus_singleton, 1)), smooth = true)
 Plots.scatter!(getindex.(ex3_v1_quality_std, 2), mean.(getindex.(ex3_v1_producer_surplus_singleton, 2)), smooth = true)
 
-StatsPlots.histogram(getindex.(ex3_v1_quality_std, 1), alpha = 0.2)
-StatsPlots.histogram!(getindex.(ex3_v1_quality_std, 2), alpha = 0.2)
+StatsPlots.histogram(getindex.(ex3_v1_quality_std, 1), alpha = 0.2, bins = 0:0.01:0.20)
+StatsPlots.histogram!(getindex.(ex3_v1_quality_std, 2), alpha = 0.2, bins = 0:0.01:0.20)
 
 Plots.plot(mean(getindex.(ex3_v1_margin,1)))
 Plots.plot!(mean(getindex.(ex3_v1_margin,2)))
@@ -68,6 +67,8 @@ Plots.plot!(mean(getindex.(ex3_v1_durability,2)))
 
 ex3_p1 = plot_ecdf(true, sum.(getindex.(ex3_v1_producer_surplus_singleton, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
 plot_ecdf(false, sum.(getindex.(ex3_v1_producer_surplus_singleton, 2)), "Producent bada oczekiwania konsumentów")
+
+sort(sum.(getindex.(ex3_v1_producer_surplus_singleton, 1)))
 
 mean(sum.(getindex.(ex3_v1_producer_surplus_singleton, 1)))
 mean(sum.(getindex.(ex3_v1_producer_surplus_singleton, 2)))

@@ -71,14 +71,14 @@ function plot_quantity(sellers, i, random_start = 0, legend_pos = :outerbottom; 
     quantity_sold = getfield.(sim_single.sellers, :quantity_sold_history)
     quantity_sold = [q[(random_start+1):end] for q in quantity_sold]
 
-    quantity_leased = getfield.(sim_single.sellers, :quantity_leased_history)
-    quantity_leased = [q[(random_start+1):end] for q in quantity_leased]
+    #quantity_leased = getfield.(sim_single.sellers, :quantity_leased_history)
+    #quantity_leased = [q[(random_start+1):end] for q in quantity_leased]
 
     colors = palette(:tab10)[1:length(sellers)]
 
     p=Plots.plot(quantity_produced[i][trim:end], color = colors[i], label = "Firma " * string(i) * ": wielkość produkcji", legend = legend_pos, linewidth = 2, xlabel = "t", ylabel = "Wielkość produkcji", title = "Wielkość produkcji")
     Plots.plot!(quantity_sold[i][trim:end], color = colors[i], linestyle = :dot, label = "Firma " * string(i) * ": wielkość sprzedaży", linewidth = 2)
-    Plots.plot!(quantity_leased[i][trim:end], color = colors[i], linestyle = :dash, label = "Firma " * string(i) * ": wielkość leasingu", linewidth = 2)
+    #Plots.plot!(quantity_leased[i][trim:end], color = colors[i], linestyle = :dash, label = "Firma " * string(i) * ": wielkość leasingu", linewidth = 2)
 
 end
 

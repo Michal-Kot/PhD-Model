@@ -16,6 +16,65 @@ using Serialization
 using PlotlyJS
 using CSV
 
+
+function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64, eD_dist::Vector{Float64}, M::Float64, Q::Float64, o_K::Float64, o_D::Float64, o_P::Float64, N::Int64, μ_c::Float64, cc::Float64, ρ_dist::Vector{Float64}, return_type::String, product_life::Int64, interest_rate::Float64)
+    """
+
+    Funkcja licząca oczekiwany zysk z danego stanu. Wykorzystywana przez firmę do szacowania efektu zmiany stanu.
+
+    """
+
+    s = rand(Uniform(0, 1), N) # standard reservation price, założone dla N klientów
+
+    eK = sample(eK_dist, N)
+    eD = sample(eD_dist, N)
+    eρ = sample(ρ_dist, N)
+
+    o_U = s .* sum_of_geom_series_finite(o_K, eρ * o_D; t = product_life) .- o_P # użyteczność dobra konkurencji, jeśli liczba konkurentów > 1, to o_k, o_D i o_P są średnimi
+
+    Us = s .* sum_of_geom_series_finite.(eK, eρ .* eD; t = product_life)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) .* M # użyteczność mojego dobra przy parametrach K, D, M
+
+    Ul = s .* sum_of_geom_series_finite.(eK, eρ .* eD; t = product_life) .- cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life) .* M .* interest_rate / product_life .* (1 .- eρ .^ product_life) ./ (1 .- eρ)
+    
+    U = max(Us, Ul)
+
+    demand = sum((U .> 0) .& (U .> o_U) .& (rand(N) .< 1/product_life)) # szacowany popyt. warunek 1: moja użyteczność > 0, warunek 2: moja użyteczność wyższa niż użyteczność dobra konkurencyjnego, warunek 3: oczekiwana liczba klientów poszukujących dobra - skalowanie dla dóbr trwałych > 1 okres
+
+    price = cost_coefficient(K, D, cc) * sum_of_geom_series_finite(K, D; t = product_life) * M # marża na 1 sprzedanym produkcie
+
+    profit = min(demand,Q) .* price .+ max.(0, Q .- demand) .* (1 - μ_c) .* cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life) - Q * cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life)  # oczekiwany zysk firmy
+
+    if return_type == "profit"
+        return profit
+    elseif return_type == "demand"
+        return demand
+    end
+
+end
+
+function calculate_cost(_seller::seller; product_life::Int64)::Float64
+    cost = sum_of_geom_series_finite(_seller.quality, _seller.durability; t=product_life) * cost_coefficient(_seller.quality, _seller.durability, _seller.cost_coefficient) #_seller.cost_coefficient
+    return cost
+end
+
+
+function calculate_cost_history(_seller::seller; product_life::Int64)::Vector{Float64}
+    cost = sum_of_geom_series_finite.(_seller.quality_history, _seller.durability_history; t = product_life) .* cost_coefficient.(_seller.quality_history, _seller.durability_history, _seller.cost_coefficient)
+    return cost
+end
+
+function calculate_lease_single(_seller::seller; interest_rate::Float64, product_life::Int64)::Float64
+    lease = calculate_cost(_seller; product_life = product_life) * _seller.margin * interest_rate / product_life
+    return lease
+end
+
+function calculate_lease_total(_seller::seller; interest_rate::Float64, product_life::Int64)::Float64
+    lease = calculate_cost(_seller; product_life = product_life) * _seller.margin * interest_rate
+    return lease
+end
+
+
+
 ################################# STRUCTS ####################################################################
 
 """
@@ -41,9 +100,11 @@ mutable struct seller
     
     quantity_produced::Float64
     quantity_sold::Float64
+    quantity_leased::Float64
 
     quantity_produced_history::Vector{Float64}
     quantity_sold_history::Vector{Float64}
+    quantity_leased_history::Vector{Float64}
 
     quality_history::Vector{Float64}
     durability_history::Vector{Float64}
@@ -52,8 +113,10 @@ mutable struct seller
     reselling_history::Vector{Int64}
 
     selling_income::Float64
+    leasing_income::Float64
 
     selling_income_history::Vector{Float64}
+    leasing_income_history::Vector{Float64}
 
     expected_income::Float64
     expected_income_history::Vector{Float64}
@@ -93,13 +156,17 @@ function create_sellers(num_sellers::Int64,c::Vector{Float64},m::Vector{Float64}
         [], #cost_of_production_history
         0.0, #quantity produced
         0.0, #quantity_sold
+        0.0, #quantity_leased
         [], #quantity_produced_history
         [], #quantity_sold_history
+        [], #quantity_leased_history
         [], #quality_history
         [], #durability_history
         [], # margin_history
         [], #reselling_history
         0.0,
+        0.0,
+        [],
         [],
         0.0,
         [],
@@ -136,6 +203,7 @@ mutable struct buyer
     expected_surplus::Float64
     unit_possessed::Vector{Bool}
     unit_possessed_is_new::Bool
+    unit_possessed_is_leased::Bool
     unit_buying_selling_history::Vector{}
     unit_possessed_time::Int64
     unit_first_possessed_time::Int64
@@ -144,6 +212,9 @@ mutable struct buyer
     durability_of_unit_possessed::Float64
     durability_of_unit_possessed_history::Vector{Vector{Float64}}
     current_quality_of_unit_possessed::Float64
+    leasing_interest::Float64
+    leasing_total::Float64
+    leasing_interest_history::Vector{Float64}
     unit_for_sale::Vector{Bool}
     quality_for_sale::Float64
     durability_for_sale::Float64
@@ -176,6 +247,7 @@ function create_buyers(num_buyers::Int64, num_sellers::Int64, network::SimpleGra
             0.0, #expected_surplus_buying
             fill(false, num_sellers), #unit_possessed
             false, #unit_possessed_is_new
+            false, #unit_possessed_is_leased
             [], #unit_possessed_history,
             0, #unit_possessed_time
             0, # unit first possessed time
@@ -184,6 +256,9 @@ function create_buyers(num_buyers::Int64, num_sellers::Int64, network::SimpleGra
             0.0, #durability_of_unit_possessed
             [], #durability_of_unit_possessed_history
             0.0, #current_quality_of_unit_possessed
+            0.0, #leasing interest
+            0.0, # leasing total
+            [], # leasing interest history
             fill(false, num_sellers), # unit for sale
             0.0, # quality_for_sale
             0.0, # durability_for_sale
@@ -300,20 +375,21 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
 
                 else
 
-                    e_k = fill(_seller.quality, num_buyers)
-                    e_d = fill(_seller.durability, num_buyers)
+                    e_k = fill(_seller.quality, num_buyers) #.+ rand(Normal(0,0.05), num_buyers)
+                    e_d = fill(_seller.durability, num_buyers) #.+ rand(Normal(0,0.05), num_buyers)
 
                     K_range = [max(_seller.quality_range[1], _seller.quality - δ_k), _seller.quality, min(_seller.quality_range[2], _seller.quality + δ_k)]
 
                     D_range = [max(_seller.durability_range[1], _seller.durability - δ_d), _seller.durability, min(_seller.durability_range[2], _seller.durability + δ_d)]
 
-                    o_k = mean(getfield.(sellers[Not(_seller.id)], :quality_history))[end]
-                    o_d = mean(getfield.(sellers[Not(_seller.id)], :durability_history))[end]
+                    o_k = mean(getfield.(sellers[Not(_seller.id)], :quality_history))[end] #.+ rand(Normal(0,0.05))
+                    o_d = mean(getfield.(sellers[Not(_seller.id)], :durability_history))[end] #.+ rand(Normal(0,0.05))
 
                     ρ_mean = 1/2 * (maximum(getfield.(buyers, :future_discount)) + minimum(getfield.(buyers, :future_discount)))
 
                     ρ_mean = fill(ρ_mean, num_buyers)
 
+                    #ρ_mean = rand(Uniform(max(0, minimum(getfield.(buyers, :future_discount)) .+ rand(Normal(0,0.025))), min(1, maximum(getfield.(buyers, :future_discount)) .+ rand(Normal(0,0.025)))), num_buyers)
 
                 end
 
@@ -402,6 +478,7 @@ function consumers_compare_offers(buyers::Vector{buyer}, sellers::Vector{seller}
     """
 
     Calculate further stream of quality, if unit is possessed
+    For those who lease, expected surplus is stream of quality - price of leasing
     For those who buy, expected surplus is stream of quality
     For others, expected_surplus is 0
 
@@ -419,10 +496,11 @@ function consumers_compare_offers(buyers::Vector{buyer}, sellers::Vector{seller}
 
 end
 
-function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller}, num_sellers::Int64, iter::Int64, interest_rate::Float64, buyer_behaviour::String, secondary_market_exists::Bool, product_life::Int64)
+function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller}, num_sellers::Int64, iter::Int64, interest_rate::Float64, buyer_behaviour::String, secondary_market_exists::Bool, lease_available::Bool, product_life::Int64)
 
     for _seller in sellers
         _seller.selling_income = 0.0
+        _seller.leasing_income = 0.0
         _seller.expected_income = 0.0
     end
 
@@ -430,60 +508,90 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
 
     for _buyer in buyers
 
-        supply = getfield.(sellers, :quantity_produced) .- getfield.(sellers, :quantity_sold)
+        supply = getfield.(sellers, :quantity_produced) .- getfield.(sellers, :quantity_sold) .- getfield.(sellers, :quantity_leased)
 
         supply_requirement = supply .> 0
 
         if any(supply_requirement)
 
             buy_prices = calculate_price.(sellers; product_life = product_life)
+            lease_prices = calculate_lease_single.(sellers; interest_rate = interest_rate, product_life = product_life) .* (1 .- _buyer.future_discount .^ product_life) ./ (1 .- _buyer.future_discount) #pv of leasing
 
-            utility = _buyer.std_reservation_price .* sum_of_geom_series_finite.(_buyer.quality_expectation, _buyer.future_discount * _buyer.durability_expectation; t = product_life) 
+            utility = _buyer.std_reservation_price .* sum_of_geom_series_finite.(_buyer.quality_expectation, _buyer.future_discount * _buyer.durability_expectation; t = product_life) # buying/leasing expected utility
+
             reselling_price = 0.0
 
             if iter >= 2
                 if any(_buyer.unit_possessed)
-                    reselling_price = secondary_market_exists .* _buyer.reselling_probability .* _buyer.expected_surplus
+                    if !_buyer.unit_possessed_is_leased
+                        reselling_price = secondary_market_exists .* _buyer.reselling_probability .* _buyer.expected_surplus
+                    end
                 end
             end
 
-            buy_surplus = utility .+ reselling_price .- buy_prices
+            buy_surplus = utility .+ reselling_price .- buy_prices .- _buyer.leasing_total ./ interest_rate
+            lease_surplus = utility .+ reselling_price .- lease_prices .-  _buyer.leasing_total ./ interest_rate
 
-            buy_vs_keep = buy_surplus .- _buyer.expected_surplus
+            buy_vs_keep = buy_surplus .> _buyer.expected_surplus
+            lease_vs_keep = lease_surplus .> _buyer.expected_surplus
 
             buy_requirement = buy_vs_keep .> 0
+            lease_requirement = lease_vs_keep .> 0
 
-            requirements = vcat(supply_requirement .* buy_requirement .* buy_surplus)
+            if !lease_available
+                lease_requirement = falses(length(lease_requirement))
+            end
+
+            requirements = vcat(supply_requirement .* buy_requirement .* buy_surplus, supply_requirement .* lease_requirement .* lease_surplus)
 
             chosen_product = -1
+            decision = ""
             pm_surplus = 0.0
 
             if any(requirements .> 0)
 
+                decisions = repeat(["buy", "lease"], inner = length(sellers))
+
                 if buyer_behaviour == "deterministic"
 
                     chosen_product = argmax(requirements)
+                    decision = decisions[chosen_product] 
+
+                    if chosen_product > length(sellers)
+                        chosen_product = chosen_product - length(sellers)
+                    end
 
                 elseif buyer_behaviour == "stochastic"
 
                     weight = requirements
                     chosen_product = sample(1:length(requirements), Weights(weight))
+                    decision = decisions[chosen_product]
+
+                    if chosen_product > length(sellers)
+                        chosen_product = chosen_product - length(sellers)
+                    end
 
                 end
 
             end
 
-            if chosen_product > 0
+            if (chosen_product > 0) & (decision == "buy")
 
                 if any(_buyer.unit_possessed)
 
+                    if _buyer.unit_possessed_is_leased
+
+                    else
+
                         # if previous product was bought -> buyer goes to secondary market
 
-                    _buyer.unit_for_sale = _buyer.unit_possessed
-                    _buyer.quality_for_sale = _buyer.current_quality_of_unit_possessed
-                    _buyer.durability_of_unit_possessed = _buyer.durability_of_unit_possessed
-                    _buyer.price_for_sale = _buyer.expected_surplus
-                    _buyer.age_for_sale = iter - _buyer.unit_first_possessed_time
+                        _buyer.unit_for_sale = _buyer.unit_possessed
+                        _buyer.quality_for_sale = _buyer.current_quality_of_unit_possessed
+                        _buyer.durability_of_unit_possessed = _buyer.durability_of_unit_possessed
+                        _buyer.price_for_sale = _buyer.expected_surplus
+                        _buyer.age_for_sale = iter - _buyer.unit_first_possessed_time
+
+                    end
 
                 end
 
@@ -491,7 +599,10 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
 
                 pm_surplus = (utility .- buy_prices)[chosen_product]
 
+                _buyer.leasing_interest = 0.0
+                _buyer.leasing_total = 0.0
                 _buyer.unit_possessed_is_new = true
+                _buyer.unit_possessed_is_leased = false
                 _buyer.unit_possessed = create_bool_purchase(num_sellers, chosen_product)
                 _buyer.unit_first_possessed_time = iter
                 _buyer.unit_possessed_time = iter
@@ -499,6 +610,47 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
                 push!(_buyer.realized_surplus_pm_history, pm_surplus)
 
                 sellers[chosen_product].selling_income = sellers[chosen_product].selling_income + calculate_price(sellers[chosen_product]; product_life = product_life)
+
+                sellers[chosen_product].expected_income = sellers[chosen_product].expected_income + calculate_price(sellers[chosen_product]; product_life = product_life)
+
+            elseif (chosen_product > 0) & (decision == "lease")
+
+                # lease new
+
+                if any(_buyer.unit_possessed)
+
+                    if _buyer.unit_possessed_is_leased
+
+                    else
+
+                        # if previous product was bought -> buyer goes to secondary market
+
+                        _buyer.unit_for_sale = _buyer.unit_possessed
+                        _buyer.quality_for_sale = _buyer.current_quality_of_unit_possessed
+                        _buyer.durability_of_unit_possessed = _buyer.durability_of_unit_possessed
+                        _buyer.price_for_sale = _buyer.expected_surplus
+                        _buyer.age_for_sale = iter - _buyer.unit_first_possessed_time
+
+                    end
+    
+                end
+
+                push!(_buyer.unit_buying_selling_history, (t=iter, d="l", p=chosen_product))
+
+                pm_surplus = utility[chosen_product]
+
+                _buyer.leasing_interest = calculate_lease_single(sellers[chosen_product]; interest_rate = interest_rate, product_life = product_life)
+                _buyer.leasing_total = calculate_lease_total(sellers[chosen_product]; interest_rate = interest_rate, product_life = product_life)
+                _buyer.unit_possessed_is_new = true
+                _buyer.unit_possessed_is_leased = true
+                _buyer.unit_possessed = create_bool_purchase(num_sellers, chosen_product)
+                _buyer.unit_possessed_time = iter
+                _buyer.unit_first_possessed_time = iter
+
+                sellers[chosen_product].quantity_leased += 1
+                push!(_buyer.realized_surplus_pm_history, pm_surplus)
+
+                sellers[chosen_product].leasing_income = sellers[chosen_product].leasing_income + calculate_price(sellers[chosen_product]; product_life = product_life)
 
                 sellers[chosen_product].expected_income = sellers[chosen_product].expected_income + calculate_price(sellers[chosen_product]; product_life = product_life)
 
@@ -516,12 +668,14 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
 
     end
 
-    @assert all(getfield.(sellers, :quantity_produced) .>= getfield.(sellers, :quantity_sold))
+    @assert all(getfield.(sellers, :quantity_produced) .>= getfield.(sellers, :quantity_sold) .+ getfield.(sellers, :quantity_leased))
 
     for _seller in sellers
 
         push!(_seller.quantity_sold_history, _seller.quantity_sold)
+        push!(_seller.quantity_leased_history, _seller.quantity_leased)
         push!(_seller.selling_income_history, _seller.selling_income)
+        push!(_seller.leasing_income_history, _seller.leasing_income)
         push!(_seller.expected_income_history, _seller.expected_income)
 
     end
@@ -600,8 +754,9 @@ function sellers_utilize_not_sold_products(sellers::Vector{seller}, μ_c::Float6
 
     for _seller in sellers
 
-        push!(_seller.utilization_cost_history, (1 - μ_c) * calculate_cost(_seller; product_life = product_life) * (_seller.quantity_produced - _seller.quantity_sold))
+        push!(_seller.utilization_cost_history, (1 - μ_c) * calculate_cost(_seller; product_life = product_life) * (_seller.quantity_produced - _seller.quantity_sold - _seller.quantity_leased))
         _seller.quantity_sold = 0
+        _seller.quantity_leased = 0
 
     end
 
@@ -609,7 +764,7 @@ function sellers_utilize_not_sold_products(sellers::Vector{seller}, μ_c::Float6
 
 end
 
-function buyers_products_age(buyers::Vector{buyer}, sellers::Vector{seller}, iter::Int64, product_life::Int64)
+function buyers_products_age_and_lease(buyers::Vector{buyer}, sellers::Vector{seller}, iter::Int64, product_life::Int64)
 
     for _buyer in buyers
 
@@ -622,7 +777,11 @@ function buyers_products_age(buyers::Vector{buyer}, sellers::Vector{seller}, ite
                     # breakage
                     # insurance pays total remaining interests
 
+                    push!(_buyer.leasing_interest_history, 0.0)
+
                     # consumer loses further utility
+
+                    push!(_buyer.realized_surplus_breakage_history, -1 * _buyer.std_reservation_price * sum_of_geom_series_infinite(_buyer.current_quality_of_unit_possessed * _buyer.durability_of_unit_possessed, _buyer.future_discount * _buyer.durability_of_unit_possessed))
 
                     push!(_buyer.unit_buying_selling_history, (t=iter, d="d", p=argmax(_buyer.unit_possessed)))
 
@@ -633,6 +792,9 @@ function buyers_products_age(buyers::Vector{buyer}, sellers::Vector{seller}, ite
                     _buyer.unit_possessed_is_new = false
                     _buyer.unit_possessed_time = 0
                     _buyer.unit_first_possessed_time = 0
+                    _buyer.unit_possessed_is_leased = false
+                    _buyer.leasing_interest = 0.0
+                    _buyer.leasing_total = 0.0
                     
 
                 else
@@ -641,9 +803,60 @@ function buyers_products_age(buyers::Vector{buyer}, sellers::Vector{seller}, ite
 
                     _buyer.current_quality_of_unit_possessed = _buyer.current_quality_of_unit_possessed * _buyer.durability_of_unit_possessed
 
+                    if _buyer.unit_possessed_is_leased
+
+                        # pays next interest
+
+                        interest_paid = max(min(_buyer.leasing_interest, _buyer.leasing_total), 0)
+
+                        push!(_buyer.leasing_interest_history, interest_paid)
+
+                        _buyer.leasing_total = _buyer.leasing_total - interest_paid
+
+                        if _buyer.leasing_total <= 0
+
+                            _buyer.leasing_interest = 0.0
+                            _buyer.unit_possessed_is_leased = false
+
+                        end
+
+                    else
+
+                        # does nothing
+
+                        push!(_buyer.leasing_interest_history, 0.0)
+
+                    end       
+
                 end
 
             elseif iter == 1
+
+                if _buyer.unit_possessed_is_leased
+
+                    # pays next interest
+
+                    interest_paid = max(min(_buyer.leasing_interest, _buyer.leasing_total), 0)
+
+                    #sellers[argmax(_buyer.unit_possessed)].leasing_income = sellers[argmax(_buyer.unit_possessed)].leasing_income + interest_paid
+
+                    push!(_buyer.leasing_interest_history, interest_paid)
+
+                    _buyer.leasing_total = _buyer.leasing_total - interest_paid
+
+                    if _buyer.leasing_total <= 0
+
+                        _buyer.leasing_interest = 0.0
+
+                    end
+
+                else
+
+                    # does nothing
+
+                    push!(_buyer.leasing_interest_history, 0.0)
+
+                end  
                 
                 push!(_buyer.realized_surplus_breakage_history, 0.0)
 
@@ -651,6 +864,7 @@ function buyers_products_age(buyers::Vector{buyer}, sellers::Vector{seller}, ite
 
         else
 
+            push!(_buyer.leasing_interest_history, 0.0)
             push!(_buyer.realized_surplus_breakage_history, 0.0)
 
         end
@@ -714,6 +928,7 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
                         buyers[chosen_buyer].durability_of_unit_possessed = _buyer.durability_of_unit_possessed
                         buyers[chosen_buyer].current_quality_of_unit_possessed = _buyer.quality_for_sale
                         buyers[chosen_buyer].unit_possessed_is_new = false
+                        buyers[chosen_buyer].unit_possessed_is_leased = false
 
                         if length(_buyer.realized_surplus_sm_s_history) == iter       
 
@@ -801,7 +1016,7 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
 
 end
 
-function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, λ_ind, λ_wom, buyer_behaviour, interest_rate, kr, dr, mr, μ_c, secondary_market_exists, rand_period, future_discount_range, method_weight, consumer_research, sample_size, product_life, samples_fixed)
+function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, λ_ind, λ_wom, buyer_behaviour, interest_rate, kr, dr, mr, μ_c, secondary_market_exists, lease_available, rand_period, future_discount_range, method_weight, consumer_research, sample_size, product_life, samples_fixed)
 
     sellers = create_sellers(num_sellers, c, m, kr, dr, mr, consumer_research, sample_size)
 
@@ -820,7 +1035,7 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
 
             buyers = consumers_compare_offers(buyers, sellers, iter, product_life)
 
-            buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter, interest_rate, buyer_behaviour, secondary_market_exists, product_life)
+            buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter, interest_rate, buyer_behaviour, secondary_market_exists, lease_available, product_life)
 
             buyers = consumers_discover_q_d(buyers, sellers, iter)
 
@@ -830,15 +1045,15 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
 
             sellers = sellers_utilize_not_sold_products(sellers, μ_c, product_life)
 
-            buyers, sellers = buyers_products_age(buyers, sellers, iter, product_life)
+            buyers, sellers = buyers_products_age_and_lease(buyers, sellers, iter, product_life) # only pays interest of leasing
 
         elseif iter >= 2
 
-            buyers, sellers = buyers_products_age(buyers, sellers, iter, product_life)
+            buyers, sellers = buyers_products_age_and_lease(buyers, sellers, iter, product_life)
 
              buyers = consumers_compare_offers(buyers, sellers, iter, product_life)
 
-            buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter, interest_rate, buyer_behaviour, secondary_market_exists, product_life)
+            buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter, interest_rate, buyer_behaviour, secondary_market_exists, lease_available, product_life)
 
             buyers, sellers = buyers_choose_secondary_market(buyers, sellers, iter, buyer_behaviour, secondary_market_exists, method_weight, product_life)
 

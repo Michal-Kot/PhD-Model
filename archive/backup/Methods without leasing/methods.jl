@@ -449,31 +449,36 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
 
             buy_surplus = utility .+ reselling_price .- buy_prices
 
-            buy_vs_keep = buy_surplus .- _buyer.expected_surplus
+            buy_vs_keep = buy_surplus .> _buyer.expected_surplus
 
             buy_requirement = buy_vs_keep .> 0
 
             requirements = vcat(supply_requirement .* buy_requirement .* buy_surplus)
 
             chosen_product = -1
+            decision = ""
             pm_surplus = 0.0
 
             if any(requirements .> 0)
 
+                decisions = "buy"
+
                 if buyer_behaviour == "deterministic"
 
                     chosen_product = argmax(requirements)
+                    decision = decisions[chosen_product] 
 
                 elseif buyer_behaviour == "stochastic"
 
                     weight = requirements
                     chosen_product = sample(1:length(requirements), Weights(weight))
+                    decision = decisions[chosen_product]
 
                 end
 
             end
 
-            if chosen_product > 0
+            if (chosen_product > 0) & (decision == "buy")
 
                 if any(_buyer.unit_possessed)
 
@@ -623,6 +628,8 @@ function buyers_products_age(buyers::Vector{buyer}, sellers::Vector{seller}, ite
                     # insurance pays total remaining interests
 
                     # consumer loses further utility
+
+                    push!(_buyer.realized_surplus_breakage_history, -1 * _buyer.std_reservation_price * sum_of_geom_series_infinite(_buyer.current_quality_of_unit_possessed * _buyer.durability_of_unit_possessed, _buyer.future_discount * _buyer.durability_of_unit_possessed))
 
                     push!(_buyer.unit_buying_selling_history, (t=iter, d="d", p=argmax(_buyer.unit_possessed)))
 

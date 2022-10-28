@@ -8,6 +8,16 @@ function sum_of_geom_series_finite(a0,q;t)
     return a0 .* (1 .- q.^t) ./ (1 .- q)
 end
 
+function trim_first(x; trimmed = 3)
+    return x[trimmed:end]
+end
+
+function trim_extremes(x, t = 10)
+
+    return x[(x .>= percentile(x, t)) .& (x .<= percentile(x, 100-t))]
+
+end
+
 function in_boundaries(x::Float64,lb::Float64,ub::Float64)::Float64
     return max(min(x,ub),lb)
 end
@@ -65,6 +75,7 @@ function create_weights(x::Vector, method::String, scale::Bool = true)
 
 end
 
+
 function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64, eD_dist::Vector{Float64}, M::Float64, Q::Float64, o_K::Float64, o_D::Float64, o_P::Float64, N::Int64, μ_c::Float64, cc::Float64, ρ_dist::Vector{Float64}, return_type::String, product_life::Int64, interest_rate::Float64)
     """
 
@@ -80,12 +91,8 @@ function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64
 
     o_U = s .* sum_of_geom_series_finite(o_K, eρ * o_D; t = product_life) .- o_P # użyteczność dobra konkurencji, jeśli liczba konkurentów > 1, to o_k, o_D i o_P są średnimi
 
-    Us = s .* sum_of_geom_series_finite.(eK, eρ .* eD; t = product_life)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) .* M # użyteczność mojego dobra przy parametrach K, D, M
-
-    Ul = s .* sum_of_geom_series_finite.(eK, eρ .* eD; t = product_life) .- cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life) .* M .* interest_rate / product_life .* (1 .- eρ .^ product_life) ./ (1 .- eρ)
+    U = s .* sum_of_geom_series_finite.(eK, eρ .* eD; t = product_life)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) .* M # użyteczność mojego dobra przy parametrach K, D, M
     
-    U = max(Us, Ul)
-
     demand = sum((U .> 0) .& (U .> o_U) .& (rand(N) .< 1/product_life)) # szacowany popyt. warunek 1: moja użyteczność > 0, warunek 2: moja użyteczność wyższa niż użyteczność dobra konkurencyjnego, warunek 3: oczekiwana liczba klientów poszukujących dobra - skalowanie dla dóbr trwałych > 1 okres
 
     price = cost_coefficient(K, D, cc) * sum_of_geom_series_finite(K, D; t = product_life) * M # marża na 1 sprzedanym produkcie
@@ -111,6 +118,7 @@ function calculate_cost_history(_seller::seller; product_life::Int64)::Vector{Fl
     return cost
 end
 
+
 function calculate_price(_seller::seller; product_life::Int64)::Float64
     price = calculate_cost(_seller; product_life =  product_life) * _seller.margin
     return price
@@ -121,15 +129,6 @@ function calculate_price_history(_seller::seller; product_life::Int64)::Vector{F
     return price
 end
 
-function calculate_lease_single(_seller::seller; interest_rate::Float64, product_life::Int64)::Float64
-    lease = calculate_cost(_seller; product_life = product_life) * _seller.margin * interest_rate / product_life
-    return lease
-end
-
-function calculate_lease_total(_seller::seller; interest_rate::Float64, product_life::Int64)::Float64
-    lease = calculate_cost(_seller; product_life = product_life) * _seller.margin * interest_rate
-    return lease
-end
 
 
 
@@ -154,7 +153,7 @@ function u2w(u::Vector{Float64}, p_min::Float64 = 0.1)::Vector{Float64}
 end
 
 function calculate_profit_history(_seller::seller; trim=1)::Vector{Float64}
-    profit_history = _seller.selling_income_history .+ _seller.leasing_income_history .- _seller.cost_of_production_history .+ _seller.utilization_cost_history
+    profit_history = _seller.selling_income_history .- _seller.cost_of_production_history .+ _seller.utilization_cost_history
     return profit_history[trim:end]
 end
 
@@ -170,11 +169,11 @@ function calculate_surplus(sim_single, type::String, cumulated::Bool)
 
         if cumulated
 
-            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_pm_history)) .- sum(getfield.(sim_single.buyers, :leasing_interest_history)))
+            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_pm_history)))
 
         else
 
-            return sum(getfield.(sim_single.buyers, :realized_surplus_pm_history) .- getfield.(sim_single.buyers, :leasing_interest_history))
+            return sum(getfield.(sim_single.buyers, :realized_surplus_pm_history))
 
         end
 
@@ -207,24 +206,11 @@ function calculate_surplus(sim_single, type::String, cumulated::Bool)
 
         if cumulated
 
-            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_pm_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history))) - sum(sum(getfield.(sim_single.buyers, :leasing_interest_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_breakage_history)))
+            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_pm_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history)))
 
         else
 
-            return sum(getfield.(sim_single.buyers, :realized_surplus_pm_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history)) - sum(getfield.(sim_single.buyers, :leasing_interest_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_breakage_history))
-
-        end
-
-    elseif type == "consumer,damage loss"
-
-        if cumulated
-
-            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_breakage_history)))
-
-        else
-
-            return sum(getfield.(sim_single.buyers, :realized_surplus_breakage_history))
-
+            return sum(getfield.(sim_single.buyers, :realized_surplus_pm_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history))
 
         end
 
@@ -245,11 +231,11 @@ function calculate_surplus(sim_single, type::String, cumulated::Bool)
 
         if cumulated
 
-            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_pm_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history))) + sum(sum(calculate_profit_history.(sim_single.sellers))) - sum(sum(getfield.(sim_single.buyers, :leasing_interest_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_breakage_history)))
+            return sum(sum(getfield.(sim_single.buyers, :realized_surplus_pm_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history))) + sum(sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history))) + sum(sum(calculate_profit_history.(sim_single.sellers)))
 
         else
 
-            return sum(getfield.(sim_single.buyers, :realized_surplus_pm_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history)) + sum(calculate_profit_history.(sim_single.sellers)) - sum(getfield.(sim_single.buyers, :leasing_interest_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_breakage_history))
+            return sum(getfield.(sim_single.buyers, :realized_surplus_pm_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_b_history)) + sum(getfield.(sim_single.buyers, :realized_surplus_sm_s_history)) + sum(calculate_profit_history.(sim_single.sellers))
 
         end
 
