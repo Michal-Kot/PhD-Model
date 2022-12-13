@@ -76,23 +76,30 @@ function create_weights(x::Vector, method::String, scale::Bool = true)
 end
 
 
-function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64, eD_dist::Vector{Float64}, M::Float64, Q::Float64, o_K::Float64, o_D::Float64, o_P::Float64, N::Int64, μ_c::Float64, cc::Float64, ρ_dist::Vector{Float64}, return_type::String, product_life::Int64, interest_rate::Float64)
+function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64, eD_dist::Vector{Float64}, M::Float64, Q::Float64, o_K::Float64, o_D::Float64, o_P::Float64, N::Int64, μ_c::Float64, cc::Float64, ρ_dist::Vector{Float64}, β_dist::Vector{Float64}, return_type::String, product_life::Int64)
     """
 
     Funkcja licząca oczekiwany zysk z danego stanu. Wykorzystywana przez firmę do szacowania efektu zmiany stanu.
 
     """
 
-    s = rand(Uniform(0, 1), N) # standard reservation price, założone dla N klientów
+    #s = rand(Uniform(0, 1), N) # standard reservation price, założone dla N klientów
 
-    eK = sample(eK_dist, N)
-    eD = sample(eD_dist, N)
-    eρ = sample(ρ_dist, N)
+    s = β_dist
+    eK = eK_dist
+    eD = eD_dist
+    eρ = ρ_dist
 
     o_U = s .* sum_of_geom_series_finite(o_K, eρ * o_D; t = product_life) .- o_P # użyteczność dobra konkurencji, jeśli liczba konkurentów > 1, to o_k, o_D i o_P są średnimi
 
     U = s .* sum_of_geom_series_finite.(eK, eρ .* eD; t = product_life)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) .* M # użyteczność mojego dobra przy parametrach K, D, M
     
+    """println("W1: ", string(sum(U .> 0)))
+    println("W2: ", string(sum(U .> o_U)))
+    println("W3: ", string(sum(rand(N) .< 1/product_life)))
+    println("W123: ", string(sum((U .> 0) .& (U .> o_U) .& (rand(N) .< 1/product_life))))
+    println("")"""
+
     demand = sum((U .> 0) .& (U .> o_U) .& (rand(N) .< 1/product_life)) # szacowany popyt. warunek 1: moja użyteczność > 0, warunek 2: moja użyteczność wyższa niż użyteczność dobra konkurencyjnego, warunek 3: oczekiwana liczba klientów poszukujących dobra - skalowanie dla dóbr trwałych > 1 okres
 
     price = cost_coefficient(K, D, cc) * sum_of_geom_series_finite(K, D; t = product_life) * M # marża na 1 sprzedanym produkcie
@@ -152,9 +159,9 @@ function u2w(u::Vector{Float64}, p_min::Float64 = 0.1)::Vector{Float64}
     return wgt
 end
 
-function calculate_profit_history(_seller::seller; trim=1)::Vector{Float64}
+function calculate_profit_history(_seller::seller)::Vector{Float64}
     profit_history = _seller.selling_income_history .- _seller.cost_of_production_history .+ _seller.utilization_cost_history
-    return profit_history[trim:end]
+    return profit_history
 end
 
 function create_bool_purchase(n::Int64,k::Int64)::Vector{Bool}

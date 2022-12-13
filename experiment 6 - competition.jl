@@ -370,21 +370,30 @@ ex6_v4_buying_history = []
 ex6_v4_quality = []
 ex6_v4_durability = []
 ex6_v4_margin = []
-ex6_v4_common = []
 
 ex6_v4_ss = []
+ex6_v3_H = []
+ex6_v3_Li = []
+ex6_v3_Lw = []
 
-for i in 1:750
+for i in 1:500
 
     if (mod(i,10) == 0) | (i == 1) | (i == 2)
         println(i)
     end
 
-    ss = sample(LinRange(0.01:0.01:0.10), 2)
+    ss = sample(LinRange(0.01:0.01:0.10))
     push!(ex6_v4_ss, ss)
 
+    li = rand()
+    lw = rand()
+    h = sample(2:8)
 
-    ex6_v3_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], 0.25, true, 1, [0.7, 1.], "softmax", [true, true], ss, 3, true)
+    push!(ex6_v3_H, h)
+    push!(ex6_v3_Li, li)
+    push!(ex6_v3_Lw, lw)
+
+    ex6_v3_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1., 1.], "random", li, lw, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], 0.25, true, 1, [0.7, 1.], "softmax", [false, true], [0., ss], h, true)
 
     push!(ex6_v3_total_surplus, calculate_surplus(ex6_v3_sim, "total", true))
     push!(ex6_v3_producer_surplus, calculate_surplus(ex6_v3_sim, "producer", true))
@@ -392,15 +401,14 @@ for i in 1:750
     push!(ex6_v3_quality, getfield.(ex6_v3_sim.sellers, :quality_history))
     push!(ex6_v3_durability, getfield.(ex6_v3_sim.sellers, :durability_history))
     push!(ex6_v3_margin, getfield.(ex6_v3_sim.sellers, :margin_history))
-    push!(ex6_v3_price, calculate_price_history.(ex6_v3_sim.sellers; product_life = 5))
+    push!(ex6_v3_price, calculate_price_history.(ex6_v3_sim.sellers; product_life = h))
     push!(ex6_v3_quantity_produced, getfield.(ex6_v3_sim.sellers, :quantity_produced_history))
     push!(ex6_v3_quantity_sold, getfield.(ex6_v3_sim.sellers, :quantity_sold_history))
     push!(ex6_v3_producer_surplus_singleton, calculate_profit_history.(ex6_v3_sim.sellers))
     push!(ex6_v3_reselling, getfield.(ex6_v3_sim.sellers, :reselling_history))
     push!(ex6_v3_buying_history, getfield.(ex6_v3_sim.buyers, :unit_buying_selling_history))
-    push!(ex6_v3_common, mean(length.(intersect.(ex6_v3_sim.sellers[1].consumers_asked, ex6_v3_sim.sellers[2].consumers_asked))))
 
-    ex6_v4_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], 0.25, true, 1, [0.7, 1.], "softmax", [true, true], ss, 3, false)
+    ex6_v4_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1., 1.], "random", li, lw, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], 0.25, true, 1, [0.7, 1.], "softmax", [false, true], [0., ss], h, false)
 
     push!(ex6_v4_total_surplus, calculate_surplus(ex6_v4_sim, "total", true))
     push!(ex6_v4_producer_surplus, calculate_surplus(ex6_v4_sim, "producer", true))
@@ -408,13 +416,12 @@ for i in 1:750
     push!(ex6_v4_quality, getfield.(ex6_v4_sim.sellers, :quality_history))
     push!(ex6_v4_durability, getfield.(ex6_v4_sim.sellers, :durability_history))
     push!(ex6_v4_margin, getfield.(ex6_v4_sim.sellers, :margin_history))
-    push!(ex6_v4_price, calculate_price_history.(ex6_v4_sim.sellers; product_life = 5))
+    push!(ex6_v4_price, calculate_price_history.(ex6_v4_sim.sellers; product_life = h))
     push!(ex6_v4_quantity_produced, getfield.(ex6_v4_sim.sellers, :quantity_produced_history))
     push!(ex6_v4_quantity_sold, getfield.(ex6_v4_sim.sellers, :quantity_sold_history))
     push!(ex6_v4_producer_surplus_singleton, calculate_profit_history.(ex6_v4_sim.sellers))
     push!(ex6_v4_reselling, getfield.(ex6_v4_sim.sellers, :reselling_history))
     push!(ex6_v4_buying_history, getfield.(ex6_v4_sim.buyers, :unit_buying_selling_history))
-    push!(ex6_v4_common, mean(length.(intersect.(ex6_v4_sim.sellers[1].consumers_asked, ex6_v4_sim.sellers[2].consumers_asked))))
 
 end
 

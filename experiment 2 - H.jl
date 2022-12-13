@@ -40,7 +40,7 @@ for i in 1:500
     push!(ex2_v1_quality, trim_first.(getfield.(ex2_v1_sim.sellers, :quality_history); trimmed = 5))
     push!(ex2_v1_durability, trim_first.(getfield.(ex2_v1_sim.sellers, :durability_history); trimmed = 5))
     push!(ex2_v1_margin, trim_first.(getfield.(ex2_v1_sim.sellers, :margin_history); trimmed = 5))
-    push!(ex2_v1_price, trim_first.(calculate_price_history.(ex2_v1_sim.sellers; product_life = 5); trimmed = 5))
+    push!(ex2_v1_price, trim_first.(calculate_price_history.(ex2_v1_sim.sellers; product_life = pl); trimmed = 5))
     push!(ex2_v1_quantity_produced, trim_first.(getfield.(ex2_v1_sim.sellers, :quantity_produced_history); trimmed = 5))
     push!(ex2_v1_quantity_sold, trim_first.(getfield.(ex2_v1_sim.sellers, :quantity_sold_history); trimmed = 5))
     push!(ex2_v1_producer_surplus_singleton, trim_first.(calculate_profit_history.(ex2_v1_sim.sellers); trimmed = 5))
@@ -52,10 +52,6 @@ for i in 1:500
     push!(ex2_v1_durability_std, [std(mean.([getindex.(x,1) for x in getfield.(ex2_v1_sim.buyers, :durability_expectation_history)])), std(mean.([getindex.(x,2) for x in getfield.(ex2_v1_sim.buyers, :durability_expectation_history)]))])
 
 end
-
-ex2_v1_pl
-
-[mean(sum.(getindex.(ex2_v1_producer_surplus_singleton, 1))[ex2_v1_pl .== x]) for x in sort(unique(ex2_v1_pl))]
 
 ex1_p10 = StatsPlots.boxplot([sum.(getindex.(ex2_v1_producer_surplus_singleton, 1))[ex2_v1_pl .== x] for x in sort(unique(ex2_v1_pl))], legend = false, xlabel = "Maksymalna przydatność dobra [liczba okresów]", ylabel = "Zysk firmy", title = "Zysk firmy, która nie bada konsumentów", ylim = (-1500, 1500))
 
@@ -78,44 +74,3 @@ end
 [percentile(sum.(getindex.(ex2_v1_producer_surplus_singleton, 1))[ex2_v1_pl .== x], 5) for x in sort(unique(ex2_v1_pl))]
 
 [percentile(sum.(getindex.(ex2_v1_producer_surplus_singleton, 2))[ex2_v1_pl .== x], 5) for x in sort(unique(ex2_v1_pl))]
-
-normalize(v) = v ./ sum(v)
-scale(v, low, high) = v * (high - low) + low
-n = 10
-x = sort(scale.(rand(n), -1.0, 1.0))
-f = normalize(rand(n))
-α = 0.05
-
-@assert issorted(x)
-@assert all(f .≥ 0)
-@assert sum(f) ≈ 1
-@assert 0 ≤ α ≤ 1
-
-value_at_risk(x,f,α)
-
-Plots.scatter(ex2_v1_pl, sum.(getindex.(ex2_v1_producer_surplus_singleton, 1)), )
-Plots.scatter(ex2_v1_pl, sum.(getindex.(ex2_v1_producer_surplus_singleton, 2)), )
-Plots.plot(sort(unique(ex2_v1_pl)), [mean(sum.(getindex.(ex2_v1_producer_surplus_singleton, 1))[ex2_v1_pl .== x]) for x in sort(unique(ex2_v1_pl))])
-Plots.plot!(sort(unique(ex2_v1_pl)), [mean(sum.(getindex.(ex2_v1_producer_surplus_singleton, 2))[ex2_v1_pl .== x]) for x in sort(unique(ex2_v1_pl))])
-
-ex2_p1 = plot_ecdf(true, mean.(ex2_v1_total_surplus), "Nie patrzymy na konsumentów", xlabel = "Całkowita nadwyżka", ylabel = "F(x)", title = "Dystrybuanta empiryczna - nadwyżka całkowita")
-plot_ecdf(false, mean.(ex2_v2_total_surplus), "Patrzymy na konsumentów")
-
-ex2_p1 = plot_ecdf(true, mean.(ex2_v1_consumer_surplus), "Nie patrzymy na konsumentów", xlabel = "Całkowita nadwyżka", ylabel = "F(x)", title = "Dystrybuanta empiryczna - nadwyżka całkowita")
-plot_ecdf(false, mean.(ex2_v2_consumer_surplus), "Patrzymy na konsumentów")
-
-ex2_p3 = ex2_p1 = plot_ecdf(true, ex2_v1_producer_surplus, "Nie patrzymy na konsumentów", xlabel = "Całkowita nadwyżka", ylabel = "F(x)", title = "Dystrybuanta empiryczna - nadwyżka całkowita")
-plot_ecdf(false, ex2_v2_producer_surplus, "Patrzymy na konsumentów")
-
-ex2_p3 = plot_ecdf(sum.(sum.(ex2_v1_quantity_produced)), "equal Q", "Producer Surplus", "Probability", "ECDF", true)
-plot_ecdf(sum.(sum.(ex2_v2_quantity_produced)), "not equal Q", "Producer Surplus", "Probability", "ECDF", false)
-
-plot_ecdf(sum.(sum.(ex2_v1_quantity_sold)), "equal Q", "Producer Surplus", "Probability", "ECDF", true)
-plot_ecdf(sum.(sum.(ex2_v2_quantity_sold)), "not equal Q", "Producer Surplus", "Probability", "ECDF", false)
-
-
-
-mean.(mean.(ex2_v1_price))
-
-ex2_p3 = plot_ecdf(mean.(mean.(ex2_v1_price)), "equal Q", "Producer Surplus", "Probability", "ECDF", true)
-plot_ecdf(sum.(sum.(ex2_v2_quantity_sold)), "not equal Q", "Producer Surplus", "Probability", "ECDF", false)

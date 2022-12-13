@@ -1,19 +1,146 @@
 include(pwd() * "\\methods\\methods.jl")
 
+using JLD2
+using FileIO
+jldsave("C:\\Users\\User\\Documents\\PhDWorkspace.jld2")
+
 #################################### AUX FUNCTIONS ##############################################################
 
-sim_single = TO_GO(50, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], 0.50, true, 1, [0.7, 1.], "softmax", [true, true], [0.1, 0.1], 5, false)
+Random.seed!(1234)
+
+sim_single = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "deterministic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false)
+
+#####
+
+ex4_p21 = plot_quantity(sim_single.sellers,1; trim = 3)
+ex4_p22 = plot_quantity(sim_single.sellers,2; trim = 3)
+
+u(k,d,h,β,p) = β*k*(1-(0.85*d)^h) / (1 - (0.85*d)) - p
+
+Plots.plot(calculate_surplus(sim_single, "consumer,pm", false)[5:end])
+Plots.plot!(calculate_surplus(sim_single, "consumer,sm,b", false)[5:end] .+ calculate_surplus(sim_single, "consumer,sm,s", false)[5:end])
+Plots.plot!(calculate_surplus(sim_single, "producer", false)[5:end])
+
+Plots.plot(sim_single.sellers[1].quality_history)
+Plots.plot!(calculate_profit_history(sim_single.sellers[1]))
+Plots.plot!(sim_single.sellers[2].quality_history)
+Plots.plot!(calculate_profit_history(sim_single.sellers[2]))
+
+Plots.plot!(sim_single.sellers[2].quality_history)
+
+Plots.plot(calculate_price_history(sim_single.sellers[1], product_life = 2))
+Plots.plot!(calculate_price_history(sim_single.sellers[2], product_life = 2))
+
+Plots.plot(u.(sim_single.sellers[1].quality_history,
+    sim_single.sellers[1].durability_history,
+    2, 0.5, calculate_price_history(sim_single.sellers[1], product_life = 2)))
+Plots.plot!(u.(sim_single.sellers[2].quality_history,
+    sim_single.sellers[2].durability_history,
+    2, 0.5, calculate_price_history(sim_single.sellers[2], product_life = 2)))
+
+calculate_surplus
+
+Plots.plot(u.(sim_single.sellers[1].quality_history,
+    sim_single.sellers[1].durability_history,
+    3, 0.5, calculate_price_history(sim_single.sellers[1], product_life = 3)))
+Plots.plot!(u.(sim_single.sellers[2].quality_history,
+    sim_single.sellers[2].durability_history,
+    3, 0.5, calculate_price_history(sim_single.sellers[2], product_life = 3)))
+
+
+#####
+
+
+quality_expectation_buyers = [[] for _ = 1:200] # to T
+
+for b in sim_single.buyers
+    ubsh = b.unit_buying_selling_history
+    for item in ubsh
+        if item.d == "buy, primary market"
+            qe = getindex.(b.quality_expectation_history, 1)[item.t]
+            push!(quality_expectation_buyers[item.t], qe)
+        end
+    end
+end
+
+
+mean_nothing(x) = length(x) == 0 ? missing : mean(x)
+
+p = Plots.plot(xlabel = "T", ylabel = "Jakość / oczekiwana jakość", legend = :bottomleft)
+
+for i in 1:400
+    p = Plots.plot!(getindex.(sim_single.buyers[i].quality_expectation_history, 1), color = "grey", linealpha = 0.10, label = nothing)
+end
+
+p
+
+Plots.plot!(sim_single.sellers[1].quality_history, label = "Średnia jakość, producent", linewidth = 2, color = "blue")
+
+Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "red", linewidth = 2, label = "Oczekiwana jakość, cała populacja")
+
+Plots.plot!(mean_nothing.(quality_expectation_buyers), label = "Oczekiwana jakość, kupujący w t", linewidth = 2, color = "orange")
+
+
+
+Plots.savefig(p, pwd() * "\\thesis_plots\\quality_expected_average.pdf")
+
+sum((sim_single.sellers[1].quality_history.- mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)])).^2) / 100
+
+sum_notmissing(x) = sum(x[.!ismissing.(x)])
+
+sum_notmissing((sim_single.sellers[1].quality_history.- mean_nothing.(quality_expectation_buyers)).^2)/100
+
+sum(sim_single.sellers[1].quality_history.- mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)])) / 100
+
+
+Plots.plot(sim_single.sellers[1].quality_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Jakość / oczekiwana jakość", label = "Prawdziwa jakość", legend = :bottomleft, ylim = (0.5, 0.8))
+Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "blue", linewidth = 2, label = "Oczekiwana jakość, cała populacja", linestyle = :dot)
+Plots.plot!(mean_nothing.(quality_expectation_buyers), label = "Oczekiwana jakość, tylko kupujący")
+Plots.plot!(sim_single.sellers[2].quality_history, color = "orange", linewidth = 2, label = "Producent bada konsumentów - jakość")
+Plots.plot!(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "orange", linewidth = 2, label = "Oczekiwana jakość", linestyle = :dot)
+
+quality_expectation_buyers = [[] for _ = 1:100]
+
+for b in sim_single.buyers
+    ubsh = b.unit_buying_selling_history
+    for item in ubsh
+        if item.d == "buy, primary market"
+            qe = getindex.(b.quality_expectation_history, 1)[item.t]
+            push!(quality_expectation_buyers[item.t], qe)
+        end
+    end
+end
+
+mean_nothing(x) = length(x) == 0 ? missing : mean(x)
+
+Plots.plot(mean_nothing.(quality_expectation_buyers))
+
+quality_expectation_buyers[1] == empty
+
+mean.([getindex.(x,1) for x in getfield.(sim_single.buyers, :choosing_surplus)])
+Plots.plot(mean.([getindex.(x,1) for x in getfield.(sim_single.buyers, :choosing_surplus)]))
+Plots.plot!(mean.([getindex.(x,2) for x in getfield.(sim_single.buyers, :choosing_surplus)]))
+
+bh = vcat(getfield.(sim_single.buyers, :unit_buying_selling_history)...)
+bh = bh[getfield.(bh, :d) .== "buy, primary market"]
+bh
+
+[mean(getindex.(getfield.(bh, :s), x)) for x in 1:2]
+
+[mean(getfield.)]
+
+sim_single.buyers[1].unit_buying_selling_history
+sim_single.sellers[1].reselling_history
+
+p1 = StatsPlots.groupedbar([sim_single.sellers[1].quantity_sold_history sim_single.sellers[2].quantity_sold_history], bar_position = :stack, linecolor = nothing)
+
+p2 = StatsPlots.groupedbar([sim_single.sellers[1].reselling_history sim_single.sellers[2].reselling_history], bar_position = :stack, linecolor = nothing, ylim = (0, 100))
+
+Plots.plot(p1, p2, layout=(1,2))
 
 
 
 println(sum.(calculate_profit_history.(sim_single.sellers; trim=3)))
-
-Plots.plot(sim_single.sellers[1].quality_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Jakość / oczekiwana jakość", label = "Producent nie bada konsumentów - jakość", legend = :bottomleft)
-Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "blue", linewidth = 2, label = "Oczekiwana jakość", linestyle = :dot)
-Plots.plot!(sim_single.sellers[2].quality_history, color = "orange", linewidth = 2, label = "Producent bada konsumentów - jakość")
-Plots.plot!(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "orange", linewidth = 2, label = "Oczekiwana jakość", linestyle = :dot)
-
-
 
 ex4_p1 = Plots.plot(calculate_profit_history.(sim_single.sellers; trim=3), color = ["blue"  "orange"], xlabel = "t", ylabel = "Nadwyżka producenta", label = ["Producent nie bada konsumentów" "Producent  bada konsumentów"], title = "Nadwyżka producenta")
 
@@ -30,7 +157,7 @@ Plots.plot(cumsum.(calculate_profit_history.(sim_single.sellers)))
 Plots.plot(getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected,1) .== 1) .& (getindex.(sim_single.profit_expected,2) .== "ed")],3))
 Plots.plot!(getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected,1) .== 1) .& (getindex.(sim_single.profit_expected,2) .== "qp")],3))
 Plots.plot!(sim_single.sellers[1].quantity_produced_history)
-Plots.plot!(sim_single.sellers[1].quantity_sold_history .+ sim_single.sellers[1].quantity_leased_history)
+Plots.plot!(sim_single.sellers[1].quantity_sold_history)
 
 Plots.plot(calculate_price_history.(sim_single.sellers))
 Plots.plot(getfield.(sim_single.sellers, :margin_history))
@@ -44,7 +171,7 @@ ex4_p22 = plot_quantity(sim_single.sellers,2; trim = 3)
 Plots.savefig(ex4_p21, pwd() * "\\plots\\quantity research.svg")
 Plots.savefig(ex4_p22, pwd() * "\\plots\\quantity no research.svg")
 
-StatsPlots.groupedbar([sim_single.sellers[1].quantity_sold_history .+ sim_single.sellers[1].quantity_leased_history sim_single.sellers[2].quantity_sold_history .+ sim_single.sellers[2].quantity_leased_history], bar_position = :stack, linecolor = nothing)
+StatsPlots.groupedbar([sim_single.sellers[1].quantity_sold_history sim_single.sellers[2].quantity_sold_history], bar_position = :stack, linecolor = nothing)
 
 StatsPlots.groupedbar(hcat(getfield.(sim_single.sellers, :reselling_history)...), bar_position = :stack, linecolor = nothing)
 
