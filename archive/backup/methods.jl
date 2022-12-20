@@ -957,19 +957,19 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
 
         elseif iter == 1
 
-            buyers = consumers_compare_offers(buyers, sellers, iter)
+            @time buyers = consumers_compare_offers(buyers, sellers, iter)
 
-            buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter, interest_rate, buyer_behaviour, secondary_market_exists, lease_available)
+            @time buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter, interest_rate, buyer_behaviour, secondary_market_exists, lease_available)
 
-            buyers = consumers_discover_q_d(buyers, sellers, iter)
+            @time buyers = consumers_discover_q_d(buyers, sellers, iter)
 
-            buyers = consumers_update_expectations(buyers, iter, λ_ind, λ_wom)
+            @time buyers = consumers_update_expectations(buyers, iter, λ_ind, λ_wom)
 
-            sellers = sellers_choose_qp_k_d_m_states(buyers, sellers, rand_period, iter, num_buyers, profit_expected, μ_c, method_weight)
+            @time sellers = sellers_choose_qp_k_d_m_states(buyers, sellers, rand_period, iter, num_buyers, profit_expected, μ_c, method_weight)
 
-            sellers = sellers_utilize_not_sold_products(sellers, μ_c)
+            @time sellers = sellers_utilize_not_sold_products(sellers, μ_c)
 
-            buyers, sellers = buyers_products_age_and_lease(buyers, sellers, iter, λ_ind, λ_wom) # only pays interest of leasing
+            @time buyers, sellers = buyers_products_age_and_lease(buyers, sellers, iter, λ_ind, λ_wom) # only pays interest of leasing
 
         elseif iter >= 2
 

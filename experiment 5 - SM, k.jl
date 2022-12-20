@@ -100,7 +100,7 @@ for i in 1:500
 end
 
 ex3_p1 = plot_ecdf(true, sum.(getindex.(ex5_v1_producer_surplus_singleton, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
-plot_ecdf(false, sum.(getindex.(ex5_v1_producer_surplus_singleton, 2)) .- 400 * 0.05 * 200 * 0.01, "Producent bada oczekiwania konsumentów")
+plot_ecdf(false, sum.(getindex.(ex5_v1_producer_surplus_singleton, 2)) .- 400 * 0.05 * 200 * 0.001, "Producent bada oczekiwania konsumentów")
 
 calc_u(k,d,h) = k * (1-d^h)/(1-d)
 

@@ -30,6 +30,13 @@ function cost_coefficient(k,d,cc)
     return cc
 end
 
+average_nan(v,d) = d == 0 ? 0 : v/d
+
+function average_signal(signal_value, signal_volume)
+    signal_average = average_nan.(signal_value, signal_volume)
+    return signal_average
+end
+
 function softmax(x::Vector, scale::Bool = true)
 
     y = copy(x)
@@ -83,8 +90,6 @@ function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64
 
     """
 
-    #s = rand(Uniform(0, 1), N) # standard reservation price, założone dla N klientów
-
     s = β_dist
     eK = eK_dist
     eD = eD_dist
@@ -93,12 +98,6 @@ function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64
     o_U = s .* sum_of_geom_series_finite(o_K, eρ * o_D; t = product_life) .- o_P # użyteczność dobra konkurencji, jeśli liczba konkurentów > 1, to o_k, o_D i o_P są średnimi
 
     U = s .* sum_of_geom_series_finite.(eK, eρ .* eD; t = product_life)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) .* M # użyteczność mojego dobra przy parametrach K, D, M
-    
-    """println("W1: ", string(sum(U .> 0)))
-    println("W2: ", string(sum(U .> o_U)))
-    println("W3: ", string(sum(rand(N) .< 1/product_life)))
-    println("W123: ", string(sum((U .> 0) .& (U .> o_U) .& (rand(N) .< 1/product_life))))
-    println("")"""
 
     demand = sum((U .> 0) .& (U .> o_U) .& (rand(N) .< 1/product_life)) # szacowany popyt. warunek 1: moja użyteczność > 0, warunek 2: moja użyteczność wyższa niż użyteczność dobra konkurencyjnego, warunek 3: oczekiwana liczba klientów poszukujących dobra - skalowanie dla dóbr trwałych > 1 okres
 
@@ -135,9 +134,6 @@ function calculate_price_history(_seller::seller; product_life::Int64)::Vector{F
     price = calculate_cost_history(_seller; product_life =  product_life) .* _seller.margin_history
     return price
 end
-
-
-
 
 
 function u2w(u::Vector{Float64}, p_min::Float64 = 0.1)::Vector{Float64}
@@ -283,3 +279,5 @@ function calculate_expectation(sim_res, metric, cumulated = false)
     end
 
 end
+
+mean_nothing(x) = length(x) == 0 ? missing : mean(x)

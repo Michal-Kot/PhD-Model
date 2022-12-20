@@ -344,3 +344,5 @@ Plots.plot!(LinRange((a+0.001):0.001:(b-0.001)), [moved_bates(x;n=5, a=a, b=b) f
 Plots.plot!(LinRange((a+0.001):0.001:(b-0.001)), [moved_bates(x;n=10, a=a, b=b) for x in LinRange((a+0.001):0.001:(b-0.001))], label = L"|v_k(i)| = 10")
 
 savefig(bates_dist_p, pwd() * "\\thesis_plots\\bates_dist.pdf")
+
+#### Expectation walk

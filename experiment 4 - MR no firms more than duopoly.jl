@@ -53,9 +53,25 @@ ex4_v3_margin = []
 ex4_v3_quality_exp = []
 ex4_v3_durability_exp = []  
 
-for i in 1:500
+ex4_v4_total_surplus = []
+ex4_v4_producer_surplus = []
+ex4_v4_consumer_surplus = []
+ex4_v4_price = []
+ex4_v4_quantity_produced = []
+ex4_v4_quantity_sold = []
+ex4_v4_quantity_leased = []
+ex4_v4_reselling = []
+ex4_v4_producer_surplus_singleton = []
+ex4_v4_buying_history = []
+ex4_v4_quality = []
+ex4_v4_durability = []
+ex4_v4_margin = []
+ex4_v4_quality_exp = []
+ex4_v4_durability_exp = []  
 
-    if (mod(i,10) == 0) | (i == 1)
+for i in 1:200
+
+    if (mod(i,10) == 0) | (i == 1) | (i == 2)
         println(i)
     end
 
@@ -63,7 +79,7 @@ for i in 1:500
     lw = rand()
     h = sample(2:8)
 
-    ex4_v1_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1., 1.], "random", li, lw, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[0.8, 2.], [0.8, 2.]], 0.1, true, 1, [0.7, 1.0], "softmax", [true, true], [0.1, 0.1], h, false)
+    ex4_v1_sim = TO_GO(200, 3, 400, 500, [0.4, 0.4, 0.4], [1., 1., 1.], "random", li, lw, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95], [0.05, 0.95]], [[0.8, 2.], [0.8, 2.], [0.8, 2.]], 0.1, true, 1, [0.7, 1.0], "softmax", [true, true, true], [0.1, 0.1, 0.1], h, false)
     push!(ex4_v1_total_surplus, calculate_surplus(ex4_v1_sim, "total", true))
     push!(ex4_v1_producer_surplus, calculate_surplus(ex4_v1_sim, "producer", true))
     push!(ex4_v1_consumer_surplus, calculate_surplus(ex4_v1_sim, "consumer,total",true))
@@ -79,12 +95,11 @@ for i in 1:500
     push!(ex4_v1_quality_exp, mean([b.quality_expectation_history for b in ex4_v1_sim.buyers]))
     push!(ex4_v1_durability_exp, mean([b.durability_expectation_history for b in ex4_v1_sim.buyers]))
 
-    ex4_v2_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1., 1.], "random", li, lw, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[0.8, 2.], [0.8, 2.]], 0.1, true, 1, [0.7, 1.0], "softmax", [false, true], [0, 0.1], h, false)
-
+    ex4_v2_sim = TO_GO(200, 3, 400, 500, [0.4, 0.4, 0.4], [1., 1., 1.], "random", li, lw, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95], [0.05, 0.95]], [[0.8, 2.], [0.8, 2.], [0.8, 2.]], 0.1, true, 1, [0.7, 1.0], "softmax", [true, true, false], [0.1, 0.1, 0.1], h, false)
     push!(ex4_v2_total_surplus, calculate_surplus(ex4_v2_sim, "total", true))
     push!(ex4_v2_producer_surplus, calculate_surplus(ex4_v2_sim, "producer", true))
     push!(ex4_v2_consumer_surplus, calculate_surplus(ex4_v2_sim, "consumer,total",true))
-    push!(ex4_v2_price, calculate_price_history.(ex4_v2_sim.sellers; product_life = 5))
+    push!(ex4_v2_price, calculate_price_history.(ex4_v2_sim.sellers; product_life = h))
     push!(ex4_v2_quantity_produced, getfield.(ex4_v2_sim.sellers, :quantity_produced_history))
     push!(ex4_v2_quantity_sold, getfield.(ex4_v2_sim.sellers, :quantity_sold_history))
     push!(ex4_v2_producer_surplus_singleton, calculate_profit_history.(ex4_v2_sim.sellers))
@@ -96,11 +111,11 @@ for i in 1:500
     push!(ex4_v2_quality_exp, mean([b.quality_expectation_history for b in ex4_v2_sim.buyers]))
     push!(ex4_v2_durability_exp, mean([b.durability_expectation_history for b in ex4_v2_sim.buyers]))
 
-    ex4_v3_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1., 1.], "random", li, lw, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[0.8, 2.], [0.8, 2.]], 0.1, true, 1, [0.7, 1.0], "softmax", [false, false], [0., 0.], h, false)
+    ex4_v3_sim = TO_GO(200, 3, 400, 500, [0.4, 0.4, 0.4], [1., 1., 1.], "random", li, lw, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95], [0.05, 0.95]], [[0.8, 2.], [0.8, 2.], [0.8, 2.]], 0.1, true, 1, [0.7, 1.0], "softmax", [true, false, false], [0.1, 0.1, 0.1], h, false)
     push!(ex4_v3_total_surplus, calculate_surplus(ex4_v3_sim, "total", true))
     push!(ex4_v3_producer_surplus, calculate_surplus(ex4_v3_sim, "producer", true))
     push!(ex4_v3_consumer_surplus, calculate_surplus(ex4_v3_sim, "consumer,total",true))
-    push!(ex4_v3_price, calculate_price_history.(ex4_v3_sim.sellers; product_life = 5))
+    push!(ex4_v3_price, calculate_price_history.(ex4_v3_sim.sellers; product_life = h))
     push!(ex4_v3_quantity_produced, getfield.(ex4_v3_sim.sellers, :quantity_produced_history))
     push!(ex4_v3_quantity_sold, getfield.(ex4_v3_sim.sellers, :quantity_sold_history))
     push!(ex4_v3_producer_surplus_singleton, calculate_profit_history.(ex4_v3_sim.sellers))
@@ -112,6 +127,22 @@ for i in 1:500
     push!(ex4_v3_quality_exp, mean([b.quality_expectation_history for b in ex4_v3_sim.buyers]))
     push!(ex4_v3_durability_exp, mean([b.durability_expectation_history for b in ex4_v3_sim.buyers]))
 
+    ex4_v4_sim = TO_GO(200, 3, 400, 500, [0.4, 0.4, 0.4], [1., 1., 1.], "random", li, lw, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95], [0.05, 0.95]], [[0.8, 2.], [0.8, 2.], [0.8, 2.]], 0.1, true, 1, [0.7, 1.0], "softmax", [false, false, false], [0.1, 0.1, 0.1], h, false)
+    push!(ex4_v4_total_surplus, calculate_surplus(ex4_v4_sim, "total", true))
+    push!(ex4_v4_producer_surplus, calculate_surplus(ex4_v4_sim, "producer", true))
+    push!(ex4_v4_consumer_surplus, calculate_surplus(ex4_v4_sim, "consumer,total",true))
+    push!(ex4_v4_price, calculate_price_history.(ex4_v4_sim.sellers; product_life = h))
+    push!(ex4_v4_quantity_produced, getfield.(ex4_v4_sim.sellers, :quantity_produced_history))
+    push!(ex4_v4_quantity_sold, getfield.(ex4_v4_sim.sellers, :quantity_sold_history))
+    push!(ex4_v4_producer_surplus_singleton, calculate_profit_history.(ex4_v4_sim.sellers))
+    push!(ex4_v4_reselling, getfield.(ex4_v4_sim.sellers, :reselling_history))
+    push!(ex4_v4_buying_history, getfield.(ex4_v4_sim.buyers, :unit_buying_selling_history))
+    push!(ex4_v4_quality, getfield.(ex4_v4_sim.sellers, :quality_history))
+    push!(ex4_v4_durability, getfield.(ex4_v4_sim.sellers, :durability_history))
+    push!(ex4_v4_margin, getfield.(ex4_v4_sim.sellers, :margin_history))
+    push!(ex4_v4_quality_exp, mean([b.quality_expectation_history for b in ex4_v4_sim.buyers]))
+    push!(ex4_v4_durability_exp, mean([b.durability_expectation_history for b in ex4_v4_sim.buyers]))
+
 end
 
 function trim_outliers(x, p = 1)
@@ -121,9 +152,19 @@ function trim_outliers(x, p = 1)
     return y
 end
 
-ex4_p1 = plot_ecdf(true, trim_outliers(ex4_v1_total_surplus,1), "Obaj gracze wykonują badania", xlabel = "Całkowita nadwyżka", ylabel = "F(x)", title = "Dystrybuanta empiryczna - nadwyżka całkowita")
-plot_ecdf(false, trim_outliers(ex4_v2_total_surplus), "Jeden gracz wykonuje badania")
+ex4_p1 = plot_ecdf(true, trim_outliers(ex4_v1_total_surplus,1), "Wszyscy gracze wykonują badania", xlabel = "Całkowita nadwyżka", ylabel = "F(x)", title = "Dystrybuanta empiryczna - nadwyżka całkowita")
+plot_ecdf(false, trim_outliers(ex4_v2_total_surplus), "Dwaj gracze wykonują badania")
+plot_ecdf(false, trim_outliers(ex4_v3_total_surplus), "Jeden gracz wykonuje badań")
 plot_ecdf(false, trim_outliers(ex4_v3_total_surplus), "Żaden gracz nie wykonuje badań")
+
+ex4_p1 = plot_ecdf(true, mean.(getindex.(ex4_v1_producer_surplus_singleton, 1)), "Wszyscy gracze wykonują badania", xlabel = "Całkowita nadwyżka", ylabel = "F(x)", title = "Dystrybuanta empiryczna - nadwyżka całkowita")
+plot_ecdf(false, mean.(getindex.(ex4_v2_producer_surplus_singleton, 1)), "Dwaj gracze wykonują badania")
+plot_ecdf(false, mean.(getindex.(ex4_v3_producer_surplus_singleton, 1)), "Jeden gracz wykonuje badań")
+plot_ecdf(false, mean.(getindex.(ex4_v4_producer_surplus_singleton, 1)), "Żaden gracz nie wykonuje badań")
+
+UnequalVarianceTTest(mean.(getindex.(ex4_v1_producer_surplus_singleton, 1)), mean.(getindex.(ex4_v2_producer_surplus_singleton, 1)))
+UnequalVarianceTTest(mean.(getindex.(ex4_v2_producer_surplus_singleton, 1)), mean.(getindex.(ex4_v3_producer_surplus_singleton, 1)))
+UnequalVarianceTTest(mean.(getindex.(ex4_v3_producer_surplus_singleton, 1)), mean.(getindex.(ex4_v4_producer_surplus_singleton, 1)))
 
 Plots.savefig(ex4_p1, pwd() * "\\plots\\ex2\\total surplus research.svg")
 

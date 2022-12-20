@@ -19,16 +19,16 @@ ex6_v1_margin = []
 
 ex6_ss = []
 
-for i in 1:500
+for i in 1:1000
 
     if (mod(i,10) == 0) | (i == 1)
         println(i)
     end
 
-    ss = sample([0.025, 0.05, 0.075, 0.100,  0.125, 0.15,  0.175, 0.200])
+    ss = sample(LinRange(0.01:0.01:0.20))
     push!(ex6_ss, ss)
 
-    ex6_v1_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[0.8, 2.], [0.8, 2.]], 0.1, true, 1, [0.7, 1.0], "softmax", [false, true], [0, ss], 5, false)
+    ex6_v1_sim = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", rand(), rand(), "stochastic", 1.1, [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[0.8, 2.], [0.8, 2.]], 0.1, true, 1, [0.7, 1.0], "softmax", [false, true], [0, ss], sample(3:7), false)
 
     push!(ex6_v1_total_surplus, calculate_surplus(ex6_v1_sim, "total", true))
     push!(ex6_v1_producer_surplus, calculate_surplus(ex6_v1_sim, "producer", true))
@@ -46,17 +46,23 @@ for i in 1:500
 end
 
 
-ex6_p1 = Plots.scatter(sort(unique(round.(ex6_ss, digits = 3))), [mean(sum.(getindex.(ex6_v1_producer_surplus_singleton, 2))[round.(ex6_ss, digits = 3) .== ss]) for ss in sort(unique(round.(ex6_ss, digits = 3)))], label = "Nadwyżka producenta", legend = :topleft, title = "Nadwyżka producenta a wielkość próby", xlabel = "Wielkość próby badawczej jako % populacji", ylabel = "Zysk producenta")
+ex6_p1 = Plots.scatter(sort(unique(round.(ex6_ss, digits = 3))), [mean(sum.(getindex.(ex6_v1_producer_surplus_singleton, 2))[round.(ex6_ss, digits = 3) .== ss]) for ss in sort(unique(round.(ex6_ss, digits = 3)))], label = "Nadwyżka producenta", legend = :bottomright, title = "Nadwyżka producenta a wielkość próby", xlabel = "Wielkość próby badawczej jako % populacji", ylabel = "Zysk producenta")
 
 ss = sort(unique(ex6_ss))
 
-ss_df = DataFrame(y = [mean(sum.(getindex.(ex6_v1_producer_surplus_singleton, 2))[(ex6_ss .== s)]) for s in ss], x = ss, logx = log.(ss))
+ss_df = DataFrame(y = [mean(sum.(getindex.(ex6_v1_producer_surplus_singleton, 2))[(ex6_ss .== s)]) for s in ss], xx = float.(ss), logx = log.(ss), sx = sqrt.(ss))
 
-ss_model = GLM.lm(@formula(y~logx), ss_df)
+ss_model_l = fit(LinearModel, @formula(y~1+logx), ss_df)
+adjr2(ss_model_l)
+aic(ss_model_l)
+
+ss_model_s = fit(LinearModel, @formula(y~1+sx), ss_df)
+adjr2(ss_model_s)
+aic(ss_model_s)
 
 Plots.plot!(ss, fitted(ss_model), xlabel = "% populacji w badaniu", ylabel = "Zysk producenta wykorzystującego badanie", label = "Dopasowana funkcja logarytmiczna")
 
-Plots.plot!(ss, fitted(ss_model) .- ss * 200 * 0.9, label = "Zysk producenta - koszt badania")
+Plots.plot!(ss, fitted(ss_model) .- ss * 200 * 0.01 * 400, label = "Zysk producenta - koszt badania")
 
 Plots.savefig(ex6_p1, pwd() * "\\Plots\\ex3\\research perc vs income.svg")
 
@@ -152,9 +158,9 @@ Plots.scatter!(mean.(getindex.(ex6_v1_durability, 2)), mean.(getindex.(ex6_v1_pr
 Plots.scatter!(mean.(getindex.(ex6_v2_durability, 1)), mean.(getindex.(ex6_v2_producer_surplus_singleton, 1)), smooth = true, markeralpha = 0.25, linewidth = 2, markerstrokewidth = 0)
 Plots.scatter!(mean.(getindex.(ex6_v2_durability, 2)), mean.(getindex.(ex6_v2_producer_surplus_singleton, 2)), smooth = true, markeralpha = 0.25, linewidth = 2, markerstrokewidth = 0)
 
-ex2_p1 = Plots.scatter(mean.(getindex.(ex6_v1_margin, 1))[mean.(getindex.(ex6_v1_margin, 1)) .>= 1.2], mean.(getindex.(ex6_v1_producer_surplus_singleton, 1))[mean.(getindex.(ex6_v1_margin, 1)) .>= 1.2], smooth = true, markeralpha = 0.25, linewidth = 2, markerstrokewidth = 0, xlabel = "Marża %", ylabel = "Zysk firmy", label = "Producent nie bada konsumentów")
+ex2_p1 = Plots.scatter(mean.(getindex.(ex6_v1_price, 1)), mean.(getindex.(ex6_v1_producer_surplus_singleton, 1)), smooth = true, markeralpha = 0.25, linewidth = 2, markerstrokewidth = 0, xlabel = "Marża %", ylabel = "Zysk firmy", label = "Producent nie bada konsumentów")
 #Plots.scatter!(mean.(getindex.(ex6_v1_margin, 2))[mean.(getindex.(ex6_v1_margin, 2)) .>= 1.2], mean.(getindex.(ex6_v1_producer_surplus_singleton, 2))[mean.(getindex.(ex6_v1_margin, 2)) .>= 1.2], smooth = true, markeralpha = 0.25, linewidth = 2, markerstrokewidth = 0)
-Plots.scatter!(mean.(getindex.(ex6_v2_margin, 1))[mean.(getindex.(ex6_v2_margin, 1)) .>= 1.2], mean.(getindex.(ex6_v2_producer_surplus_singleton, 1))[mean.(getindex.(ex6_v2_margin, 1)) .>= 1.2], smooth = true, markeralpha = 0.25, linewidth = 2, markerstrokewidth = 0, label = "Producent bada konsumentów")
+Plots.scatter!(mean.(getindex.(ex6_v2_price, 1)), mean.(getindex.(ex6_v2_producer_surplus_singleton, 1)), smooth = true, markeralpha = 0.25, linewidth = 2, markerstrokewidth = 0, label = "Producent bada konsumentów")
 #Plots.scatter!(mean.(getindex.(ex6_v2_margin, 2))[mean.(getindex.(ex6_v2_margin, 2)) .>= 1.2], mean.(getindex.(ex6_v2_producer_surplus_singleton, 2))[mean.(getindex.(ex6_v2_margin, 2)) .>= 1.2], smooth = true, markeralpha = 0.25, linewidth = 2, markerstrokewidth = 0)
 
 Plots.savefig(ex2_p1, pwd() * "\\plots\\ex2\\Margin vs income research no research.svg")
@@ -376,13 +382,13 @@ ex6_v3_H = []
 ex6_v3_Li = []
 ex6_v3_Lw = []
 
-for i in 1:500
+for i in 1:250
 
     if (mod(i,10) == 0) | (i == 1) | (i == 2)
         println(i)
     end
 
-    ss = sample(LinRange(0.01:0.01:0.10))
+    ss = sample(LinRange(0.025:0.025:0.10))
     push!(ex6_v4_ss, ss)
 
     li = rand()
@@ -424,6 +430,13 @@ for i in 1:500
     push!(ex6_v4_buying_history, getfield.(ex6_v4_sim.buyers, :unit_buying_selling_history))
 
 end
+
+
+plot_ecdf(true, mean.(getindex.(ex6_v3_producer_surplus_singleton, 1)), "RW tak, WJ nie, CR nie"; xlabel = "Nadwyżka producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - Trwałość")
+plot_ecdf(false, mean.(getindex.(ex6_v3_producer_surplus_singleton, 2)), "RW tak, WJ nie, CR tak")
+plot_ecdf(false, mean.(getindex.(ex6_v4_producer_surplus_singleton, 1)), "RW nie, WJ nie, CR nie")
+plot_ecdf(false, mean.(getindex.(ex6_v4_producer_surplus_singleton, 2)), "RW nie, WJ nie, CR tak")
+
 
 Plots.scatter(getindex.(ex6_v4_ss, 1), ex6_v4_producer_surplus_singleton)
 

@@ -6,9 +6,22 @@ jldsave("C:\\Users\\User\\Documents\\PhDWorkspace.jld2")
 
 #################################### AUX FUNCTIONS ##############################################################
 
-Random.seed!(1234)
+@time Random.seed!(1234)
 
-sim_single = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.1, 1.1], "random", 0.25, 0.25, "deterministic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false)
+@time sim_single = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false)
+
+sum(sim_single.sellers[1].selling_income_history)
+sum(sim_single.sellers[1].quantity_sold_history .* calculate_price_history(sim_single.sellers[1]; product_life = 8)) 
+
+sum(sim_single.sellers[1].cost_of_production_history)
+sum(sim_single.sellers[1].quantity_produced_history .* calculate_cost_history(sim_single.sellers[1]; product_life = 8)) 
+
+sum(sim_single.sellers[1].utilization_cost_history)
+sum((sim_single.sellers[1].quantity_produced_history .- sim_single.sellers[1].quantity_sold_history) .* calculate_cost_history(sim_single.sellers[1]; product_life = 8) .* (1- 0.5))
+
+sum(sim_single.sellers[1].selling_income_history) + sum(sim_single.sellers[1].utilization_cost_history) - sum(sim_single.sellers[1].cost_of_production_history)
+
+sum(calculate_profit_history(sim_single.sellers[1]))
 
 #####
 
@@ -64,7 +77,7 @@ for b in sim_single.buyers
 end
 
 
-mean_nothing(x) = length(x) == 0 ? missing : mean(x)
+
 
 p = Plots.plot(xlabel = "T", ylabel = "Jakość / oczekiwana jakość", legend = :bottomleft)
 

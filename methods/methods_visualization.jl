@@ -63,7 +63,7 @@ function plot_phasediagram(_seller::seller)
     scatter!(x,y, xlabel = "Price", ylabel = "Profit", markershape = :none, markercolor = :white, markerstrokecolor = :white, series_annotations = points_labels, markersize = 0)
 end
 
-function plot_quantity(sellers, i, random_start = 0, legend_pos = :outerbottom; trim=3)
+function plot_quantity(sellers, i, random_start = 0, legend_pos = :outerbottom; trim=1)
 
     quantity_produced = getfield.(sim_single.sellers, :quantity_produced_history)
     quantity_produced = [q[(random_start+1):end] for q in quantity_produced]

@@ -120,9 +120,13 @@ function trim_outliers(x, p = 1)
     return y
 end
 
-ex4_p1 = plot_ecdf(true, trim_outliers(ex4_v1_total_surplus,1), "Obaj gracze wykonują badania", xlabel = "Całkowita nadwyżka", ylabel = "F(x)", title = "Dystrybuanta empiryczna - nadwyżka całkowita")
-plot_ecdf(false, trim_outliers(ex4_v2_total_surplus), "Jeden gracz wykonuje badania")
-plot_ecdf(false, trim_outliers(ex4_v3_total_surplus), "Żaden gracz nie wykonuje badań")
+ex4_p1 = plot_ecdf(true, mean.(getindex.(ex4_v1_producer_surplus_singleton, 2)), "Obaj gracze wykonują badania", xlabel = "Całkowita nadwyżka", ylabel = "F(x)", title = "Dystrybuanta empiryczna - nadwyżka całkowita")
+plot_ecdf(false, mean.(getindex.(ex4_v2_producer_surplus_singleton, 2)), "Jeden gracz wykonuje badania")
+plot_ecdf(false, mean.(getindex.(ex4_v3_producer_surplus_singleton, 2)), "Żaden gracz nie wykonuje badań")
+
+ex4_p1 = plot_ecdf(true, ex4_v1_total_surplus, "Obaj gracze wykonują badania", xlabel = "Całkowita nadwyżka", ylabel = "F(x)", title = "Dystrybuanta empiryczna - nadwyżka całkowita")
+plot_ecdf(false, ex4_v2_total_surplus, "Jeden gracz wykonuje badania")
+plot_ecdf(false, ex4_v3_total_surplus, "Żaden gracz nie wykonuje badań")
 
 Plots.savefig(ex4_p1, pwd() * "\\plots\\ex2\\total surplus research.svg")
 

@@ -24,7 +24,7 @@ ex2_v1_durability_std = []
 
 ex2_v1_pl = []
 
-for i in 1:500
+for i in 1:2000
 
     if (mod(i,10) == 0) | (i == 1)
         println(i)
@@ -53,11 +53,21 @@ for i in 1:500
 
 end
 
-ex1_p10 = StatsPlots.boxplot([sum.(getindex.(ex2_v1_producer_surplus_singleton, 1))[ex2_v1_pl .== x] for x in sort(unique(ex2_v1_pl))], legend = false, xlabel = "Maksymalna przydatność dobra [liczba okresów]", ylabel = "Zysk firmy", title = "Zysk firmy, która nie bada konsumentów", ylim = (-1500, 1500))
+gbp_df = DataFrame(x = repeat(ex2_v1_pl, 2), y = vcat(sum.(getindex.(ex2_v1_producer_surplus_singleton, 1)), sum.(getindex.(ex2_v1_producer_surplus_singleton, 2))), g = repeat( ["Firma nie prowadzi badań konsumenckich", "Firma prowadzi badania konsumenckie"],inner = 3000))
+
+gbp_df = sort!(gbp_df, :x)
+
+ex1_p10_alt = @df gbp_df groupedboxplot(:x, :y, group = :g, xlabel = "Liczba okresów przydatności dobra", ylabel = "Zysk firmy")
+
+Plots.savefig(ex1_p10_alt, pwd() * "\\plots\\ex1\\profit per life cycle total.svg")
+
+ex1_p10 = StatsPlots.boxplot(1:10,[sum.(getindex.(ex2_v1_producer_surplus_singleton, 1))[ex2_v1_pl .== x] for x in sort(unique(ex2_v1_pl))], legend = false, xlabel = "Maksymalna przydatność dobra [liczba okresów]", ylabel = "Zysk firmy", title = "Zysk firmy, która nie bada konsumentów", ylim = (-500, 3000))
 
 Plots.savefig(ex1_p10, pwd() * "\\plots\\ex1\\profit per life cycle no research.svg")
 
-ex1_p11 = StatsPlots.boxplot([sum.(getindex.(ex2_v1_producer_surplus_singleton, 2))[ex2_v1_pl .== x] for x in sort(unique(ex2_v1_pl))], legend = false, xlabel = "Maksymalna przydatność dobra [liczba okresów]", ylabel = "Zysk firmy", title = "Zysk firmy, która bada konsumentów", ylim = (-1500, 1500))
+ex1_p11 = StatsPlots.boxplot(1:10,[sum.(getindex.(ex2_v1_producer_surplus_singleton, 2))[ex2_v1_pl .== x] for x in sort(unique(ex2_v1_pl))], legend = false, xlabel = "Maksymalna przydatność dobra [liczba okresów]", ylabel = "Zysk firmy", title = "Zysk firmy, która bada konsumentów", ylim = (-500, 3000))
+
+groupedboxplot(1:10,[sum.(getindex.(ex2_v1_producer_surplus_singleton, 1))[ex2_v1_pl .== x] for x in sort(unique(ex2_v1_pl))])
 
 Plots.savefig(ex1_p11, pwd() * "\\plots\\ex1\\profit per life cycle research.svg")
 
