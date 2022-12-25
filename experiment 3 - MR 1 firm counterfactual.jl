@@ -76,7 +76,7 @@ for i in 1:250
 
     Random.seed!(sd)
 
-    ex3_v100_sim = TO_GO(200, 2, 400, nl, [0.4, 0.4], [1., 1.], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], cu, true, 1, [ρm, 1.], "softmax", [false, true], [0, sm], h, false)
+    ex3_v100_sim = TO_GO(200, 2, 400, nl, [0.4, 0.4], [1., 1.], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], cu, true, 1, [ρm, 1.], "softmax", [false, true], [0, sm], h, false, true)
 
     push!(ex3_v100_total_surplus, calculate_surplus(ex3_v100_sim, "total", false))
     push!(ex3_v100_producer_surplus, calculate_surplus(ex3_v100_sim, "producer", false))
@@ -96,7 +96,7 @@ for i in 1:250
 
     Random.seed!(sd)
 
-    ex3_v101_sim = TO_GO(200, 2, 400, nl, [0.4, 0.4], [1., 1.], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], cu, true, 1, [ρm, 1.], "softmax", [true, true], [sm, sm], h, false)
+    ex3_v101_sim = TO_GO(200, 2, 400, nl, [0.4, 0.4], [1., 1.], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], cu, true, 1, [ρm, 1.], "softmax", [true, true], [sm, sm], h, false, true)
 
     push!(ex3_v101_total_surplus, calculate_surplus(ex3_v101_sim, "total", false))
     push!(ex3_v101_producer_surplus, calculate_surplus(ex3_v101_sim, "producer", false))

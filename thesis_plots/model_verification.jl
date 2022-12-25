@@ -16,6 +16,18 @@ function create_buying(_buyer, product_id)
     return b
 end
 
+function get_signal_value(_buyer, product_id, qs)
+    b = Vector{Union{Missing, Float64}}(undef, lastindex(_buyer.quality_expectation_history))
+    for item in _buyer.unit_buying_selling_history
+        if item.decision == "buy, primary market"
+            if item.product == product_id
+                b[item.t] = item.real_product_features[qs]
+            end
+        end
+    end
+    return b
+end
+
 function create_destroy(_buyer, product_id)
     b = []
     for item in _buyer.unit_buying_selling_history
@@ -32,6 +44,18 @@ function create_resell(_buyer, product_id)
     b = []
     for item in _buyer.unit_buying_selling_history
         if item.decision == "sell, secondary market"
+            if item.product == product_id
+                push!(b, item.t)
+            end
+        end
+    end
+    return b
+end
+
+function create_failed_resell(_buyer, product_id)
+    b = []
+    for item in _buyer.unit_buying_selling_history
+        if item.decision == "failed to resell"
             if item.product == product_id
                 push!(b, item.t)
             end
@@ -69,16 +93,15 @@ function check_impact_of_signals(sim_single, buyer_id, product_id)
 
 end
 
-function quality_sampled_products(buyers, product_id)
+function quality_sampled_products(buyers, product_id, qd)
 
     quality_of_unit_possessed_history = [[] for _ in 1:lastindex(buyers[1].quality_expectation_history)]
-
 
     for _buyer in buyers
         for item in _buyer.unit_buying_selling_history
             if item.decision == "buy, primary market"
                 if item.product == product_id
-                    push!(quality_of_unit_possessed_history[item.t], _buyer.quality_of_unit_possessed_history[item.t])
+                    push!(quality_of_unit_possessed_history[item.t], item.real_product_features[qd])
                 end
             end
         end
@@ -88,28 +111,74 @@ function quality_sampled_products(buyers, product_id)
 
 end
 
+function product_age(buyers)
+
+    # t = buy, t+1 = destroy
+
+    buy_to_destroy = []
+
+    # t = buy, t+1 = resell
+
+    buy_to_resell = []
+
+    # t = buy, sec mar, t+1 = destroy
+
+    rebuy_to_destroy = []
+
+    # t = buy, sec mar, t+1 = buy, pri mar
+
+    rebuy_to_buy = []
+
+    for _buyer in buyers
+        for idx in 2:lastindex(_buyer.unit_buying_selling_history)
+            if (_buyer.unit_buying_selling_history[idx-1].decision == "buy, primary market") & (_buyer.unit_buying_selling_history[idx].decision == "destroyed")
+                push!(buy_to_destroy, _buyer.unit_buying_selling_history[idx].t - _buyer.unit_buying_selling_history[idx-1].t)
+            end
+
+            if (_buyer.unit_buying_selling_history[idx-1].decision == "buy, primary market") & (_buyer.unit_buying_selling_history[idx].decision == "buy, primary market")
+                push!(buy_to_resell, _buyer.unit_buying_selling_history[idx].t - _buyer.unit_buying_selling_history[idx-1].t)
+            end
+
+            if (_buyer.unit_buying_selling_history[idx-1].decision == "buy, secondary market") & (_buyer.unit_buying_selling_history[idx].decision == "destroyed")
+                push!(rebuy_to_destroy, _buyer.unit_buying_selling_history[idx].t - _buyer.unit_buying_selling_history[idx-1].t)
+            end
+
+            if (_buyer.unit_buying_selling_history[idx-1].decision == "buy, secondary market") & (_buyer.unit_buying_selling_history[idx].decision == "buy, primary market")
+                push!(rebuy_to_buy, _buyer.unit_buying_selling_history[idx].t - _buyer.unit_buying_selling_history[idx-1].t)
+            end
+
+        end
+    end
+
+    return [buy_to_destroy, buy_to_resell, rebuy_to_destroy, rebuy_to_buy]
+
+end
+
 ############################## Individual level ###############################################
 
 ########################################### If signals change expectation
 
-sim_single = TO_GO(25, 2, 2, 1, [0.4, 0.4], [1.0, 1.0], "random", 0.25, 0.75, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.5], 4, false)
+Random.seed!(12345678)
+
+sim_single = TO_GO(100, 2, 2, 1, [0.4, 0.4], [1.0, 1.0], "random", 0.5, 0.5, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.5], 4, false, false)
 
 ## Number of signals
 
 sim_single.buyers[2].unit_buying_selling_history
-sim_single.buyers[1].signal_volume
-countmap(getfield.(sim_single.buyers[2].unit_buying_selling_history, :decision))["buy, primary market"]
+sim_single.buyers[1].signal_volume == countmap(getfield.(sim_single.buyers[2].unit_buying_selling_history, :decision))["buy, primary market"]
 
 sim_single.buyers[1].unit_buying_selling_history
-sim_single.buyers[2].signal_volume
-countmap(getfield.(sim_single.buyers[1].unit_buying_selling_history, :decision))["buy, primary market"]
+sim_single.buyers[2].signal_volume == countmap(getfield.(sim_single.buyers[1].unit_buying_selling_history, :decision))["buy, primary market"]
 
-## Charts
+p3 = Plots.plot(sim_single.sellers[1].quality_history, label = "Średnia jakość", xlabel = "Czas", ylabel = "Średnia / oczekiwana / rzeczywista jakość", legend = :outertopright)
+Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1), label = "Oczekiwana jakość")
+Plots.scatter!(get_signal_value(sim_single.buyers[1], 1, 1), label = "Rzeczywista jakość " * L"\hat K_{ijt}" )
+Plots.scatter!(get_signal_value(sim_single.buyers[2], 1, 1), label = "Rzeczywista jakość " * L"\bar K_{ijt}")
 
-Plots.plot(sim_single.sellers[1].quality_history)
-Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1))
-Plots.plot!(create_buying(sim_single.buyers[1], 1) .+ 0.1, seriestype = :vline, linestyle = :dash)
-Plots.plot!(create_buying(sim_single.buyers[2], 1), seriestype = :vline)
+Plots.savefig(p3, pwd() * "\\thesis_plots\\verification_Ehatbar.pdf")
+
+Plots.plot!(create_buying(sim_single.buyers[1], 1) .- 0.9, seriestype = :vline, linestyle = :dash)
+Plots.plot!(create_buying(sim_single.buyers[2], 1) .- 1.1, seriestype = :vline)
 
 Plots.plot(sim_single.sellers[2].quality_history)
 Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 2))
@@ -122,11 +191,13 @@ linestyle = :dash)
 
 ## EXP = 0, WOM = 1
 
-sim_single = TO_GO(50, 2, 2, 1, [0.4, 0.4], [1.0, 1.0], "random", 0.0, 1.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.5], 4, false)
+Random.seed!(123456)
+
+sim_single = TO_GO(50, 2, 2, 1, [0.4, 0.4], [1.0, 1.0], "random", 0.0, 1.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.5], 4, false, false)
 
 prod(x) = any(x .> 0) ? argmax(x) : 0
 
-Plots.plot(prod.(sim_single.buyers[1].unit_possessed_history), color = :black)
+Plots.scatter(1:50, prod.(sim_single.buyers[1].unit_possessed_history), color = :black)
 Plots.plot!(create_buying(sim_single.buyers[1], 1), seriestype = :vline, color = :red)
 Plots.plot!(create_buying(sim_single.buyers[1], 2), seriestype = :vline, color = :green)
 Plots.plot!(create_destroy(sim_single.buyers[1], 1), seriestype = :vline, color = :red, linestyle = :dash)
@@ -134,16 +205,16 @@ Plots.plot!(create_destroy(sim_single.buyers[1], 2), seriestype = :vline, color 
 
 [any(x .== 0) for x in check_impact_of_signals(sim_single, 1, 1)]
 
-Plots.plot(sim_single.sellers[1].quality_history)
-Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1))
-Plots.plot!(create_buying(sim_single.buyers[1], 1) .+ 0.1, seriestype = :vline, 
-linestyle = :dash)
-Plots.plot!(create_buying(sim_single.buyers[2], 1) .- 0.1, seriestype = :vline, linestyle = :dash)
+p1 = Plots.plot(sim_single.sellers[1].quality_history, label = "Średnia jakość dobra", xlabel = "Czas", ylabel = "Średnia / oczekiwana jakość dobra", legend = :outertopright)
+Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1), label = "Oczekiwana jakość dobra")
+Plots.plot!(create_buying(sim_single.buyers[1], 1) .+ 0.1, seriestype = :vline, linestyle = :dash, label = "Własne doświadczenie")
+Plots.plot!(create_buying(sim_single.buyers[2], 1) .- 0.1, seriestype = :vline, linestyle = :dash, label = "Wymiana informacji")
+
+Plots.savefig(p1, pwd() * "\\thesis_plots\\verification_lambda0.pdf")
 
 Plots.plot(sim_single.sellers[2].quality_history)
 Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 2))
-Plots.plot!(create_buying(sim_single.buyers[1], 2) .+ 0.1, seriestype = :vline, 
-linestyle = :dash)
+Plots.plot!(create_buying(sim_single.buyers[1], 2) .+ 0.1, seriestype = :vline, linestyle = :dash)
 Plots.plot!(create_buying(sim_single.buyers[2], 2) .- 0.1, seriestype = :vline, 
 linestyle = :dash)
 
@@ -151,42 +222,73 @@ linestyle = :dash)
 
 ## EXP = 1, WOM = 0
 
-sim_single = TO_GO(50, 2, 2, 1, [0.4, 0.4], [1.0, 1.0], "random", 1.0, 0.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.5], 4, false)
+Random.seed!(19)
 
-Plots.plot(prod.(sim_single.buyers[1].unit_possessed_history), color = :black)
+sim_single = TO_GO(50, 2, 2, 1, [0.4, 0.4], [1.0, 1.0], "random", 1.0, 0.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.5], 4, false, false)
+
+p2 = Plots.plot(sim_single.sellers[1].quality_history, label = "Średnia jakość dobra", xlabel = "Czas", ylabel = "Średnia / oczekiwana jakość dobra", legend = :outertopright)
+Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1), label = "Oczekiwana jakość dobra")
+Plots.plot!(create_buying(sim_single.buyers[1], 1) .+ 0.1, seriestype = :vline, linestyle = :dash, label = "Własne doświadczenie")
+Plots.plot!(create_buying(sim_single.buyers[2], 1) .- 0.1, seriestype = :vline, linestyle = :dash, label = "Wymiana informacji")
+
+
+Plots.savefig(p2, pwd() * "\\thesis_plots\\verification_theta0.pdf")
+
+Plots.scatter(1:50, prod.(sim_single.buyers[1].unit_possessed_history), color = :black)
 Plots.plot!(create_buying(sim_single.buyers[1], 1), seriestype = :vline, color = :red)
 Plots.plot!(create_buying(sim_single.buyers[1], 2), seriestype = :vline, color = :green)
 Plots.plot!(create_destroy(sim_single.buyers[1], 1), seriestype = :vline, color = :red, linestyle = :dash)
 Plots.plot!(create_destroy(sim_single.buyers[1], 2), seriestype = :vline, color = :green, linestyle = :dash)
 
-[any(x .== 0) for x in check_impact_of_signals(sim_single, 1, 1)]
+## EXP = 0, WOM = 0
 
-Plots.plot(sim_single.sellers[1].quality_history)
-Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1))
-Plots.plot!(create_buying(sim_single.buyers[1], 1) .+ 0.1, seriestype = :vline, 
-linestyle = :dash)
-Plots.plot!(create_buying(sim_single.buyers[2], 1) .- 0.1, seriestype = :vline, linestyle = :dash)
+Random.seed!(19)
 
-Plots.plot(sim_single.sellers[2].quality_history)
-Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 2))
-Plots.plot!(create_buying(sim_single.buyers[1], 2) .+ 0.1, seriestype = :vline, 
-linestyle = :dash)
-Plots.plot!(create_buying(sim_single.buyers[2], 2) .- 0.1, seriestype = :vline, 
-linestyle = :dash)
+sim_single = TO_GO(50, 2, 2, 1, [0.4, 0.4], [1.0, 1.0], "random", 0.0, 0.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.5], 4, false, false)
+
+p3 = Plots.plot(sim_single.sellers[1].quality_history, label = "Średnia jakość dobra", xlabel = "Czas", ylabel = "Średnia / oczekiwana jakość dobra", legend = :outertopright)
+Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1), label = "Oczekiwana jakość dobra")
+Plots.plot!(create_buying(sim_single.buyers[1], 1) .+ 0.1, seriestype = :vline, linestyle = :dash, label = "Własne doświadczenie")
+Plots.plot!(create_buying(sim_single.buyers[2], 1) .- 0.1, seriestype = :vline, linestyle = :dash, label = "Wymiana informacji")
+
+
+Plots.savefig(p3, pwd() * "\\thesis_plots\\verification_lambda0theta0.pdf")
+
+Random.seed!(19)
+
+sim_single = TO_GO(50, 2, 2, 0, [0.4, 0.4], [1.0, 1.0], "random", 1.0, 1.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.5], 4, false, false)
+
+sim_single.buyers[1]
+
+p4 = Plots.plot(sim_single.sellers[1].quality_history, label = "Średnia jakość dobra", xlabel = "Czas", ylabel = "Średnia / oczekiwana jakość dobra", legend = :outertopright)
+Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1), label = "Oczekiwana jakość dobra")
+Plots.plot!(create_buying(sim_single.buyers[1], 1) .+ 0.1, seriestype = :vline, linestyle = :dash, label = "Własne doświadczenie")
+
+
+
+Plots.savefig(p4, pwd() * "\\thesis_plots\\verification_m0.pdf")
+
+
+
 
 ########################################### Reselling probability changes due to secondary market
 
-sim_single = TO_GO(50, 2, 200, 400, [0.4, 0.4], [1.0, 1.0], "random", 0.0, 1.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.5], 4, false)
+Random.seed!(5)
 
-Plots.plot(getfield.(sim_single.buyers, :reselling_probability_history)[1], color = :black, linewidth = 2)
-Plots.plot!(create_buying(sim_single.buyers[1], 1), linetype = :vline, color = "red", linestyle = :dash)
-Plots.plot!(create_buying(sim_single.buyers[1], 2), linetype = :vline, color = "red", linestyle = :dash)
-Plots.plot!(create_resell(sim_single.buyers[1], 1), linetype = :vline, color = "green", linestyle = :dash)
-Plots.plot!(create_resell(sim_single.buyers[1], 2), linetype = :vline, color = "green", linestyle = :dash)
+sim_single = TO_GO(50, 2, 200, 400, [0.4, 0.4], [1.0, 1.0], "random", 0.0, 1.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.5], 4, false, false)
+
+p2 = Plots.plot(getfield.(sim_single.buyers, :reselling_probability_history)[1], color = :black, linewidth = 2, label = L"p_{it}^R", xlabel = "Czas", ylabel = "Prawdopodobieństwo odsprzedaży", legend = :outertopright)
+Plots.plot!(create_failed_resell(sim_single.buyers[1], 1), linetype = :vline, color = "red", linestyle = :dash, label = "")
+Plots.plot!(create_failed_resell(sim_single.buyers[1], 2), linetype = :vline, color = "red", linestyle = :dash, label = "Nieudana transakcja odsprzedaży")
+Plots.plot!(create_resell(sim_single.buyers[1], 1), linetype = :vline, color = "green", linestyle = :dash, label = "Udana transakcja odsprzedaży")
+Plots.plot!(create_resell(sim_single.buyers[1], 2), linetype = :vline, color = "green", linestyle = :dash, label = "Udana transakcja odsprzedaży")
+
+
+Plots.savefig(p2, pwd() * "\\thesis_plots\\verification_pir.pdf")
 
 ## No secondary market -> flat probability
 
-sim_single = TO_GO(50, 2, 200, 400, [0.4, 0.4], [1.0, 1.0], "random", 0.0, 1.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, false, 0, [0.7, 1.], "softmax", [false, true], [0, 0.5], 4, false)
+sim_single = TO_GO(50, 2, 200, 400, [0.4, 0.4], [1.0, 1.0], "random", 0.0, 1.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, false, 0, [0.7, 1.], "softmax", [false, true], [0, 0.5], 4, false, false)
 
 Plots.plot(getfield.(sim_single.buyers, :reselling_probability_history)[1])
 Plots.plot!(create_buying(sim_single.buyers[1], 1), linetype = :vline, color = "grey")
@@ -196,7 +298,7 @@ Plots.plot!(create_resell(sim_single.buyers[1], 2), linetype = :vline, color = "
 
 ########################################### Max breakage time
 
-sim_single = TO_GO(1000, 2, 1000, 2000, [0.4, 0.4], [1.0, 1.0], "random", 0.0, 1.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, false, 0, [0.7, 1.], "softmax", [false, true], [0, 0.5], 4, false)
+sim_single = TO_GO(1000, 2, 1000, 2000, [0.4, 0.4], [1.0, 1.0], "random", 0.0, 1.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, false, 0, [0.7, 1.], "softmax", [false, true], [0, 0.5], 4, false, false)
 
 history_of_trading = getfield.(sim_single.buyers, :unit_buying_selling_history)
 
@@ -225,14 +327,14 @@ max_h
 ########################################### No links
 ## -> no signals shall be received
 
-sim_single = TO_GO(200, 2, 400, 0, [0.4, 0.4], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false)
+sim_single = TO_GO(200, 2, 400, 0, [0.4, 0.4], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false, false)
 
 maximum(getfield.(sim_single.buyers, :signal_volume))
 
 ########################################### No learning
 ## -> expectation shall be flat
 
-sim_single = TO_GO(200, 2, 400, 600, [0.4, 0.4], [1.0, 1.0], "random", 0., 0., "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false)
+sim_single = TO_GO(200, 2, 400, 600, [0.4, 0.4], [1.0, 1.0], "random", 0., 0., "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false, false)
 
 allequal([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)])
 allequal([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectation_history)])
@@ -240,40 +342,50 @@ allequal([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectat
 ########################################### Sampled product quality
 ## -> in the mean shall be 'close' to producers' decisions
 
-sim_single = TO_GO(200, 2, 400, 600, [0.4, 0.4], [1.0, 1.0], "random", 0., 0., "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false)
+sim_single = TO_GO(200, 2, 1000, 2000, [0.4, 0.4], [1.0, 1.0], "random", 0., 0., "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false, false)
 
 plot_quantity(sim_single.sellers, 1)
 
-p = Plots.plot(sim_single.sellers[1].quality_history, color="black", legend = nothing)
-qs = quality_sampled_products(sim_single.buyers, 1)
-Plots.plot!(mean_nothing.(qs),color = "blue")
+p = Plots.plot(sim_single.sellers[1].quality_history, label = L"K_{jt}", color="black", linewidth = 2, legend = :outertopright, xlabel = "Czas", ylabel = "Średnia / oczekiwana jakość")
+Plots.plot!(sim_single.sellers[1].quality_history .+ 0.1, color="black", linewidth = 0.5, label = "")
+Plots.plot!(sim_single.sellers[1].quality_history .- 0.1, color="black", linewidth = 0.5, label = L"K_{jt} \pm 0.1")
+qs = quality_sampled_products(sim_single.buyers, 1, 1)
+Plots.plot!(mean_nothing.(qs),color = "blue", label = L"E(\hat K_{ijt})", linewidth = 2)
 for t in 1:200
     if length(qs[t]) > 0
-        Plots.plot!([t,t],[mean(qs[t])-std(qs[t]), mean(qs[t])+std(qs[t])],color="blue")
+        if t == 5
+            Plots.plot!([t,t],[mean(qs[t])-std(qs[t]), mean(qs[t])+std(qs[t])],color="blue", label = L"E(\hat K_{ijt}) \pm S(\hat K_{ijt})", linealpha = 0.5)
+        else
+            Plots.plot!([t,t],[mean(qs[t])-std(qs[t]), mean(qs[t])+std(qs[t])],color="blue", label = "", linealpha = 0.5)
+        end
     end
 end
+Plots.plot!(maximum_nothing.(qs), linewidth = 1.5, color = "blue", label = L"max(\hat K_{ijt})", linestyle = :dash)
+Plots.plot!(minimum_nothing.(qs), linewidth = 1.5, color = "blue", label = L"min(\hat K_{ijt})", linestyle = :dash)
 p
+
+Plots.savefig(p, pwd() * "\\thesis_plots\\verification_hatK.pdf")
 
 ########################################### System level ###########################################
 
 ########################################### No secondary market
 ## -> empty reselling
 
-sim_single = TO_GO(200, 2, 400, 600, [0.4, 0.4], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[1., 2.], [1., 2.]], 0.50, false, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false)
+sim_single = TO_GO(200, 2, 400, 600, [0.4, 0.4], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[1., 2.], [1., 2.]], 0.50, false, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false, false)
 
 Plots.plot(getfield.(sim_single.sellers, :reselling_history))
 
 ########################################### Secondary market
 ## -> market effectiveness?
 
-sim_single = TO_GO(200, 2, 400, 600, [0.4, 0.4], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[1., 2.], [1., 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false)
+sim_single = TO_GO(200, 2, 400, 600, [0.4, 0.4], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[1., 2.], [1., 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false, false)
 
 Plots.plot(getfield.(sim_single.sellers, :reselling_history))
 
 ########################################### Initial margin 2.0
 ## -> no initial trading, sellers to decrease
 
-sim_single = TO_GO(200, 2, 400, 600, [1.0, 1.0], [2.0, 2.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[1., 2.], [1., 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false)
+sim_single = TO_GO(200, 2, 400, 600, [1.0, 1.0], [2.0, 2.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[1., 2.], [1., 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false, false)
 
 Plots.plot(getfield.(sim_single.sellers, :quantity_sold_history))
 Plots.plot(getfield.(sim_single.sellers, :margin_history))
@@ -281,7 +393,7 @@ Plots.plot(getfield.(sim_single.sellers, :margin_history))
 ########################################### Cost coefficient == 1
 ## -> no trading?
 
-sim_single = TO_GO(200, 2, 400, 600, [1.0, 1.0], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[1., 2.], [1., 2.]], 0.50, false, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false)
+sim_single = TO_GO(200, 2, 400, 600, [1.0, 1.0], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[1., 2.], [1., 2.]], 0.50, false, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false, false)
 
 Plots.plot(getfield.(sim_single.sellers, :quantity_sold_history))
 Plots.plot(getfield.(sim_single.sellers, :selling_income_history))
@@ -337,3 +449,46 @@ kd(k,d;H) = k .* (1 .- d .^ H) ./ (1 .- d)
 
 Plots.plot(kd.(sim_single.sellers[1].quality_history, sim_single.sellers[1].durability_history; H = 8))
 Plots.plot!(mean_nothing.(utility_expectation_buyers))
+
+########################################### Producer profit expectations
+##
+
+Random.seed!(12345)
+
+sim_single = TO_GO(200, 2, 400, 600, [1.0, 1.0], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[1., 2.], [1., 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false, false)
+
+Plots.plot(calculate_profit_history(sim_single.sellers[1]))
+Plots.plot!(vcat(0,getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected, 1) .== 1) .& (getindex.(sim_single.profit_expected, 2) .== "p")], 3)))
+
+Plots.plot(calculate_profit_history(sim_single.sellers[2]))
+Plots.plot!(vcat(0, getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected, 1) .== 2) .& (getindex.(sim_single.profit_expected, 2) .== "p")], 3)))
+
+########################################### Producer profit expectations
+##
+
+Random.seed!(12345)
+
+sim_single = TO_GO(1000, 2, 400, 600, [1.0, 1.0], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[1., 2.], [1., 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 7, false, false)
+
+max_periods = product_age(sim_single.buyers)
+
+using Latexify
+
+df = DataFrame(Wartość_oczekiwana = round.(mean.(max_periods), digits = 2), 
+        Mediana = round.(median.(max_periods), digits = 2),
+        Odchylenie_standardowe = round.(std.(max_periods), digits = 2),
+        Rozstęp_międzykwartylowy = round.(iqr.(max_periods), digits = 2))
+
+latexify(df, env = :table) |> print
+
+StatsPlots.density(max_periods[1])
+StatsPlots.density!(max_periods[2])
+StatsPlots.density!(max_periods[3])
+
+Plots.plot(calculate_profit_history(sim_single.sellers[1]))
+Plots.plot!(vcat(0,getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected, 1) .== 1) .& (getindex.(sim_single.profit_expected, 2) .== "p")], 3)))
+
+Plots.plot(calculate_profit_history(sim_single.sellers[2]))
+Plots.plot!(vcat(0, getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected, 1) .== 2) .& (getindex.(sim_single.profit_expected, 2) .== "p")], 3)))
+
+countmap(getfield.(vcat(getfield.(sim_single.buyers, :unit_buying_selling_history)...), :decision))

@@ -22,10 +22,6 @@ function in_boundaries(x::Float64,lb::Float64,ub::Float64)::Float64
     return max(min(x,ub),lb)
 end
 
-function in_boundaries(x::Float64,lb::Int64,ub::Int64)::Float64
-    return max(min(x,ub),lb)
-end
-
 function cost_coefficient(k,d,cc)
     return cc
 end
@@ -95,16 +91,30 @@ function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64
     eD = eD_dist
     eρ = ρ_dist
 
+    @assert all(0 .<= s .<= 1)
+    @assert all(0 .<= eK .<= 1)
+    @assert all(0 .<= eD .<= 1)
+    @assert all(0 .<= eρ .<= 1)
+
     o_U = s .* sum_of_geom_series_finite(o_K, eρ * o_D; t = product_life) .- o_P # użyteczność dobra konkurencji, jeśli liczba konkurentów > 1, to o_k, o_D i o_P są średnimi
 
     U = s .* sum_of_geom_series_finite.(eK, eρ .* eD; t = product_life)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) .* M # użyteczność mojego dobra przy parametrach K, D, M
 
     demand = sum((U .> 0) .& (U .> o_U) .& (rand(N) .< 1/product_life)) # szacowany popyt. warunek 1: moja użyteczność > 0, warunek 2: moja użyteczność wyższa niż użyteczność dobra konkurencyjnego, warunek 3: oczekiwana liczba klientów poszukujących dobra - skalowanie dla dóbr trwałych > 1 okres
 
+    @assert demand >= 0
+
     price = cost_coefficient(K, D, cc) * sum_of_geom_series_finite(K, D; t = product_life) * M # marża na 1 sprzedanym produkcie
+
+    @assert price >= 0
 
     profit = min(demand,Q) .* price .+ max.(0, Q .- demand) .* (1 - μ_c) .* cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life) - Q * cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life)  # oczekiwany zysk firmy
 
+    @assert min(demand, Q) >= 0
+    @assert 1 - μ_c >= 0
+    @assert cost_coefficient(K, D, cc) >= 0
+    @assert sum_of_geom_series_finite(K, D; t = product_life) >= 0
+    
     if return_type == "profit"
         return profit
     elseif return_type == "demand"
@@ -280,4 +290,23 @@ function calculate_expectation(sim_res, metric, cumulated = false)
 
 end
 
+function test_if_buyer_has_no_product(_buyer::buyer)
+    x1 = _buyer.expected_surplus == 0
+    x2 = all(_buyer.unit_possessed .== false) 
+    x3 = _buyer.unit_possessed_is_new == false
+    x4 = isnothing(_buyer.unit_possessed_time)
+    x5 = isnothing(_buyer.unit_first_possessed_time)
+    x6 = isnothing(_buyer.quality_of_unit_possessed_history)
+    x7 = isnothing(_buyer.durability_of_unit_possessed)
+    x8 = isnothing(_buyer.current_quality_of_unit_possessed)
+
+    is_cleared = x1 & x2 & x3 & x4 & x5 & x6 & x7 & x8
+
+    return is_cleared
+
+end
+
 mean_nothing(x) = length(x) == 0 ? missing : mean(x)
+maximum_nothing(x) = length(x) == 0 ? missing : maximum(x)
+minimum_nothing(x) = length(x) == 0 ? missing : minimum(x)
+std_nothing(x) = length(x) == 0 ? missing : std(x)

@@ -265,7 +265,7 @@ include(pwd() * "\\methods\\methods_aux.jl")
 
 __precompile__()
 
-function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{seller}, randPeriod::Int64, iter::Int64, num_buyers::Int64, profit_expected::Vector, μ_c::Float64, method_weight::String, product_life::Int64, samples_fixed::Bool, ρm::Float64)::Vector{seller}
+function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{seller}, randPeriod::Int64, iter::Int64, num_buyers::Int64, profit_expected::Vector, μ_c::Float64, method_weight::String, product_life::Int64, samples_fixed::Bool, ρm::Float64, do_posterior::Bool)::Vector{seller}
 
     """
 
@@ -372,34 +372,43 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
 
                 expected_profit_around = [calculate_state_profit(k, e_k, d, e_d, m, q, o_k, o_d, o_p, num_buyers, μ_c, _seller.cost_coefficient, ρ_mean, β_mean, "profit", product_life) for k in K_range, d in D_range, m in M_range, q in Q_range] # prior
 
-                h_K = _seller.quality_history
-                h_D = _seller.durability_history
-                h_M = _seller.margin_history
-                h_P = calculate_profit_history(_seller)
-                h_Q = _seller.quantity_produced_history
+                if do_posterior
 
-                h_o_K = mean(getfield.(sellers[Not(_seller.id)], :quality_history))
-                h_o_D = mean(getfield.(sellers[Not(_seller.id)], :durability_history))
-                h_o_P = mean(calculate_price_history.(sellers[Not(_seller.id)]; product_life =  product_life))
+                    h_K = _seller.quality_history
+                    h_D = _seller.durability_history
+                    h_M = _seller.margin_history
+                    h_P = calculate_profit_history(_seller)
+                    h_Q = _seller.quantity_produced_history
 
-                @assert all(0 .<= h_K .<= 1)
-                @assert all(0 .<= h_D .<= 1)
-                @assert all(0 .<= h_M)
-                @assert all(0 .<= h_Q)
-                @assert all(0 .<= h_o_K .<= 1)
-                @assert all(0 .<= h_o_D .<= 1)
-                @assert all(0 .<= h_o_P)
+                    h_o_K = mean(getfield.(sellers[Not(_seller.id)], :quality_history))
+                    h_o_D = mean(getfield.(sellers[Not(_seller.id)], :durability_history))
+                    h_o_P = mean(calculate_price_history.(sellers[Not(_seller.id)]; product_life =  product_life))
 
-                known_profits_around = [sum(h_P[(h_K .== k) .& (h_D .== d) .& (h_M .== m) .& (h_Q .== q) .& (h_o_K .== o_k).& (h_o_D .== o_d).& (h_o_P .== o_p)]) for k in K_range, d in D_range, m in M_range, q in Q_range]
+                    @assert all(0 .<= h_K .<= 1)
+                    @assert all(0 .<= h_D .<= 1)
+                    @assert all(0 .<= h_M)
+                    @assert all(0 .<= h_Q)
+                    @assert all(0 .<= h_o_K .<= 1)
+                    @assert all(0 .<= h_o_D .<= 1)
+                    @assert all(0 .<= h_o_P)
 
-                known_demands_around = [mean(h_Q[(h_K .== k) .& (h_D .== d) .& (h_M .== m) .& (h_Q .== q) .& (h_o_K .== o_k).& (h_o_D .== o_d).& (h_o_P .== o_p)]) for k in K_range, d in D_range, m in M_range, q in Q_range]
+                    known_profits_around = [sum(h_P[(h_K .== k) .& (h_D .== d) .& (h_M .== m) .& (h_Q .== q)]) for k in K_range, d in D_range, m in M_range, q in Q_range]
 
-                known_items_around = [count((h_K .== k) .& (h_D .== d) .& (h_M .== m).& (h_Q .== q) .& (h_o_K .== o_k).& (h_o_D .== o_d).& (h_o_P .== o_p)) for k in K_range, d in D_range, m in M_range, q in Q_range]
+                    known_demands_around = [mean(h_Q[(h_K .== k) .& (h_D .== d) .& (h_M .== m) .& (h_Q .== q)]) for k in K_range, d in D_range, m in M_range, q in Q_range]
 
-                known_profits_around[isnan.(known_profits_around)] .= 0
-                known_demands_around[isnan.(known_demands_around)] .= 0
+                    known_items_around = [count((h_K .== k) .& (h_D .== d) .& (h_M .== m).& (h_Q .== q)) for k in K_range, d in D_range, m in M_range, q in Q_range]
 
-                posterior_expected_profit_around = (expected_profit_around .+ known_profits_around) ./ (1 .+ known_items_around)
+                    known_profits_around[isnan.(known_profits_around)] .= 0
+                    known_demands_around[isnan.(known_demands_around)] .= 0
+                    known_items_around[isnan.(known_demands_around)] .= 0
+
+                    posterior_expected_profit_around = (expected_profit_around .+ known_profits_around) ./ (1 .+ known_items_around)
+
+                else
+
+                    posterior_expected_profit_around = expected_profit_around
+
+                end
 
                 if all(posterior_expected_profit_around .== 0)
                     weights = vec(posterior_expected_profit_around)
@@ -422,7 +431,15 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
 
                 @assert expected_demand >= 0
 
-                posterior_expected_demand = Int(ceil((expected_demand + known_demands_around[optimal_profit_args]) / (1 + known_items_around[optimal_profit_args])))
+                if do_posterior
+
+                    posterior_expected_demand = Int(ceil((expected_demand + known_demands_around[optimal_profit_args]) / (1 + known_items_around[optimal_profit_args])))
+
+                else
+
+                    posterior_expected_demand = expected_demand
+
+                end
 
                 @assert posterior_expected_demand >= 0
 
@@ -435,6 +452,8 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
                 push!(profit_expected, (_seller.id, "qp", new_quantity))
 
                 push!(profit_expected, (_seller.id, "ed", posterior_expected_demand))
+
+                push!(profit_expected, (_seller.id, "mats", (expected_profit_around, posterior_expected_profit_around)))
 
                 _seller.quality = new_quality
                 _seller.durability = new_durability
@@ -584,6 +603,7 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
             _buyer.unit_first_possessed_time = iter
             _buyer.unit_possessed_time = iter
             sellers[chosen_product].quantity_sold += 1
+
             push!(_buyer.realized_surplus_pm_history, pm_surplus)
 
             sellers[chosen_product].selling_income = sellers[chosen_product].selling_income + calculate_price(sellers[chosen_product]; product_life = product_life)
@@ -625,15 +645,26 @@ function consumers_discover_q_d(buyers::Vector{buyer}, sellers::Vector{seller}, 
 
         push!(_buyer.reselling_probability_history, _buyer.reselling_probability)
 
+        if lastindex(_buyer.unit_buying_selling_history) > 1
+            if _buyer.unit_buying_selling_history[end-1].decision == "buy, primary market"
+                @assert _buyer.unit_buying_selling_history[end].decision != "buy, secondary market"
+            end
+        end
+
         if any(_buyer.unit_possessed)
             if (_buyer.unit_first_possessed_time == iter) & (_buyer.unit_possessed_is_new)
+
+                @assert sum(_buyer.unit_possessed) == 1
+
                 chosen_product = argmax(_buyer.unit_possessed)
+
                 q_lb = in_boundaries(sellers[chosen_product].quality - ϵ_q, 0.,1.)
                 q_ub = in_boundaries(sellers[chosen_product].quality + ϵ_q, 0.,1.)
                 if q_lb == q_ub
                     _buyer.quality_of_unit_possessed = q_lb
                     _buyer.current_quality_of_unit_possessed = q_lb
                 else
+                    @assert q_lb < q_ub
                     _buyer.quality_of_unit_possessed = rand(Uniform(q_lb, q_ub))
                     _buyer.current_quality_of_unit_possessed = _buyer.quality_of_unit_possessed
                 end
@@ -644,13 +675,16 @@ function consumers_discover_q_d(buyers::Vector{buyer}, sellers::Vector{seller}, 
                 if d_lb == d_ub
                     _buyer.durability_of_unit_possessed = d_lb
                 else
+                    @assert d_lb < d_ub
                     _buyer.durability_of_unit_possessed = rand(Uniform(d_lb, d_ub))
                 end
 
                 @assert 0 <= _buyer.quality_of_unit_possessed <= 1
                 @assert 0 <= _buyer.durability_of_unit_possessed <= 1
+                @assert q_lb <= _buyer.quality_of_unit_possessed <= q_ub
+                @assert d_lb <= _buyer.durability_of_unit_possessed <= d_ub
 
-                if _buyer.unit_buying_selling_history[end].decision == "sell, secondary market"
+                if (_buyer.unit_buying_selling_history[end].decision == "sell, secondary market") | (_buyer.unit_buying_selling_history[end].decision == "failed to resell")
                     _buyer.unit_buying_selling_history[end-1].real_product_features .= [_buyer.quality_of_unit_possessed, _buyer.durability_of_unit_possessed]
                 else
                     _buyer.unit_buying_selling_history[end].real_product_features .= [_buyer.quality_of_unit_possessed, _buyer.durability_of_unit_possessed]   
@@ -780,6 +814,7 @@ function buyers_products_age(buyers::Vector{buyer}, sellers::Vector{seller}, ite
                     _buyer.unit_possessed_is_new = false
                     _buyer.unit_possessed_time = 0
                     _buyer.unit_first_possessed_time = 0
+                    _buyer.expected_surplus = 0.0
                     
 
                 else
@@ -834,14 +869,15 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
 
                             u = max.(offers .- _buyer.price_for_sale, 0)
 
-                            weight = create_weights(u, method_weight)
+                            weight = u
 
-                            chosen_buyer = sample(1:length(buyers), Weights(weight))
+                            chosen_buyer = sample(1:lastindex(buyers), Weights(weight))
 
                         end
 
                         push!(_buyer.unit_buying_selling_history, (i = _buyer.id, t=iter, decision="sell, secondary market", product=argmax(_buyer.unit_for_sale)))
-                        push!(buyers[chosen_buyer].unit_buying_selling_history, (i = _buyer.id, t = iter, decision="buy, secondary market", product = argmax(_buyer.unit_for_sale)))
+
+                        push!(buyers[chosen_buyer].unit_buying_selling_history, (i = buyers[chosen_buyer].id, t = iter, decision="buy, secondary market", product = argmax(_buyer.unit_for_sale)))
 
                         reselling_quantity = reselling_quantity .+ _buyer.unit_for_sale
 
@@ -879,6 +915,8 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
 
                         _buyer.reselling_probability = 1/2 * (_buyer.reselling_probability + 0)
 
+                        push!(_buyer.unit_buying_selling_history, (i = _buyer.id, t=iter, decision="failed to resell", product=argmax(_buyer.unit_for_sale)))
+
                     end
 
                     @assert 0 <= _buyer.reselling_probability <= 1
@@ -886,6 +924,8 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
                     _buyer.unit_for_sale = fill(false, length(_buyer.unit_for_sale))
                     _buyer.price_for_sale = 0.0
                     _buyer.age_for_sale = 0
+                    _buyer.quality_for_sale = 0.0
+                    _buyer.durability_for_sale = 0.0
 
                 else
 
@@ -895,6 +935,7 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
                         push!(_buyer.realized_surplus_sm_b_history, 0.0)
 
                     end
+
 
                 end
 
@@ -943,7 +984,7 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
 
 end
 
-function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, λ_ind, λ_wom, buyer_behaviour, kr, dr, mr, μ_c, secondary_market_exists, rand_period, future_discount_range, method_weight, consumer_research, sample_size, product_life, samples_fixed)
+function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, λ_ind, λ_wom, buyer_behaviour, kr, dr, mr, μ_c, secondary_market_exists, rand_period, future_discount_range, method_weight, consumer_research, sample_size, product_life, samples_fixed, do_posterior)
 
     ρm = future_discount_range[1]
 
@@ -958,7 +999,7 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
 
         if iter == 0
 
-            sellers = sellers_choose_qp_k_d_m_states(buyers, sellers, rand_period, iter, num_buyers, profit_expected, μ_c, method_weight, product_life, samples_fixed, ρm)
+            sellers = sellers_choose_qp_k_d_m_states(buyers, sellers, rand_period, iter, num_buyers, profit_expected, μ_c, method_weight, product_life, samples_fixed, ρm, do_posterior)
 
         elseif iter == 1
 
@@ -974,7 +1015,7 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
 
             buyers, sellers = buyers_products_age(buyers, sellers, iter, product_life)
 
-            sellers = sellers_choose_qp_k_d_m_states(buyers, sellers, rand_period, iter, num_buyers, profit_expected, μ_c, method_weight, product_life, samples_fixed, ρm)
+            sellers = sellers_choose_qp_k_d_m_states(buyers, sellers, rand_period, iter, num_buyers, profit_expected, μ_c, method_weight, product_life, samples_fixed, ρm, do_posterior)
 
 
         elseif iter >= 2
@@ -995,7 +1036,7 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
 
             if iter < maxIter
 
-                sellers = sellers_choose_qp_k_d_m_states(buyers, sellers, rand_period, iter, num_buyers, profit_expected, μ_c, method_weight, product_life, samples_fixed, ρm)
+                sellers = sellers_choose_qp_k_d_m_states(buyers, sellers, rand_period, iter, num_buyers, profit_expected, μ_c, method_weight, product_life, samples_fixed, ρm, do_posterior)
 
             end
 
