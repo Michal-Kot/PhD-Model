@@ -8,7 +8,12 @@ jldsave("C:\\Users\\User\\Documents\\PhDWorkspace.jld2")
 
 @time Random.seed!(1234)
 
-@time sim_single = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false)
+@time sim_single = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 1, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false, false)
+
+[[getindex.(x,j) for x in getfield.(sim_single.buyers, :quality_expectation_history)] for j in 1:2]
+
+Plots.plot(sim_single.sellers[1].quality_history)
+Plots.plot(sim_single.sellers[2].quality_history)
 
 sum(sim_single.sellers[1].selling_income_history)
 sum(sim_single.sellers[1].quantity_sold_history .* calculate_price_history(sim_single.sellers[1]; product_life = 8)) 

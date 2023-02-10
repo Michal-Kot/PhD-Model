@@ -92,23 +92,23 @@ function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64
     eρ = ρ_dist
 
     @assert all(0 .<= s .<= 1)
-    @assert all(0 .<= eK .<= 1)
-    @assert all(0 .<= eD .<= 1)
+    #@assert all(0 .<= eK .<= 1)
+    #@assert all(0 .<= eD .<= 1)
     @assert all(0 .<= eρ .<= 1)
 
     o_U = s .* sum_of_geom_series_finite(o_K, eρ * o_D; t = product_life) .- o_P # użyteczność dobra konkurencji, jeśli liczba konkurentów > 1, to o_k, o_D i o_P są średnimi
 
     U = s .* sum_of_geom_series_finite.(eK, eρ .* eD; t = product_life)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) .* M # użyteczność mojego dobra przy parametrach K, D, M
 
-    demand = sum((U .> 0) .& (U .> o_U) .& (rand(N) .< 1/product_life)) # szacowany popyt. warunek 1: moja użyteczność > 0, warunek 2: moja użyteczność wyższa niż użyteczność dobra konkurencyjnego, warunek 3: oczekiwana liczba klientów poszukujących dobra - skalowanie dla dóbr trwałych > 1 okres
+    demand = Int(round(mean([sum((U .> 0) .& (U .> o_U) .& (rand(N) .< 1/product_life)) for i in 1:10]))) # szacowany popyt. warunek 1: moja użyteczność > 0, warunek 2: moja użyteczność wyższa niż użyteczność dobra konkurencyjnego, warunek 3: oczekiwana liczba klientów poszukujących dobra - skalowanie dla dóbr trwałych > 1 okres
 
     @assert demand >= 0
 
-    price = cost_coefficient(K, D, cc) * sum_of_geom_series_finite(K, D; t = product_life) * M # marża na 1 sprzedanym produkcie
+    price = cost_coefficient(K, D, cc) * sum_of_geom_series_finite(K, D; t = product_life) * M  # marża na 1 sprzedanym produkcie
 
     @assert price >= 0
 
-    profit = min(demand,Q) .* price .+ max.(0, Q .- demand) .* (1 - μ_c) .* cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life) - Q * cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life)  # oczekiwany zysk firmy
+    profit = min(demand,Q) .* price .+ min(0, Q - demand) .* (1 - μ_c) .* cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life) - Q * cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life)  # oczekiwany zysk firmy
 
     @assert min(demand, Q) >= 0
     @assert 1 - μ_c >= 0
@@ -310,3 +310,8 @@ mean_nothing(x) = length(x) == 0 ? missing : mean(x)
 maximum_nothing(x) = length(x) == 0 ? missing : maximum(x)
 minimum_nothing(x) = length(x) == 0 ? missing : minimum(x)
 std_nothing(x) = length(x) == 0 ? missing : std(x)
+
+function savefigs(plt, target)
+    Plots.savefig(plt, pwd() * target * ".svg") # for pptx
+    Plots.savefig(plt, pwd() * target * ".pdf") # for thesis, latex
+end

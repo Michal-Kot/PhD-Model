@@ -52,7 +52,7 @@ ex3_v100101_sm = []
 ex3_v100101_nl = []
 ex3_v100101_ρm = []
 
-for i in 1:250
+for i in 1:50
 
     println(i)
 
@@ -60,7 +60,7 @@ for i in 1:250
     lw = rand()
     h = sample(2:8)
     sd = sample(1:100000)
-    cu = rand(Uniform(0,0.5))
+    cu = rand(Uniform(0.2,0.5))
     sm = sample(0.025:0.025:0.150)
     nl = sample(100:100:1200)
     ρm = rand(Uniform(0.5, 0.9))
@@ -76,7 +76,7 @@ for i in 1:250
 
     Random.seed!(sd)
 
-    ex3_v100_sim = TO_GO(200, 2, 400, nl, [0.4, 0.4], [1., 1.], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], cu, true, 1, [ρm, 1.], "softmax", [false, true], [0, sm], h, false, true)
+    ex3_v100_sim = TO_GO(200, 2, 400, nl, [0.4, 0.4], [1., 1.], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], cu, true, 1, [ρm, 1.], "softmax", [false, false], [0., 0.], h, false, false)
 
     push!(ex3_v100_total_surplus, calculate_surplus(ex3_v100_sim, "total", false))
     push!(ex3_v100_producer_surplus, calculate_surplus(ex3_v100_sim, "producer", false))
@@ -96,7 +96,7 @@ for i in 1:250
 
     Random.seed!(sd)
 
-    ex3_v101_sim = TO_GO(200, 2, 400, nl, [0.4, 0.4], [1., 1.], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], cu, true, 1, [ρm, 1.], "softmax", [true, true], [sm, sm], h, false, true)
+    ex3_v101_sim = TO_GO(200, 2, 400, nl, [0.4, 0.4], [1., 1.], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], cu, true, 1, [ρm, 1.], "softmax", [true, false], [sm, 0.], h, false, false)
 
     push!(ex3_v101_total_surplus, calculate_surplus(ex3_v101_sim, "total", false))
     push!(ex3_v101_producer_surplus, calculate_surplus(ex3_v101_sim, "producer", false))
@@ -116,9 +116,23 @@ for i in 1:250
 
 end
 
-using JLD2
-using FileIO
-@save "C:\\Users\\User\\Documents\\PhDWorkspace.jld2"
+Plots.plot(mean(getindex.(ex3_v100_quantity_produced, 1)))
+Plots.plot!(mean(getindex.(ex3_v101_quantity_produced, 1)))
+
+Plots.plot(mean(getindex.(ex3_v100_quantity_sold, 1)))
+Plots.plot!(mean(getindex.(ex3_v101_quantity_sold, 1)))
+
+Plots.plot(mean(getindex.(ex3_v100_price, 1)))
+Plots.plot!(mean(getindex.(ex3_v101_price, 1)))
+
+Plots.plot(mean(getindex.(ex3_v100_quality, 1)))
+Plots.plot!(mean(getindex.(ex3_v101_quality, 1)))
+
+Plots.plot(mean(getindex.(ex3_v100_durability, 1)))
+Plots.plot!(mean(getindex.(ex3_v101_durability, 1)))
+
+Plots.plot(mean(getindex.(ex3_v100_margin, 1)))
+Plots.plot!(mean(getindex.(ex3_v101_margin, 1)))
 
 RMSE(x,y) = sqrt(mean((x .- y).^2))
 xydiff(x,y) = mean(x .- y)
@@ -126,8 +140,8 @@ cv(x) = std(x) / mean(x)
 
 # Gęstość, różnice między oczekiwaniami a realnymi charakterystykami
 
-ex3_p100 = StatsPlots.density(xydiff.(getindex.(ex3_v100_quality, 1), [getindex.(x,1) for x in ex3_v100_quality_exp]), label = "Producent nie prowadzi badań", xlabel = "Odchylenie parametrów produktu [jakość] od oczekiwań konsumentów", ylabel = "f(x)", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, title = "Funkcja gęstości odchyleń parametrów produktu od oczekiwań konsumentów", legendfontsize = 6, legend = :topleft, normalize = true)
-StatsPlots.density!(xydiff.(getindex.(ex3_v101_quality, 1), [getindex.(x,1) for x in ex3_v101_quality_exp]), label = "Producent prowadzi badania")
+ex3_p100 = StatsPlots.density(xydiff.(getindex.(ex3_v100_quality, 2), [getindex.(x,1) for x in ex3_v100_quality_exp]), label = "Producent nie prowadzi badań", xlabel = "Odchylenie parametrów produktu [jakość] od oczekiwań konsumentów", ylabel = "f(x)", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, title = "Funkcja gęstości odchyleń parametrów produktu od oczekiwań konsumentów", legendfontsize = 6, legend = :topleft, normalize = true)
+StatsPlots.density!(xydiff.(getindex.(ex3_v101_quality, 2), [getindex.(x,1) for x in ex3_v101_quality_exp]), label = "Producent prowadzi badania")
 
 round(iqr(xydiff.(getindex.(ex3_v100_quality, 1), [getindex.(x,1) for x in ex3_v100_quality_exp])), digits = 3)
 round(cv(xydiff.(getindex.(ex3_v100_quality, 1), [getindex.(x,1) for x in ex3_v100_quality_exp])), digits = 3)

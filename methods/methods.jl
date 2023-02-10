@@ -281,191 +281,201 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
         δ_q = sample(1:10)
 
         if iter >= (randPeriod + 1)
-            
-                #change phase
 
-                M_range = [max(_seller.margin_range[1], _seller.margin - δ_m), _seller.margin, min(_seller.margin_range[2], _seller.margin + δ_m)]
+            #change phase
 
-                Q_range = [max(0, _seller.quantity_produced - δ_q), _seller.quantity_produced, min(num_buyers, _seller.quantity_produced + δ_q)]
+            M_range = [-1 * min(_seller.margin - _seller.margin_range[1], δ_m), 0.0, min(_seller.margin_range[2] - _seller.margin, δ_m)]
 
-                K_range = [max(_seller.quality_range[1], _seller.quality - δ_k), _seller.quality, min(_seller.quality_range[2], _seller.quality + δ_k)]
+            Q_range = [-1 * min(_seller.quantity_produced, δ_q), 0.0, δ_q]
 
-                D_range = [max(_seller.durability_range[1], _seller.durability - δ_d), _seller.durability, min(_seller.durability_range[2], _seller.durability + δ_d)]
+            K_range = [-1 * min(_seller.quality - _seller.quality_range[1], δ_k), 0.0, min(_seller.quality_range[2] - _seller.quality, δ_k)]
 
-                o_p = mean(calculate_price_history.(sellers[Not(_seller.id)]; product_life =  product_life))[end]
+            D_range = [-1 * min(_seller.durability - _seller.durability_range[1], δ_d), 0.0, min(_seller.durability_range[2] - _seller.durability, δ_d)]
 
-                @assert all(0 .<= M_range)
-                @assert all(0 .<= Q_range)
-                @assert all(0 .<= K_range .<= 1)
-                @assert all(0 .<= D_range .<= 1)
-                @assert all(0 .<= o_p)
+            o_p = mean(calculate_price_history.(sellers[Not(_seller.id)]; product_life =  product_life))[end]
 
-                if _seller.consumer_research
+            @assert all(-δ_m .<= M_range .<= δ_m)
+            @assert all(-δ_q .<= Q_range .<= δ_q)
+            @assert all(-δ_k .<= K_range .<= δ_k)
+            @assert all(-δ_d .<= D_range .<= δ_d)
+            @assert all(0 .<= o_p)
 
-                    sample_size = _seller.sample_size
+            k = _seller.quality
+            d = _seller.durability
+            m = _seller.margin
+            q = _seller.quantity_produced
 
-                    @assert 0 <= sample_size <= 1
+            if _seller.consumer_research
 
-                    e_k_all = getindex.(getfield.(buyers, :quality_expectation), _seller.id)
-                    e_d_all = getindex.(getfield.(buyers, :durability_expectation), _seller.id)
-                    ρ_all = getfield.(buyers, :future_discount)
-                    β_all = getfield.(buyers, :std_reservation_price)
-                    e_k_o_all = [mean(x[Not(_seller.id)]) for x in getfield.(buyers, :quality_expectation)]
-                    e_d_o_all = [mean(x[Not(_seller.id)]) for x in getfield.(buyers, :durability_expectation)]
+                sample_size = _seller.sample_size
 
-                    kdρ = [x for x in zip(e_k_all, e_d_all, ρ_all, β_all, e_k_o_all, e_d_o_all)]
+                @assert 0 <= sample_size <= 1
 
-                    if samples_fixed
+                e_k_all = getindex.(getfield.(buyers, :quality_expectation), _seller.id)
+                e_d_all = getindex.(getfield.(buyers, :durability_expectation), _seller.id)
 
-                        if iter == (randPeriod + 1)
+                ρ_all = getfield.(buyers, :future_discount)
+                β_all = getfield.(buyers, :std_reservation_price)
 
-                            kdρ_idx = sample(1:length(kdρ), Int(round(sample_size * num_buyers)), replace = false)
+                e_k_o_all = [mean(x[Not(_seller.id)]) for x in getfield.(buyers, :quality_expectation)] 
+                e_d_o_all = [mean(x[Not(_seller.id)]) for x in getfield.(buyers, :durability_expectation)]
 
-                            push!(_seller.consumers_asked, kdρ_idx)
+                kdρ = [x for x in zip(e_k_all, e_d_all, ρ_all, β_all, e_k_o_all, e_d_o_all)]
 
-                        else
+                if samples_fixed
 
-                            kdρ_idx = _seller.consumers_asked[end]
-                            push!(_seller.consumers_asked, kdρ_idx)
+                    if iter == (randPeriod + 1)
 
-                        end
+                        kdρ_idx = sample(1:length(kdρ), Int(round(sample_size * num_buyers)), replace = false)
+
+                        push!(_seller.consumers_asked, kdρ_idx)
 
                     else
 
-                        kdρ_idx = sample(1:length(kdρ), Int(round(sample_size * num_buyers)), replace = false)
+                        kdρ_idx = _seller.consumers_asked[end]
                         push!(_seller.consumers_asked, kdρ_idx)
 
                     end
 
-                    observed_kdρ = kdρ[kdρ_idx]
-
-                    observed_kdρ = sample(observed_kdρ, num_buyers, replace = true)
-
-                    @assert lastindex(observed_kdρ) == num_buyers
-
-                    e_k = getindex.(observed_kdρ, 1)
-                    e_d = getindex.(observed_kdρ, 2)
-                    ρ_mean = getindex.(observed_kdρ, 3)
-                    β_mean = getindex.(observed_kdρ, 4)
-                    o_k = mean(getindex.(kdρ, 5))
-                    o_d = mean(getindex.(kdρ, 6))
-
                 else
 
-                    e_k = fill(_seller.quality, num_buyers)
-                    e_d = fill(_seller.durability, num_buyers)
-
-                    o_k = mean(getfield.(sellers[Not(_seller.id)], :quality_history))[end]
-                    o_d = mean(getfield.(sellers[Not(_seller.id)], :durability_history))[end]
-
-                    ρ_mean = rand(Uniform(ρm, 1.0), num_buyers)
-                    β_mean = rand(Uniform(0,1), num_buyers)
+                    kdρ_idx = sample(1:length(kdρ), Int(round(sample_size * num_buyers)), replace = false)
+                    push!(_seller.consumers_asked, kdρ_idx)
 
                 end
 
-                @assert all(0 .<= e_k .<= 1)
-                @assert all(0 .<= e_d .<= 1)
-                @assert all(0 .<= ρ_mean .<= 1)
-                @assert all(0 .<= β_mean .<= 1)
-                @assert all(0 .<= o_k .<= 1)              
-                @assert all(0 .<= o_d .<= 1)
+                observed_kdρ = kdρ[kdρ_idx]
 
-                expected_profit_around = [calculate_state_profit(k, e_k, d, e_d, m, q, o_k, o_d, o_p, num_buyers, μ_c, _seller.cost_coefficient, ρ_mean, β_mean, "profit", product_life) for k in K_range, d in D_range, m in M_range, q in Q_range] # prior
+                observed_kdρ = sample(observed_kdρ, num_buyers, replace = true)
 
-                if do_posterior
+                @assert lastindex(observed_kdρ) == num_buyers
 
-                    h_K = _seller.quality_history
-                    h_D = _seller.durability_history
-                    h_M = _seller.margin_history
-                    h_P = calculate_profit_history(_seller)
-                    h_Q = _seller.quantity_produced_history
+                e_k = getindex.(observed_kdρ, 1)
+                e_d = getindex.(observed_kdρ, 2)
+                ρ_mean = getindex.(observed_kdρ, 3)
+                β_mean = getindex.(observed_kdρ, 4)
+                o_k = mean(getindex.(kdρ, 5))
+                o_d = mean(getindex.(kdρ, 6))
 
-                    h_o_K = mean(getfield.(sellers[Not(_seller.id)], :quality_history))
-                    h_o_D = mean(getfield.(sellers[Not(_seller.id)], :durability_history))
-                    h_o_P = mean(calculate_price_history.(sellers[Not(_seller.id)]; product_life =  product_life))
+            else
 
-                    @assert all(0 .<= h_K .<= 1)
-                    @assert all(0 .<= h_D .<= 1)
-                    @assert all(0 .<= h_M)
-                    @assert all(0 .<= h_Q)
-                    @assert all(0 .<= h_o_K .<= 1)
-                    @assert all(0 .<= h_o_D .<= 1)
-                    @assert all(0 .<= h_o_P)
+                e_k = fill(_seller.quality, num_buyers)
+                e_d = fill(_seller.durability, num_buyers)
 
-                    known_profits_around = [sum(h_P[(h_K .== k) .& (h_D .== d) .& (h_M .== m) .& (h_Q .== q)]) for k in K_range, d in D_range, m in M_range, q in Q_range]
+                o_k = mean(getfield.(sellers[Not(_seller.id)], :quality_history))[end]
+                o_d = mean(getfield.(sellers[Not(_seller.id)], :durability_history))[end]
 
-                    known_demands_around = [mean(h_Q[(h_K .== k) .& (h_D .== d) .& (h_M .== m) .& (h_Q .== q)]) for k in K_range, d in D_range, m in M_range, q in Q_range]
+                #o_k = [2*x[end]-x[end-1] for x in mean(getfield.(sellers[Not(_seller.id)], :quality))]
+                #o_d = [2*x[end]-x[end-1] for x in mean(getfield.(sellers[Not(_seller.id)], :durability))]
 
-                    known_items_around = [count((h_K .== k) .& (h_D .== d) .& (h_M .== m).& (h_Q .== q)) for k in K_range, d in D_range, m in M_range, q in Q_range]
+                ρ_mean = rand(Uniform(ρm, 1.0), num_buyers)
+                β_mean = rand(Uniform(0,1), num_buyers)
 
-                    known_profits_around[isnan.(known_profits_around)] .= 0
-                    known_demands_around[isnan.(known_demands_around)] .= 0
-                    known_items_around[isnan.(known_demands_around)] .= 0
+            end
 
-                    posterior_expected_profit_around = (expected_profit_around .+ known_profits_around) ./ (1 .+ known_items_around)
+            @assert all(0 .<= e_k .<= 1)
+            @assert all(0 .<= e_d .<= 1)
+            @assert all(0 .<= ρ_mean .<= 1)
+            @assert all(0 .<= β_mean .<= 1)
+            @assert all(0 .<= o_k .<= 1)              
+            @assert all(0 .<= o_d .<= 1)
 
-                else
+            expected_profit_around = [calculate_state_profit(k + dk, e_k .+ dk, d + dd, e_d .+ dd, m + dm, q + dq, o_k, o_d, o_p, num_buyers, μ_c, _seller.cost_coefficient, ρ_mean, β_mean, "profit", product_life) for dk in K_range, dd in D_range, dm in M_range, dq in Q_range] # prior
 
-                    posterior_expected_profit_around = expected_profit_around
+            if do_posterior
 
-                end
+                h_K = _seller.quality_history
+                h_D = _seller.durability_history
+                h_M = _seller.margin_history
+                h_P = calculate_profit_history(_seller)
+                h_Q = _seller.quantity_produced_history
 
-                if all(posterior_expected_profit_around .== 0)
-                    weights = vec(posterior_expected_profit_around)
-                else
-                    weights = create_weights(vec(posterior_expected_profit_around), method_weight)
-                end
+                h_o_K = mean(getfield.(sellers[Not(_seller.id)], :quality_history))
+                h_o_D = mean(getfield.(sellers[Not(_seller.id)], :durability_history))
+                h_o_P = mean(calculate_price_history.(sellers[Not(_seller.id)]; product_life =  product_life))
 
-                @assert all(0 .<= weights)
+                @assert all(0 .<= h_K .<= 1)
+                @assert all(0 .<= h_D .<= 1)
+                @assert all(0 .<= h_M)
+                @assert all(0 .<= h_Q)
+                @assert all(0 .<= h_o_K .<= 1)
+                @assert all(0 .<= h_o_D .<= 1)
+                @assert all(0 .<= h_o_P)
 
-                optimal_profit_args = sample(vec(CartesianIndices(posterior_expected_profit_around)), Weights(weights))
+                known_profits_around = [sum(h_P[(h_K .== k) .& (h_D .== d) .& (h_M .== m) .& (h_Q .== q)]) for k in K_range, d in D_range, m in M_range, q in Q_range]
 
-                push!(profit_expected, (_seller.id, "p", posterior_expected_profit_around[optimal_profit_args]))
+                known_demands_around = [mean(h_Q[(h_K .== k) .& (h_D .== d) .& (h_M .== m) .& (h_Q .== q)]) for k in K_range, d in D_range, m in M_range, q in Q_range]
 
-                new_quality = K_range[optimal_profit_args[1]]
-                new_durability = D_range[optimal_profit_args[2]]
-                new_margin = M_range[optimal_profit_args[3]]
-                new_quantity = Q_range[optimal_profit_args[4]]
+                known_items_around = [count((h_K .== k) .& (h_D .== d) .& (h_M .== m).& (h_Q .== q)) for k in K_range, d in D_range, m in M_range, q in Q_range]
 
-                expected_demand = calculate_state_profit(new_quality, e_k,new_durability, e_d, new_margin, new_quantity, o_k, o_d, o_p, num_buyers, μ_c, _seller.cost_coefficient, ρ_mean, β_mean, "demand", product_life)
+                known_profits_around[isnan.(known_profits_around)] .= 0
+                known_demands_around[isnan.(known_demands_around)] .= 0
+                known_items_around[isnan.(known_demands_around)] .= 0
 
-                @assert expected_demand >= 0
+                posterior_expected_profit_around = (expected_profit_around .+ known_profits_around) ./ (1 .+ known_items_around)
 
-                if do_posterior
+            else
 
-                    posterior_expected_demand = Int(ceil((expected_demand + known_demands_around[optimal_profit_args]) / (1 + known_items_around[optimal_profit_args])))
+                posterior_expected_profit_around = expected_profit_around
 
-                else
+            end
 
-                    posterior_expected_demand = expected_demand
+            if all(posterior_expected_profit_around .== 0)
+                weights = vec(posterior_expected_profit_around)
+            else
+                weights = create_weights(vec(posterior_expected_profit_around), method_weight)
+            end
 
-                end
+            @assert all(0 .<= weights)
 
-                @assert posterior_expected_demand >= 0
+            optimal_profit_args = sample(vec(CartesianIndices(posterior_expected_profit_around)), Weights(weights))
 
-                if iter == (randPeriod + 1)
+            push!(profit_expected, (_seller.id, "p", posterior_expected_profit_around[optimal_profit_args]))
 
-                    new_quantity = posterior_expected_demand
+            new_quality = k + K_range[optimal_profit_args[1]]
+            new_durability = d + D_range[optimal_profit_args[2]]
+            new_margin = m + M_range[optimal_profit_args[3]]
+            new_quantity = q + Q_range[optimal_profit_args[4]]
 
-                end
+            expected_demand = calculate_state_profit(new_quality, e_k,new_durability, e_d, new_margin, new_quantity, o_k, o_d, o_p, num_buyers, μ_c, _seller.cost_coefficient, ρ_mean, β_mean, "demand", product_life)
 
-                push!(profit_expected, (_seller.id, "qp", new_quantity))
+            @assert expected_demand >= 0
 
-                push!(profit_expected, (_seller.id, "ed", posterior_expected_demand))
+            if do_posterior
 
-                push!(profit_expected, (_seller.id, "mats", (expected_profit_around, posterior_expected_profit_around)))
+                posterior_expected_demand = Int(ceil((expected_demand + known_demands_around[optimal_profit_args]) / (1 + known_items_around[optimal_profit_args])))
 
-                _seller.quality = new_quality
-                _seller.durability = new_durability
-                _seller.margin = new_margin
-                _seller.quantity_produced = new_quantity
+            else
 
-                @assert _seller.quality_range[1] <= _seller.quality <= _seller.quality_range[2]
-                @assert _seller.durability_range[1] <= _seller.durability <= _seller.durability_range[2]
-                @assert _seller.margin_range[1] <= _seller.margin <= _seller.margin_range[2]
-                @assert _seller.quality_range[1] <= _seller.quality <= _seller.quality_range[2]
+                posterior_expected_demand = expected_demand
 
-                @assert _seller.quantity_produced >= 0
+            end
+
+            @assert posterior_expected_demand >= 0
+
+            if iter == (randPeriod + 1)
+
+                new_quantity = posterior_expected_demand
+
+            end
+
+            push!(profit_expected, (_seller.id, "qp", new_quantity))
+
+            push!(profit_expected, (_seller.id, "ed", posterior_expected_demand))
+
+            push!(profit_expected, (_seller.id, "mats", (expected_profit_around, posterior_expected_profit_around)))
+
+            _seller.quality = new_quality
+            _seller.durability = new_durability
+            _seller.margin = new_margin
+            _seller.quantity_produced = new_quantity
+
+            @assert _seller.quality_range[1] <= _seller.quality <= _seller.quality_range[2]
+            @assert _seller.durability_range[1] <= _seller.durability <= _seller.durability_range[2]
+            @assert _seller.margin_range[1] <= _seller.margin <= _seller.margin_range[2]
+            @assert _seller.quality_range[1] <= _seller.quality <= _seller.quality_range[2]
+
+            @assert _seller.quantity_produced >= 0
 
         end
 
@@ -641,7 +651,7 @@ function consumers_discover_q_d(buyers::Vector{buyer}, sellers::Vector{seller}, 
 
         push!(_buyer.unit_possessed_history, _buyer.unit_possessed)
 
-        @assert sum(_buyer.unit_possessed) <= 1
+        @assert 0 <= sum(_buyer.unit_possessed) <= 1
 
         push!(_buyer.reselling_probability_history, _buyer.reselling_probability)
 
@@ -984,7 +994,7 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
 
 end
 
-function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, λ_ind, λ_wom, buyer_behaviour, kr, dr, mr, μ_c, secondary_market_exists, rand_period, future_discount_range, method_weight, consumer_research, sample_size, product_life, samples_fixed, do_posterior)
+function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, λ, θ, buyer_behaviour, kr, dr, mr, μ_c, secondary_market_exists, rand_period, future_discount_range, method_weight, consumer_research, sample_size, product_life, samples_fixed, do_posterior)
 
     ρm = future_discount_range[1]
 
@@ -1009,7 +1019,7 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
 
             buyers = consumers_discover_q_d(buyers, sellers, iter)
 
-            buyers = consumers_update_expectations(buyers, iter, λ_ind, λ_wom)
+            buyers = consumers_update_expectations(buyers, iter, λ, θ)
 
             sellers = sellers_utilize_not_sold_products(sellers, μ_c, product_life)
 
@@ -1030,7 +1040,7 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
 
             buyers = consumers_discover_q_d(buyers, sellers, iter)
 
-            buyers = consumers_update_expectations(buyers, iter, λ_ind, λ_wom)
+            buyers = consumers_update_expectations(buyers, iter, λ, θ)
 
             sellers = sellers_utilize_not_sold_products(sellers, μ_c, product_life)
 

@@ -492,3 +492,43 @@ Plots.plot(calculate_profit_history(sim_single.sellers[2]))
 Plots.plot!(vcat(0, getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected, 1) .== 2) .& (getindex.(sim_single.profit_expected, 2) .== "p")], 3)))
 
 countmap(getfield.(vcat(getfield.(sim_single.buyers, :unit_buying_selling_history)...), :decision))
+
+
+########################################### Producer profit expectations
+##
+
+Random.seed!(12345)
+
+sim_single = TO_GO(1000, 2, 400, 600, [0.4, 0.4], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.10, true, 0, [0.7, 1.], "softmax", [true, true], [0.1, 0.1], 2, false, false)
+
+Plots.plot(sum([[any(xi .> 0) for xi in x] for x in getfield.(sim_single.buyers, :unit_possessed_history)]))
+
+plot_quantity(sim_single.sellers,1)
+plot_quantity(sim_single.sellers,2)
+
+Plots.plot(getfield.(sim_single.sellers, :quality_history))
+Plots.plot(getfield.(sim_single.sellers, :durability_history))
+Plots.plot(getfield.(sim_single.sellers, :margin_history))
+
+max_periods = product_age(sim_single.buyers)
+
+using Latexify
+
+df = DataFrame(Wartość_oczekiwana = round.(mean.(max_periods), digits = 2), 
+        Mediana = round.(median.(max_periods), digits = 2),
+        Odchylenie_standardowe = round.(std.(max_periods), digits = 2),
+        Rozstęp_międzykwartylowy = round.(iqr.(max_periods), digits = 2))
+
+latexify(df, env = :table) |> print
+
+StatsPlots.density(max_periods[1])
+StatsPlots.density!(max_periods[2])
+StatsPlots.density!(max_periods[3])
+
+Plots.plot(calculate_profit_history(sim_single.sellers[1]))
+Plots.plot!(vcat(0,getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected, 1) .== 1) .& (getindex.(sim_single.profit_expected, 2) .== "p")], 3)))
+
+Plots.plot(calculate_profit_history(sim_single.sellers[2]))
+Plots.plot!(vcat(0, getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected, 1) .== 2) .& (getindex.(sim_single.profit_expected, 2) .== "p")], 3)))
+
+countmap(getfield.(vcat(getfield.(sim_single.buyers, :unit_buying_selling_history)...), :decision))
