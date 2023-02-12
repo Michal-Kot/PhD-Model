@@ -131,17 +131,17 @@ using Plots
 using LaTeXStrings
 
 β = 0.8
-c = 0.4
-m = 1.2
+c = 0.6
+m = 1.1
 
 k1 = 0.85
-k2 = 0.15
+k2 = 0.85
 
 d1 = 0.85
-d2 = 0.45
+d2 = 0.78
 
-ρ = 0.95
-H = 10
+ρ = 0.85
+H = 4
 
 betas = LinRange(0.001:0.001:0.999)
 
@@ -150,15 +150,13 @@ surplus(β, k, d, H, c, m, ρ) = β * k * (1-(ρ*d)^H)/(1-ρ*d) - c*m * k * (1-(
 s1 = [surplus(β, k1, d1, H, c, m, ρ) for β in betas]
 s2 = [surplus(β, k2, d2, H, c, m, ρ) for β in betas]
 
-plot(s1)
-plot!(s2)
+Plots.plot(betas, s1)
+Plots.plot!(betas, s2)
 
 s1 = max.(0, s1)
 s2 = max.(0, s2)
 
 calc_prob(x1,x2) = (x1 == 0) & (x2 == 0) ? 0 : x1 / (x1+x2)
-
-calc_prob.(s2, s1)[561]
 
 beta_prob = Plots.plot(betas, calc_prob.(s1, s2), xlabel = "Cena rezerwacji, " * L"\beta_i", ylabel = "Prawdopodobieństwo wyboru", ylim = (0,1), legend = :topleft, label = "Firma 1, " * L"(K_{jt} = 0.85, D_{jt} = 0.85)", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, title = "Prawdopodobieństwo zakupu a cena rezerwacji")
 Plots.plot!(betas, calc_prob.(s2, s1), label = "Firma 2, " * L"(K_{jt} = 0.15, D_{jt} = 0.45)")

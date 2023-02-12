@@ -8,7 +8,7 @@ jldsave("C:\\Users\\User\\Documents\\PhDWorkspace.jld2")
 
 @time Random.seed!(1234)
 
-@time sim_single = TO_GO(200, 2, 400, 500, [0.4, 0.4], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 1, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false, false)
+@time sim_single = TO_GO(200, 2, 400, 1400, [0.4, 0.4], [1.0, 1.0], "random", .25, .25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.10, true, 1, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false, false)
 
 [[getindex.(x,j) for x in getfield.(sim_single.buyers, :quality_expectation_history)] for j in 1:2]
 
@@ -70,32 +70,23 @@ Plots.plot!(u.(sim_single.sellers[2].quality_history,
 
 
 quality_expectation_buyers = [[] for _ = 1:200] # to T
-
+sim_single.buyers[1].unit_buying_selling_history
 for b in sim_single.buyers
     ubsh = b.unit_buying_selling_history
     for item in ubsh
-        if item.d == "buy, primary market"
+        if item.decision == "buy, primary market"
             qe = getindex.(b.quality_expectation_history, 1)[item.t]
             push!(quality_expectation_buyers[item.t], qe)
         end
     end
 end
-
-
-
-
 p = Plots.plot(xlabel = "T", ylabel = "Jakość / oczekiwana jakość", legend = :bottomleft)
-
 for i in 1:400
     p = Plots.plot!(getindex.(sim_single.buyers[i].quality_expectation_history, 1), color = "grey", linealpha = 0.10, label = nothing)
 end
-
 p
-
 Plots.plot!(sim_single.sellers[1].quality_history, label = "Średnia jakość, producent", linewidth = 2, color = "blue")
-
 Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "red", linewidth = 2, label = "Oczekiwana jakość, cała populacja")
-
 Plots.plot!(mean_nothing.(quality_expectation_buyers), label = "Oczekiwana jakość, kupujący w t", linewidth = 2, color = "orange")
 
 
@@ -111,7 +102,7 @@ sum_notmissing((sim_single.sellers[1].quality_history.- mean_nothing.(quality_ex
 sum(sim_single.sellers[1].quality_history.- mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)])) / 100
 
 
-Plots.plot(sim_single.sellers[1].quality_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Jakość / oczekiwana jakość", label = "Prawdziwa jakość", legend = :bottomleft, ylim = (0.5, 0.8))
+Plots.plot(sim_single.sellers[1].quality_history, color = "blue", linewidth = 2, xlabel = "t", ylabel = "Jakość / oczekiwana jakość", label = "Prawdziwa jakość", legend = :bottomleft)
 Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "blue", linewidth = 2, label = "Oczekiwana jakość, cała populacja", linestyle = :dot)
 Plots.plot!(mean_nothing.(quality_expectation_buyers), label = "Oczekiwana jakość, tylko kupujący")
 Plots.plot!(sim_single.sellers[2].quality_history, color = "orange", linewidth = 2, label = "Producent bada konsumentów - jakość")

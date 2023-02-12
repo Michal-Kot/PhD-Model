@@ -68,6 +68,8 @@ mutable struct seller
 
     consumers_asked::Vector{Vector{Int64}}
 
+    memory::Array
+
 end
 
 function create_sellers(num_sellers::Int64,c::Vector{Float64},m::Vector{Float64}, kr::Vector{Vector{Float64}}, dr::Vector{Vector{Float64}}, mr::Vector{Vector{Float64}}, cr::Vector{Bool}, ss::Vector{Float64})::Vector{seller}
@@ -110,7 +112,8 @@ function create_sellers(num_sellers::Int64,c::Vector{Float64},m::Vector{Float64}
         [],
         cr[s],
         ss[s],
-        []) #utilization_cost_history
+        [],
+        ones(Float64,3,3,3,3)) #utilization_cost_history
         push!(sellers_vector, new_seller)
     end
     return sellers_vector
@@ -275,10 +278,15 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
 
     for _seller in sellers
 
-        δ_k = round(sample(0:0.01:0.05), digits = 2)
-        δ_d = round(sample(0:0.01:0.05), digits = 2)
-        δ_m = round(sample(0:0.01:0.05), digits = 2)
-        δ_q = sample(1:10)
+        #δ_k = round(sample(0:0.01:0.05), digits = 2)
+        #δ_d = round(sample(0:0.01:0.05), digits = 2)
+        #δ_m = round(sample(0:0.01:0.05), digits = 2)
+        #δ_q = sample(1:10)
+
+        δ_k = 0.05
+        δ_d = 0.05
+        δ_m = 0.05
+        δ_q = 5
 
         if iter >= (randPeriod + 1)
 
@@ -421,8 +429,9 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
             end
 
             if all(posterior_expected_profit_around .== 0)
-                weights = vec(posterior_expected_profit_around)
+                weights = posterior_expected_profit_around
             else
+                #weights = create_weights(vec(2 .^ (sign.(posterior_expected_profit_around) .* _seller.memory) .* posterior_expected_profit_around), method_weight)
                 weights = create_weights(vec(posterior_expected_profit_around), method_weight)
             end
 
@@ -437,7 +446,7 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
             new_margin = m + M_range[optimal_profit_args[3]]
             new_quantity = q + Q_range[optimal_profit_args[4]]
 
-            expected_demand = calculate_state_profit(new_quality, e_k,new_durability, e_d, new_margin, new_quantity, o_k, o_d, o_p, num_buyers, μ_c, _seller.cost_coefficient, ρ_mean, β_mean, "demand", product_life)
+            expected_demand = calculate_state_profit(new_quality, e_k .+ K_range[optimal_profit_args[1]] ,new_durability, e_d .+ D_range[optimal_profit_args[2]], new_margin, new_quantity, o_k, o_d, o_p, num_buyers, μ_c, _seller.cost_coefficient, ρ_mean, β_mean, "demand", product_life)
 
             @assert expected_demand >= 0
 
@@ -994,6 +1003,32 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
 
 end
 
+function sellers_assess_decisions(sellers)
+
+    for _seller in sellers
+
+        profit_history = calculate_profit_history(_seller)
+        quality_history = _seller.quality_history
+        durability_history = _seller.durability_history
+        margin_history = _seller.margin_history
+        quantity_history = _seller.quantity_produced_history
+
+        profit_change = sign.(diff(profit_history))
+        quality_change = sign.(diff(quality_history))
+        durability_change = sign.(diff(durability_history))
+        margin_change = sign.(diff(margin_history))
+        quantity_change = sign.(diff(quantity_history))
+
+        new_data = [sum_na(profit_change[(quality_change .== qlc) .& (durability_change .== dc) .& (margin_change .== mc) .& (quantity_change .== qtc)]) for qlc in (-1,0,1), dc in (-1,0,1), mc in (-1,0,1), qtc in (-1,0,1)]
+
+        _seller.memory = new_data
+
+    end
+
+    return sellers
+
+end
+
 function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, λ, θ, buyer_behaviour, kr, dr, mr, μ_c, secondary_market_exists, rand_period, future_discount_range, method_weight, consumer_research, sample_size, product_life, samples_fixed, do_posterior)
 
     ρm = future_discount_range[1]
@@ -1045,6 +1080,8 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
             sellers = sellers_utilize_not_sold_products(sellers, μ_c, product_life)
 
             if iter < maxIter
+
+                #sellers = sellers_assess_decisions(sellers)
 
                 sellers = sellers_choose_qp_k_d_m_states(buyers, sellers, rand_period, iter, num_buyers, profit_expected, μ_c, method_weight, product_life, samples_fixed, ρm, do_posterior)
 

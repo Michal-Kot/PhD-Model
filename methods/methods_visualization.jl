@@ -27,7 +27,7 @@ function plot_margin(sim_res, res_perc)
     end
 end
 
-function plot_ecdf(is_new, metric, label; xlabel="", ylabel="", title="", xlim, ylim)
+function plot_ecdf(is_new, metric, label; xlabel="", ylabel="", title="", xlim=nothing, ylim=nothing)
     if is_new
         Plots.plot(sort(metric), (1:length(metric))./length(metric), xlabel = xlabel, ylabel = ylabel, title = title, label = label, legend=:bottomright, legendfontsize = 6, xlim=xlim, ylim=ylim)
     else

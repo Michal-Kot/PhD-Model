@@ -92,8 +92,8 @@ function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64
     eρ = ρ_dist
 
     @assert all(0 .<= s .<= 1)
-    #@assert all(0 .<= eK .<= 1)
-    #@assert all(0 .<= eD .<= 1)
+    @assert all(-0.1 .<= eK .<= 1.1)
+    @assert all(-0.1 .<= eD .<= 1.1)
     @assert all(0 .<= eρ .<= 1)
 
     o_U = s .* sum_of_geom_series_finite(o_K, eρ * o_D; t = product_life) .- o_P # użyteczność dobra konkurencji, jeśli liczba konkurentów > 1, to o_k, o_D i o_P są średnimi
@@ -108,9 +108,9 @@ function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64
 
     @assert price >= 0
 
-    profit = min(demand,Q) .* price .+ min(0, Q - demand) .* (1 - μ_c) .* cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life) - Q * cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life)  # oczekiwany zysk firmy
+    profit = min(demand,Q) .* price .+ max(0, Q - demand) .* (1 - μ_c) .* cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life) - Q * cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life)  # oczekiwany zysk firmy
 
-    @assert min(demand, Q) >= 0
+    @assert max(demand, Q) >= 0
     @assert 1 - μ_c >= 0
     @assert cost_coefficient(K, D, cc) >= 0
     @assert sum_of_geom_series_finite(K, D; t = product_life) >= 0
@@ -310,6 +310,7 @@ mean_nothing(x) = length(x) == 0 ? missing : mean(x)
 maximum_nothing(x) = length(x) == 0 ? missing : maximum(x)
 minimum_nothing(x) = length(x) == 0 ? missing : minimum(x)
 std_nothing(x) = length(x) == 0 ? missing : std(x)
+sum_na(x) = lastindex(x) == 0 ? 0 : sum(x)
 
 function savefigs(plt, target)
     Plots.savefig(plt, pwd() * target * ".svg") # for pptx

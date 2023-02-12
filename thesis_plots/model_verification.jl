@@ -499,9 +499,12 @@ countmap(getfield.(vcat(getfield.(sim_single.buyers, :unit_buying_selling_histor
 
 Random.seed!(12345)
 
-sim_single = TO_GO(1000, 2, 400, 600, [0.4, 0.4], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.10, true, 0, [0.7, 1.], "softmax", [true, true], [0.1, 0.1], 2, false, false)
+sim_single = TO_GO(1000, 2, 400, 600, [0.4, 0.4], [1.0, 1.0], "random", 0.25, 0.25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.10, true, 0, [0.7, 1.], "softmax", [true, true], [0.1, 0.1], 10, false, false)
 
 Plots.plot(sum([[any(xi .> 0) for xi in x] for x in getfield.(sim_single.buyers, :unit_possessed_history)]))
+
+Plots.plot([[any(xi .> 0) for xi in x] for x in getfield.(sim_single.buyers, :unit_possessed_history)], color = "grey", linealpha = 0.1)
+Plots.plot!(mean([[any(xi .> 0) for xi in x] for x in getfield.(sim_single.buyers, :unit_possessed_history)]), color = "red")
 
 plot_quantity(sim_single.sellers,1)
 plot_quantity(sim_single.sellers,2)
@@ -532,3 +535,22 @@ Plots.plot(calculate_profit_history(sim_single.sellers[2]))
 Plots.plot!(vcat(0, getindex.(sim_single.profit_expected[(getindex.(sim_single.profit_expected, 1) .== 2) .& (getindex.(sim_single.profit_expected, 2) .== "p")], 3)))
 
 countmap(getfield.(vcat(getfield.(sim_single.buyers, :unit_buying_selling_history)...), :decision))
+
+
+######
+
+"maxIter", "num_sellers", "num_buyers", "num_links", "c", "m", "network_type", "λ_ind", "λ_wom", "buyer_behaviour", "kr", "dr", "mr", "μ_c", "secondary_market_exists", "rand_period", "future_discount_range", "method_weight", "consumer_research", "sample_size", "product_life", "samples_fixed", "do_posterior"
+
+maxIter
+num_sellers
+num_buyers
+num_links
+network_type
+λ
+θ
+k_range
+d_range
+m_range
+ρ_range
+product_life
+secondary_market_exists
