@@ -72,7 +72,7 @@ mutable struct seller
 
 end
 
-function create_sellers(num_sellers::Int64,c::Vector{Float64},m::Vector{Float64}, kr::Vector{Vector{Float64}}, dr::Vector{Vector{Float64}}, mr::Vector{Vector{Float64}}, cr::Vector{Bool}, ss::Vector{Float64})::Vector{seller}
+function create_sellers(num_sellers::Int64,c::Vector{Float64},m::Vector{Float64}, kr::Vector{Vector{Float64}}, dr::Vector{Vector{Float64}}, mr::Vector{Vector{Float64}}, cr::Vector{Bool}, ss::Vector{Float64}, product_life::Int64)::Vector{seller}
     
     @assert length(c) == num_sellers
     @assert length(m) == num_sellers
@@ -82,14 +82,24 @@ function create_sellers(num_sellers::Int64,c::Vector{Float64},m::Vector{Float64}
 
     sellers_vector = []
 
+    k = rand(Uniform(0.4, 0.6),num_sellers)
+    d = rand(Uniform(0.4, 0.6),num_sellers)
+    m2 = m[2]
+    m1 = initial_m(0.5, k[1], d[1], k[2], d[2], product_life, c[1], m2)
+    m = [m1, m2]
+
+    @assert round((0.5 - c[1] * m1) * sum_of_geom_series_finite(k[1], d[1]; t = product_life), digits = 5) == round((0.5 - c[1] * m2) * sum_of_geom_series_finite(k[2], d[2]; t = product_life), digits = 5)
+
     for s in 1:num_sellers
 
-        k = rand(Uniform(kr[s][1], kr[s][2]))
-        d = rand(Uniform(dr[s][1], dr[s][2]))
+        #k = rand(Uniform(kr[s][1], kr[s][2]))
+        #d = rand(Uniform(dr[s][1], dr[s][2]))
+
+        #m = round(0.5 / c[s], digits =1)
 
         new_seller = seller(s, #id
-        k, #quality
-        d, #durability
+        k[s], #quality
+        d[s], #durability
         c[s], #cost_coefficient
         m[s], #margin
         0.0, #cost_of_production
@@ -132,6 +142,7 @@ mutable struct buyer
     id::Int64
     neighbours::Vector{Int64}
     std_reservation_price::Float64
+    price_sensitivity::Float64
     future_discount::Float64
     quality_expectation::Vector{Float64}
     quality_expectation_history::Vector{Vector{Float64}}
@@ -164,12 +175,17 @@ mutable struct buyer
     signal_volume::Int64
 end
 
-function create_buyers(num_buyers::Int64, sellers::Vector{seller}, num_sellers::Int64, network::SimpleGraph{Int64}, future_discount_range::Vector{Float64}, product_life::Int64)::Vector{buyer}
+function create_buyers(num_buyers::Int64, sellers::Vector{seller}, num_sellers::Int64, network::SimpleGraph{Int64}, future_discount_range::Vector{Float64}, product_life::Int64, beta_dist)::Vector{buyer}
     buyers_vector = []
     for b in 1:num_buyers
         my_neighbours = neighbors(network, b)
 
-        qs_srp = rand(Uniform(0,1))
+        #qs_srp = rand(Uniform(0,1))
+        #ps = rand(Uniform(1,2))
+
+        qs_srp = rand(beta_dist)
+        ps = rand(TriangularDist(1,2,1.5))
+
         future_discount = rand(Uniform(future_discount_range[1],future_discount_range[2]))
 
         initial_quality_expectation = getfield.(sellers, :quality)
@@ -208,6 +224,7 @@ function create_buyers(num_buyers::Int64, sellers::Vector{seller}, num_sellers::
         new_buyer = buyer(b, #id
             my_neighbours, #neighbours
             qs_srp, #std_reservation_price
+            ps,
             future_discount, #future_discount
             initial_quality_expectation, #quality_expectation
             [], #quality_expectation_history
@@ -268,7 +285,7 @@ include(pwd() * "\\methods\\methods_aux.jl")
 
 __precompile__()
 
-function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{seller}, randPeriod::Int64, iter::Int64, num_buyers::Int64, profit_expected::Vector, μ_c::Float64, method_weight::String, product_life::Int64, samples_fixed::Bool, ρm::Float64, do_posterior::Bool)::Vector{seller}
+function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{seller}, randPeriod::Int64, iter::Int64, num_buyers::Int64, profit_expected::Vector, μ_c::Float64, method_weight::String, product_life::Int64, mean_or_distr::String, ρm::Float64, do_posterior::Bool)::Vector{seller}
 
     """
 
@@ -283,9 +300,9 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
         #δ_m = round(sample(0:0.01:0.05), digits = 2)
         #δ_q = sample(1:10)
 
-        δ_k = 0.05
-        δ_d = 0.05
-        δ_m = 0.05
+        δ_k = 0.025
+        δ_d = 0.025
+        δ_m = 0.025
         δ_q = 5
 
         if iter >= (randPeriod + 1)
@@ -324,33 +341,17 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
 
                 ρ_all = getfield.(buyers, :future_discount)
                 β_all = getfield.(buyers, :std_reservation_price)
+                ps_all = getfield.(buyers, :price_sensitivity)
+
+                @assert lastindex(ps_all) == num_buyers
 
                 e_k_o_all = [mean(x[Not(_seller.id)]) for x in getfield.(buyers, :quality_expectation)] 
                 e_d_o_all = [mean(x[Not(_seller.id)]) for x in getfield.(buyers, :durability_expectation)]
 
-                kdρ = [x for x in zip(e_k_all, e_d_all, ρ_all, β_all, e_k_o_all, e_d_o_all)]
+                kdρ = [x for x in zip(e_k_all, e_d_all, ρ_all, β_all, ps_all, e_k_o_all, e_d_o_all)]
 
-                if samples_fixed
-
-                    if iter == (randPeriod + 1)
-
-                        kdρ_idx = sample(1:length(kdρ), Int(round(sample_size * num_buyers)), replace = false)
-
-                        push!(_seller.consumers_asked, kdρ_idx)
-
-                    else
-
-                        kdρ_idx = _seller.consumers_asked[end]
-                        push!(_seller.consumers_asked, kdρ_idx)
-
-                    end
-
-                else
-
-                    kdρ_idx = sample(1:length(kdρ), Int(round(sample_size * num_buyers)), replace = false)
-                    push!(_seller.consumers_asked, kdρ_idx)
-
-                end
+                kdρ_idx = sample(1:length(kdρ), Int(round(sample_size * num_buyers)), replace = false)
+                push!(_seller.consumers_asked, kdρ_idx)
 
                 observed_kdρ = kdρ[kdρ_idx]
 
@@ -362,8 +363,9 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
                 e_d = getindex.(observed_kdρ, 2)
                 ρ_mean = getindex.(observed_kdρ, 3)
                 β_mean = getindex.(observed_kdρ, 4)
-                o_k = mean(getindex.(kdρ, 5))
-                o_d = mean(getindex.(kdρ, 6))
+                ps_mean = getindex.(observed_kdρ, 5)
+                o_k = mean(getindex.(kdρ, 6))
+                o_d = mean(getindex.(kdρ, 7))
 
             else
 
@@ -373,11 +375,19 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
                 o_k = mean(getfield.(sellers[Not(_seller.id)], :quality_history))[end]
                 o_d = mean(getfield.(sellers[Not(_seller.id)], :durability_history))[end]
 
-                #o_k = [2*x[end]-x[end-1] for x in mean(getfield.(sellers[Not(_seller.id)], :quality))]
-                #o_d = [2*x[end]-x[end-1] for x in mean(getfield.(sellers[Not(_seller.id)], :durability))]
+                if mean_or_distr == "dist"
 
-                ρ_mean = rand(Uniform(ρm, 1.0), num_buyers)
-                β_mean = rand(Uniform(0,1), num_buyers)
+                    ρ_mean = rand(Uniform(ρm, 1.0), num_buyers)
+                    β_mean = rand(Uniform(0,1), num_buyers)
+                    ps_mean = rand(Uniform(1,2), num_buyers)
+
+                else
+
+                    ρ_mean = fill((ρm +1.0) / 2, num_buyers)
+                    β_mean = fill(0.5, num_buyers)
+                    ps_mean =fill(1.5, num_buyers)
+
+                end
 
             end
 
@@ -385,10 +395,11 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
             @assert all(0 .<= e_d .<= 1)
             @assert all(0 .<= ρ_mean .<= 1)
             @assert all(0 .<= β_mean .<= 1)
+            @assert all(1 .<= ps_mean .<= 2)
             @assert all(0 .<= o_k .<= 1)              
             @assert all(0 .<= o_d .<= 1)
 
-            expected_profit_around = [calculate_state_profit(k + dk, e_k .+ dk, d + dd, e_d .+ dd, m + dm, q + dq, o_k, o_d, o_p, num_buyers, μ_c, _seller.cost_coefficient, ρ_mean, β_mean, "profit", product_life) for dk in K_range, dd in D_range, dm in M_range, dq in Q_range] # prior
+            expected_profit_around = [calculate_state_profit(k + dk, e_k .+ dk, d + dd, e_d .+ dd, m + dm, q + dq, o_k, o_d, o_p, num_buyers, μ_c, _seller.cost_coefficient, ρ_mean, β_mean, ps_mean, "profit", product_life) for dk in K_range, dd in D_range, dm in M_range, dq in Q_range] # prior
 
             if do_posterior
 
@@ -429,15 +440,32 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
             end
 
             if all(posterior_expected_profit_around .== 0)
-                weights = posterior_expected_profit_around
+               
+                weights = vec(posterior_expected_profit_around)
+                optimal_profit_args = sample(vec(CartesianIndices(posterior_expected_profit_around)), Weights(weights))
+
             else
-                #weights = create_weights(vec(2 .^ (sign.(posterior_expected_profit_around) .* _seller.memory) .* posterior_expected_profit_around), method_weight)
+
                 weights = create_weights(vec(posterior_expected_profit_around), method_weight)
+                @assert all(0 .<= weights)
+                optimal_profit_args = sample(vec(CartesianIndices(posterior_expected_profit_around)), Weights(weights))
+
             end
 
-            @assert all(0 .<= weights)
+            # reduce price to increase surplus
 
-            optimal_profit_args = sample(vec(CartesianIndices(posterior_expected_profit_around)), Weights(weights))
+            price = cost_coefficient(k, d, _seller.cost_coefficient) * sum_of_geom_series_finite(k, d; t = product_life) * m  # marża na 1 sprzedanym produkcie
+
+            u = β_mean .* sum_of_geom_series_finite.(e_k, ρ_mean .* e_d; t = product_life)  .- price # użyteczność mojego dobra przy parametrach K, D, M
+
+            if (mean(u) < 0) & (calculate_profit_history(_seller)[end] <= 0.0) & (iter >= 2)
+                #println("Price lowered in " * string(iter))
+                if rand() < 0.50
+                    optimal_profit_args = Base.setindex(optimal_profit_args, 1, 3)
+                end
+                #println(optimal_profit_args)
+                #println(M_range[optimal_profit_args[3]])
+            end
 
             push!(profit_expected, (_seller.id, "p", posterior_expected_profit_around[optimal_profit_args]))
 
@@ -446,7 +474,23 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
             new_margin = m + M_range[optimal_profit_args[3]]
             new_quantity = q + Q_range[optimal_profit_args[4]]
 
-            expected_demand = calculate_state_profit(new_quality, e_k .+ K_range[optimal_profit_args[1]] ,new_durability, e_d .+ D_range[optimal_profit_args[2]], new_margin, new_quantity, o_k, o_d, o_p, num_buyers, μ_c, _seller.cost_coefficient, ρ_mean, β_mean, "demand", product_life)
+            expected_demand = calculate_state_profit(new_quality, 
+            e_k .+ K_range[optimal_profit_args[1]],
+            new_durability, 
+            e_d .+ D_range[optimal_profit_args[2]], 
+            new_margin, 
+            new_quantity, 
+            o_k,
+            o_d, 
+            o_p, 
+            num_buyers, 
+            μ_c, 
+            _seller.cost_coefficient, 
+            ρ_mean, 
+            β_mean, 
+            ps_mean, 
+            "demand", 
+            product_life)
 
             @assert expected_demand >= 0
 
@@ -570,7 +614,10 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
 
         buy_requirement = buy_vs_keep .> 0
 
-        requirements = vcat(supply_requirement .* buy_requirement .* buy_surplus)
+        price_requirement = buy_prices .<= (_buyer.std_reservation_price / _buyer.price_sensitivity)
+        # 
+        requirements = vcat(supply_requirement .* buy_requirement  .* buy_surplus .* price_requirement)
+        
 
         chosen_product = -1
         pm_surplus = 0.0
@@ -1029,14 +1076,14 @@ function sellers_assess_decisions(sellers)
 
 end
 
-function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, λ, θ, buyer_behaviour, kr, dr, mr, μ_c, secondary_market_exists, rand_period, future_discount_range, method_weight, consumer_research, sample_size, product_life, samples_fixed, do_posterior)
+function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, λ, θ, buyer_behaviour, kr, dr, mr, μ_c, secondary_market_exists, rand_period, future_discount_range, method_weight, consumer_research, sample_size, product_life, mean_or_distr, do_posterior, beta_dist)
 
     ρm = future_discount_range[1]
 
-    sellers = create_sellers(num_sellers, c, m, kr, dr, mr, consumer_research, sample_size)
+    sellers = create_sellers(num_sellers, c, m, kr, dr, mr, consumer_research, sample_size, product_life)
 
     buyers_network = create_network(network_type, num_buyers = num_buyers, num_links = num_links)
-    buyers = create_buyers(num_buyers, sellers, num_sellers, buyers_network,future_discount_range, product_life)
+    buyers = create_buyers(num_buyers, sellers, num_sellers, buyers_network,future_discount_range, product_life, beta_dist)
 
     profit_expected = []
  
@@ -1044,7 +1091,7 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
 
         if iter == 0
 
-            sellers = sellers_choose_qp_k_d_m_states(buyers, sellers, rand_period, iter, num_buyers, profit_expected, μ_c, method_weight, product_life, samples_fixed, ρm, do_posterior)
+            sellers = sellers_choose_qp_k_d_m_states(buyers, sellers, rand_period, iter, num_buyers, profit_expected, μ_c, method_weight, product_life, mean_or_distr, ρm, do_posterior)
 
         elseif iter == 1
 
@@ -1060,7 +1107,7 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
 
             buyers, sellers = buyers_products_age(buyers, sellers, iter, product_life)
 
-            sellers = sellers_choose_qp_k_d_m_states(buyers, sellers, rand_period, iter, num_buyers, profit_expected, μ_c, method_weight, product_life, samples_fixed, ρm, do_posterior)
+            sellers = sellers_choose_qp_k_d_m_states(buyers, sellers, rand_period, iter, num_buyers, profit_expected, μ_c, method_weight, product_life, mean_or_distr, ρm, do_posterior)
 
 
         elseif iter >= 2
@@ -1083,7 +1130,7 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
 
                 #sellers = sellers_assess_decisions(sellers)
 
-                sellers = sellers_choose_qp_k_d_m_states(buyers, sellers, rand_period, iter, num_buyers, profit_expected, μ_c, method_weight, product_life, samples_fixed, ρm, do_posterior)
+                sellers = sellers_choose_qp_k_d_m_states(buyers, sellers, rand_period, iter, num_buyers, profit_expected, μ_c, method_weight, product_life, mean_or_distr, ρm, do_posterior)
 
             end
 

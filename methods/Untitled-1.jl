@@ -28,10 +28,10 @@ function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64
     @assert price >= 0
 
     TR = min(demand,Q) .* price
-    LR = min(0, Q - demand) .* (1 - μ_c) .* cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life)
+    LR = max(0, Q - demand) .* (1 - μ_c) .* cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life)
     TC = Q * cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life)
 
-    profit = min(demand,Q) .* price .+ min(0, Q - demand) .* (1 - μ_c) .* cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life) - Q * cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life)  # oczekiwany zysk firmy
+    profit = min(demand,Q) .* price .+ max(0, Q - demand) .* (1 - μ_c) .* cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life) - Q * cost_coefficient(K, D, cc) .* sum_of_geom_series_finite(K, D; t = product_life)  # oczekiwany zysk firmy
 
     @assert min(demand, Q) >= 0
     @assert 1 - μ_c >= 0
@@ -43,7 +43,7 @@ function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64
     elseif return_type == "demand"
         return demand
     elseif return_type == "detailed"
-        return ()
+        return (TR, LR, TC)
     end
 
 end
@@ -60,9 +60,6 @@ eD_dist = fill(D, N)
 
 M = 1.1
 
-(M-1) * cc * K * (1-D^H)/(1-D) * 6
-
-
 Q = round(N/3)
 
 μ_c = 0.0
@@ -76,8 +73,30 @@ o_P = sum_of_geom_series_finite(o_K, o_D; t=product_life) * cost_coefficient(o_K
 
 ep = [calculate_state_profit(K + dk, eK_dist .+ dk, D + dd, eD_dist .+ dd, M + dm, Q + dq, o_K, o_D, o_P, N, μ_c, cc, ρ_dist, β_dist, "profit", product_life) for dk in [-0.05, 0, 0.05], dd in [-0.05, 0, 0.05], dm in [-0.05, 0, 0.05], dq in [-5,0,5]] # prior
 
+ep1 = [calculate_state_profit(K + dk, fill(0.2, N) .+ dk, D + dd, eD_dist .+ dd, M + dm, Q + dq, o_K, o_D, o_P, N, μ_c, cc, ρ_dist, β_dist, "profit", product_life) for dk in [-0.05, 0, 0.05], dd in [-0.05, 0, 0.05], dm in [-0.05, 0, 0.05], dq in [-5,0,5]] # prior
+
+calculate_state_profit(K, eK_dist, D, eD_dist, M, Q, o_K, o_D, o_P, N, μ_c, cc, ρ_dist, β_dist, "profit", product_life)
+
 argmax()
 
 Int(round(mean([sum((rand(10) .> 0.5) .& (rand(10) .> rand(10)) .& (rand(N) .< 1/product_life)) for iter in 1:10])))
 
 β_dist .* sum_of_geom_series_finite.(eK, eρ .* eD; t = product_life)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) .* M
+
+
+function initial_m(β, k1, d1, k2, d2, H, c, m2)
+    m1= (β*sum_of_geom_series_finite(k1,d1;t=H)-sum_of_geom_series_finite(k2,d2;t=H) * (β - m2 * c)) / (c * sum_of_geom_series_finite(k1,d1;t=H))
+    return m1
+end
+
+β = 0.5
+k1 = 0.4
+d1 = 0.6
+k2 = 0.5
+d2 = 0.3
+H = 4
+c = 0.4
+m2 = 1.3
+
+round((β - c * initial_m(β, k1, d1, k2, d2, H, c, m2)) * sum_of_geom_series_finite(k1, d1; t = H), digits = 5)
+round((β - c * m2) * sum_of_geom_series_finite(k2, d2; t = H), digits = 5)

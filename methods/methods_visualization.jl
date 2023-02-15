@@ -35,14 +35,6 @@ function plot_ecdf(is_new, metric, label; xlabel="", ylabel="", title="", xlim=n
     end
 end
 
-function plot_ecdf(is_new, metric, label; xlabel="", ylabel="", title="")
-    if is_new
-        Plots.plot(sort(metric), (1:length(metric))./length(metric), xlabel = xlabel, ylabel = ylabel, title = title, label = label, legend=:bottomright, legendfontsize = 6)
-    else
-        Plots.plot!(sort(metric), (1:length(metric))./length(metric), label = label)
-    end
-end
-
 function add_smoothing_spline(x,y,clr,lbl,λ=0.05)
     spl = fit(SmoothingSpline, x, y, λ)
     y_hat = predict(spl)

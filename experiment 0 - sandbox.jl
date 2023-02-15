@@ -1,14 +1,18 @@
 include(pwd() * "\\methods\\methods.jl")
 
-using JLD2
-using FileIO
-jldsave("C:\\Users\\User\\Documents\\PhDWorkspace.jld2")
+#using JLD2
+#using FileIO
+#jldsave("C:\\Users\\User\\Documents\\PhDWorkspace.jld2")
 
 #################################### AUX FUNCTIONS ##############################################################
 
 @time Random.seed!(1234)
 
-@time sim_single = TO_GO(200, 2, 400, 1400, [0.4, 0.4], [1.0, 1.0], "random", .25, .25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.10, true, 1, [0.7, 1.], "softmax", [false, true], [0, 0.1], 8, false, false)
+@time sim_single = TO_GO(200, 2, 400, 600, [0.4, 0.4], [1.3, 1.3], "random", .25, .25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.10, true, 1, [0.7, 1.], "softmax", [false, true], [0., 0.1], 6, false, false)
+
+Plots.plot(getfield.(sim_single.sellers, :quality_history))
+
+Plots.plot(calculate_profit_history.(sim_single.sellers))
 
 [[getindex.(x,j) for x in getfield.(sim_single.buyers, :quality_expectation_history)] for j in 1:2]
 
