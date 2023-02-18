@@ -54,17 +54,17 @@ ex3_v100101_ρm = []
 ex3_v100101_cc = []
 ex3_v100101_m = []
 
-for i in 1:100
+for i in 1:400
 
     println(i)
 
-    li = sample(0.0:0.25:1.0)
-    lw = sample(0.0:0.25:1.0)
-    h = sample(2:8)
+    li = sample(0.25:0.25:1.0)
+    lw = sample(0.25:0.25:1.0)
+    h = sample(4:8)
     sd = sample(1:100000)
     cu = sample(0.1:0.1:0.5)
-    sm = sample(0.025:0.025:0.150)
-    nl = sample(200:200:2400)
+    sm = sample(0.10:0.05:0.30)
+    nl = sample(1400:200:2400)
     ρm = rand(Uniform(0.5, 0.9))
     cc = sample(0.3:0.1:0.6)
     m = sample(1.0:0.1:1.8)
@@ -82,7 +82,7 @@ for i in 1:100
 
     Random.seed!(sd)
 
-    ex3_v100_sim = TO_GO(200, 2, 400, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], cu, true, 1, [ρm, 1.], "softmax", [false, false], [0., 0.], h, false, true)
+    ex3_v100_sim = TO_GO(200, 2, 400, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], cu, true, 1, [ρm, 1.], "softmax", [false, false], [0., 0.], h, "dist", false, TriangularDist(0,1,0.25))
 
     push!(ex3_v100_total_surplus, calculate_surplus(ex3_v100_sim, "total", false))
     push!(ex3_v100_producer_surplus, calculate_surplus(ex3_v100_sim, "producer", false))
@@ -96,13 +96,13 @@ for i in 1:100
     push!(ex3_v100_producer_surplus_singleton, calculate_profit_history.(ex3_v100_sim.sellers))
     push!(ex3_v100_reselling, getfield.(ex3_v100_sim.sellers, :reselling_history))
     push!(ex3_v100_buying_history, getfield.(ex3_v100_sim.buyers, :unit_buying_selling_history))
-    push!(ex3_v100_quality_exp, mean([b.quality_expectation_history for b in ex3_v100_sim.buyers]))
-    push!(ex3_v100_durability_exp, mean([b.durability_expectation_history for b in ex3_v100_sim.buyers]))
+    push!(ex3_v100_quality_exp, [mean([getindex.(x,y) for x in getfield.(ex3_v100_sim.buyers, :quality_expectation_history)]) for y in 1:2])
+    push!(ex3_v100_durability_exp, [mean([getindex.(x,y) for x in getfield.(ex3_v100_sim.buyers, :durability_expectation_history)]) for y in 1:2])
     push!(ex3_v100_sv, getfield.(ex3_v100_sim.buyers, :signal_volume))
 
     Random.seed!(sd)
 
-    ex3_v101_sim = TO_GO(200, 2, 400, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], cu, true, 1, [ρm, 1.], "softmax", [true, false], [sm, 0.], h, false, true)
+    ex3_v101_sim = TO_GO(200, 2, 400, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[.8, 2.], [.8, 2.]], cu, true, 1, [ρm, 1.], "softmax", [true, false], [sm, 0.], h, "dist", false)
 
     push!(ex3_v101_total_surplus, calculate_surplus(ex3_v101_sim, "total", false))
     push!(ex3_v101_producer_surplus, calculate_surplus(ex3_v101_sim, "producer", false))
@@ -116,17 +116,30 @@ for i in 1:100
     push!(ex3_v101_producer_surplus_singleton, calculate_profit_history.(ex3_v101_sim.sellers))
     push!(ex3_v101_reselling, getfield.(ex3_v101_sim.sellers, :reselling_history))
     push!(ex3_v101_buying_history, getfield.(ex3_v101_sim.buyers, :unit_buying_selling_history))
-    push!(ex3_v101_quality_exp, mean([b.quality_expectation_history for b in ex3_v101_sim.buyers]))
-    push!(ex3_v101_durability_exp, mean([b.durability_expectation_history for b in ex3_v101_sim.buyers]))
+    push!(ex3_v101_quality_exp, [mean([getindex.(x,y) for x in getfield.(ex3_v101_sim.buyers, :quality_expectation_history)]) for y in 1:2])
+    push!(ex3_v101_durability_exp, [mean([getindex.(x,y) for x in getfield.(ex3_v101_sim.buyers, :durability_expectation_history)]) for y in 1:2])
     push!(ex3_v101_sv, getfield.(ex3_v101_sim.buyers, :signal_volume))
 
 end
+
+[mean([getindex.(x,y) for x in getfield.(sim_single.buyers, :quality_expectation_history)]) for y in 1:2]
 
 RMSE(x,y) = sqrt(mean((x .- y).^2))
 xydiff(x,y) = mean(x .- y)
 cv(x) = std(x) / mean(x)
 
+################
+
+
+
+Plots.plot(ex3_v100_producer_surplus_singleton[1][1])
+Plots.plot(ex3_v100_quality[1][1])
+Plots.plot!(ex3_v100_quality_exp[1][1])
+
+
 ###############################
+
+ex3_v100_quality_exp[1]
 
 Plots.plot(mean(getindex.(ex3_v100_quality,1)))
 Plots.plot!(mean(getindex.(ex3_v101_quality,1)))
@@ -149,7 +162,17 @@ Plots.plot!(mean(getindex.(ex3_v100_producer_surplus_singleton, 2)))
 Plots.plot!(mean(getindex.(ex3_v101_producer_surplus_singleton, 2)))
 
 Plots.plot(mean(getindex.(ex3_v100_quality,1)))
-Plots.plot!(mean([getindex.(x,1) for x in ex3_v100_quality_exp]))
+Plots.plot!(mean(getindex.(ex3_v100_quality_exp, 1)))
+
+Plots.plot(mean(getindex.(ex3_v101_quality,1)))
+Plots.plot!(mean(getindex.(ex3_v101_quality_exp, 1)))
+
+k=4
+Plots.plot(getindex.(ex3_v101_quality,1)[k])
+Plots.plot!(getindex.(ex3_v101_quality_exp, 1)[k])
+
+Plots.plot(getindex.(ex3_v100_quality,2)[k])
+Plots.plot!(getindex.(ex3_v100_quality_exp, 2)[k])
 
 Plots.plot(mean(getindex.(ex3_v100_quality,2)))
 Plots.plot!(mean([getindex.(x,2) for x in ex3_v100_quality_exp]))
@@ -161,9 +184,12 @@ Plots.plot!(mean([getindex.(x,1) for x in ex3_v101_quality_exp]))
 
 # Gęstość, różnice między oczekiwaniami a realnymi charakterystykami
 
-ex3_p1_pl = StatsPlots.density(xydiff.(getindex.(ex3_v100_quality, 1), [getindex.(x,1) for x in ex3_v100_quality_exp]), label = "Producent nie prowadzi badań", xlabel = "Odchylenie parametrów produktu [jakość] od oczekiwań konsumentów", ylabel = "f(x)", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, title = "Funkcja gęstości odchyleń parametrów produktu od oczekiwań konsumentów", legendfontsize = 6, legend = :topleft, normalize = true)
-StatsPlots.density!(xydiff.(getindex.(ex3_v101_quality, 1), [getindex.(x,1) for x in ex3_v101_quality_exp]), label = "Producent prowadzi badania")
+ex3_p1_pl = StatsPlots.density(xydiff.(getindex.(ex3_v100_quality, 1), getindex.(ex3_v100_quality_exp,1)), label = "Producent nie prowadzi badań", xlabel = "Odchylenie parametrów produktu [jakość] od oczekiwań konsumentów", ylabel = "f(x)", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, title = "Funkcja gęstości odchyleń parametrów produktu od oczekiwań konsumentów", legendfontsize = 6, legend = :topleft, normalize = true)
+StatsPlots.density!(xydiff.(getindex.(ex3_v101_quality, 1), getindex.(ex3_v101_quality_exp,1)), label = "Producent prowadzi badania")
 Plots.plot!([0,0], [0,10], color = "black")
+
+ex3_v101_quality[1][1]
+ex3_v101_quality_exp[1][1]
 
 savefigs(ex3_p1_pl, "\\plots\\ex2\\PL density diff expectations vs average")
 
@@ -180,8 +206,8 @@ savefigs(ex3_p1_eng, "\\plots\\ex2\\ENG density diff expectations vs average")
 
 ####################################################################
 
-p_ex3_2_pl = Plots.boxplot(xydiff.(getindex.(ex3_v100_quality, 1), [getindex.(x,1) for x in ex3_v100_quality_exp]), ylabel = "Odchylenie parametrów produktu od oczekiwań", legend = nothing, ylabelfontsize = 8, dpi = 300, title = "Jakość")
-Plots.boxplot!(xydiff.(getindex.(ex3_v101_quality, 1), [getindex.(x,1) for x in ex3_v101_quality_exp]))
+p_ex3_2_pl = Plots.boxplot(xydiff.(getindex.(ex3_v100_quality, 1), getindex.(ex3_v100_quality_exp,1)), ylabel = "Odchylenie parametrów produktu od oczekiwań", legend = nothing, ylabelfontsize = 8, dpi = 300, title = "Jakość")
+Plots.boxplot!(xydiff.(getindex.(ex3_v101_quality, 1), getindex.(ex3_v101_quality_exp,1)))
 Plots.plot!(xticks = ([1,2], ["Producent nie prowadzi badań", "Producent prowadzi badania"]))
 
 savefigs(p_ex3_2_pl, "\\plots\\ex2\\PL boxplot diff expectations vs average quality")
@@ -211,6 +237,9 @@ savefigs(p_ex3_3_eng, "\\plots\\ex2\\ENG boxplot diff expectations vs average du
 ex3_4_pl = plot_ecdf(true, sum.(getindex.(ex3_v100_producer_surplus_singleton, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
 plot_ecdf(false, sum.(getindex.(ex3_v101_producer_surplus_singleton, 1)), "Producent bada oczekiwania konsumentów")
 
+median(sum.(getindex.(ex3_v100_producer_surplus_singleton, 1)))
+median(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1)))
+
 savefigs(ex3_4_pl, "\\plots\\ex1\\PL ECDF producer profit")
 
 ex3_4_eng = plot_ecdf(true, sum.(getindex.(ex3_v100_producer_surplus_singleton, 1)), "No research", xlabel = "Profit", ylabel = "F(x)", title = "ECDF - Profit")
@@ -231,10 +260,10 @@ percentile(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1)), 5)
 
 ###########################################################################################
 
-ex3_6_pl = plot_ecdf(true, sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_H .< 5], "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "",xlim = (-2000, 5000))
+ex3_6_pl = plot_ecdf(true, sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_H .< 5], "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "",xlim = (-1000, 1000))
 plot_ecdf(false, sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_H .< 5], "Producent bada oczekiwania konsumentów")
 
-ex3_7_pl = plot_ecdf(true, sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_H .>= 5], "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "", xlim = (-2000,5000))
+ex3_7_pl = plot_ecdf(true, sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_H .>= 5], "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "", xlim = (-1000,1000))
 plot_ecdf(false, sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_H .>= 5], "Producent bada oczekiwania konsumentów")
 
 percentile(sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_H .< 5], 5)
@@ -248,17 +277,17 @@ Plots.plot(ex3_6_pl, ex3_7_pl, layout = (1,2), plot_title = "Dystybuanta empiryc
 ############################################################################################
 
 
-ex3_8_pl = plot_ecdf(true, sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_nl .<= 300], "", xlabel = "Zysk producenta", ylabel = "F(x)", title = "<300")
-plot_ecdf(false, sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_nl .<= 300], "")
+ex3_8_pl = plot_ecdf(true, sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_nl .<= 600], "", xlabel = "Zysk producenta", ylabel = "F(x)", title = "<300")
+plot_ecdf(false, sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_nl .<= 600], "")
 
-ex3_9_pl = plot_ecdf(true, sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 400) .& (ex3_v100101_nl .<= 600)], "", xlabel = "Zysk producenta", ylabel = "F(x)", title = "400-600")
-plot_ecdf(false, sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 400) .& (ex3_v100101_nl .<= 600)], "")
+ex3_9_pl = plot_ecdf(true, sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 800) .& (ex3_v100101_nl .<= 1200)], "", xlabel = "Zysk producenta", ylabel = "F(x)", title = "400-600")
+plot_ecdf(false, sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 800) .& (ex3_v100101_nl .<= 1200)], "")
 
-ex3_10_pl = plot_ecdf(true, sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 700) .& (ex3_v100101_nl .<= 900)], "", xlabel = "Zysk producenta", ylabel = "F(x)", title = "700-900")
-plot_ecdf(false, sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 700) .& (ex3_v100101_nl .<= 900)], "")
+ex3_10_pl = plot_ecdf(true, sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 1400) .& (ex3_v100101_nl .<= 1800)], "", xlabel = "Zysk producenta", ylabel = "F(x)", title = "700-900")
+plot_ecdf(false, sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 1400) .& (ex3_v100101_nl .<= 1800)], "")
 
-ex3_11_pl = plot_ecdf(true, sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_nl .>= 1000], "", xlabel = "Zysk producenta", ylabel = "F(x)", title = "1000-1200")
-plot_ecdf(false, sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_nl .>= 1000], "")
+ex3_11_pl = plot_ecdf(true, sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_nl .>= 2000], "", xlabel = "Zysk producenta", ylabel = "F(x)", title = "1000-1200")
+plot_ecdf(false, sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_nl .>= 2000], "")
 
 Plots.plot(ex3_8_pl, ex3_9_pl, ex3_10_pl, ex3_11_pl)
 
@@ -282,25 +311,25 @@ function earthmoverdistance(a::Vector, b::Vector)
     return sum( abs, cumsum( a ) .- cumsum( b ) )
 end
 
-emd300 = earthmoverdistance(
-    cut_integer_bounds(sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_nl .<= 300], bounds),
-    cut_integer_bounds(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_nl .<= 300], bounds)
-) / sum(ex3_v100101_nl .<= 300)
-
 emd600 = earthmoverdistance(
-    cut_integer_bounds(sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 400) .& (ex3_v100101_nl .<= 600)], bounds),
-    cut_integer_bounds(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 400) .& (ex3_v100101_nl .<= 600)], bounds)
-) / sum((ex3_v100101_nl .>= 400) .& (ex3_v100101_nl .<= 600))
-
-emd900 = earthmoverdistance(
-    cut_integer_bounds(sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 700) .& (ex3_v100101_nl .<= 900)], bounds),
-    cut_integer_bounds(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 700) .& (ex3_v100101_nl .<= 900)], bounds)
-) / sum((ex3_v100101_nl .>= 700) .& (ex3_v100101_nl .<= 900))
+    cut_integer_bounds(sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_nl .<= 600], bounds),
+    cut_integer_bounds(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_nl .<= 600], bounds)
+) / sum(ex3_v100101_nl .<= 600)
 
 emd1200 = earthmoverdistance(
-    cut_integer_bounds(sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_nl .>= 1000], bounds),
-    cut_integer_bounds(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_nl .>= 1000], bounds)
-) / sum(ex3_v100101_nl .>= 1000)
+    cut_integer_bounds(sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 800) .& (ex3_v100101_nl .<= 1200)], bounds),
+    cut_integer_bounds(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 800) .& (ex3_v100101_nl .<= 1200)], bounds)
+) / sum((ex3_v100101_nl .>= 800) .& (ex3_v100101_nl .<= 1200))
+
+emd1800 = earthmoverdistance(
+    cut_integer_bounds(sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 1400) .& (ex3_v100101_nl .<= 1800)], bounds),
+    cut_integer_bounds(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 1400) .& (ex3_v100101_nl .<= 1800)], bounds)
+) / sum((ex3_v100101_nl .>= 1400) .& (ex3_v100101_nl .<= 1800))
+
+emd2400 = earthmoverdistance(
+    cut_integer_bounds(sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_nl .>= 2000], bounds),
+    cut_integer_bounds(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_nl .>= 2000], bounds)
+) / sum(ex3_v100101_nl .>= 2000)
 
 earthmoverdistance(cut_integer_bounds(sum.(getindex.(ex3_v100_producer_surplus_singleton, 1)), bounds), 
 cut_integer_bounds(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1)), bounds))
@@ -309,16 +338,16 @@ median_distance(x,y) = median(x) - median(y)
 mean_distnace(x,y) = mean(x) - mean(y)
 
 emd_df = DataFrame(
-    Stan = ["300", "300,700", "700, 1000", "1000"],
-    EMD = round.([emd300, emd600, emd900, emd1200], digits = 2),
-    Mediana = round.([median_distance(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_nl .<= 300], sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_nl .<= 300]),
-    median_distance(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 400) .& (ex3_v100101_nl .<= 600)], sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 400) .& (ex3_v100101_nl .<= 600)]),
-    median_distance(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 700) .& (ex3_v100101_nl .<= 900)], sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 700) .& (ex3_v100101_nl .<= 900)]),
-    median_distance(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_nl .>= 1000], sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_nl .>= 1000])], digits = 2),
-    Średnia = round.([mean_distnace(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_nl .<= 300], sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_nl .<= 300]),
-    mean_distnace(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 400) .& (ex3_v100101_nl .<= 600)], sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 400) .& (ex3_v100101_nl .<= 600)]),
-    mean_distnace(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 700) .& (ex3_v100101_nl .<= 900)], sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 700) .& (ex3_v100101_nl .<= 900)]),
-    mean_distnace(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_nl .>= 1000], sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_nl .>= 1000])], digits = 2)
+    Stan = ["600", "800,1200", "1400, 1800", "2000"],
+    EMD = round.([emd600, emd1200, emd1800, emd2400], digits = 2),
+    Mediana = round.([median_distance(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_nl .<= 600], sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_nl .<= 600]),
+    median_distance(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 800) .& (ex3_v100101_nl .<= 1200)], sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 800) .& (ex3_v100101_nl .<= 1200)]),
+    median_distance(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 1400) .& (ex3_v100101_nl .<= 1800)], sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 1400) .& (ex3_v100101_nl .<= 1800)]),
+    median_distance(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_nl .>= 2000], sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_nl .>= 2000])], digits = 2),
+    Średnia = round.([mean_distnace(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_nl .<= 600], sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_nl .<= 600]),
+    mean_distnace(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 800) .& (ex3_v100101_nl .<= 1200)], sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 800) .& (ex3_v100101_nl .<= 1200)]),
+    mean_distnace(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 1400) .& (ex3_v100101_nl .<= 1800)], sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[(ex3_v100101_nl .>= 1400) .& (ex3_v100101_nl .<= 1800)]),
+    mean_distnace(sum.(getindex.(ex3_v101_producer_surplus_singleton, 1))[ex3_v100101_nl .>= 2000], sum.(getindex.(ex3_v100_producer_surplus_singleton, 1))[ex3_v100101_nl .>= 2000])], digits = 2)
 )
 
 latexify(emd_df, env = :table) |> print
