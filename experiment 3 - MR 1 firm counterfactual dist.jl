@@ -2,61 +2,115 @@
 
 include(pwd() * "\\methods\\methods.jl")
 
-println(Threads.nthreads())
-
 # TESTUJ NOWA F-KCJE, RANDOM ZMIANA 
+
+#@load "C:\\Users\\User\\Documents\\PhDWorkspace.jld2"
+
+"""using JLD2
+using FileIO
+jldsave("C:\\Users\\User\\Documents\\PhDWorkspace.jld2"; ex3_v200_total_surplus,
+ex3_v200_producer_surplus,
+ex3_v200_consumer_surplus,
+ex3_v200_price,
+ex3_v200_quantity_produced,
+ex3_v200_quantity_sold,
+ex3_v200_reselling,
+ex3_v200_producer_surplus_singleton,
+ex3_v200_quality,
+ex3_v200_durability,
+ex3_v200_margin,
+ex3_v200_quality_exp,
+ex3_v200_durability_exp,
+ex3_v200_sv, 
+
+ex3_v201_total_surplus,
+ex3_v201_producer_surplus,
+ex3_v201_consumer_surplus,
+ex3_v201_price,
+ex3_v201_quantity_produced,
+ex3_v201_quantity_sold,
+ex3_v201_reselling,
+ex3_v201_producer_surplus_singleton,
+ex3_v201_quality,
+ex3_v201_durability,
+ex3_v201_margin,
+ex3_v201_quality_exp,
+ex3_v201_durability_exp,
+ex3_v201_sv,
+
+ex3_v200201_H,
+ex3_v200201_Li,
+ex3_v200201_Lw,
+ex3_v200201_sd,
+ex3_v200201_cu,
+ex3_v200201_sm,
+ex3_v200201_nl,
+ex3_v200201_ρm,
+ex3_v200201_cc,
+ex3_v200201_m)"""
 
 # Impact on social communication of simulation dynamics
 
-ex3_v200_total_surplus = []
-ex3_v200_producer_surplus = []
-ex3_v200_consumer_surplus = []
-ex3_v200_price = []
-ex3_v200_quantity_produced = []
-ex3_v200_quantity_sold = []
-ex3_v200_quantity_leased = []
-ex3_v200_reselling = []
-ex3_v200_producer_surplus_singleton = []
+ex3_v200_total_surplus = Vector{Vector{Float64}}()
+ex3_v200_producer_surplus = Vector{Vector{Float64}}()
+ex3_v200_consumer_surplus = Vector{Vector{Float64}}()
+ex3_v200_price = Vector{Vector{Vector{Float64}}}()
+ex3_v200_quantity_produced = Vector{Vector{Vector{Float64}}}()
+ex3_v200_quantity_sold = Vector{Vector{Vector{Float64}}}()
+ex3_v200_reselling = Vector{Vector{Vector{Float64}}}()
+ex3_v200_producer_surplus_singleton = Vector{Vector{Vector{Float64}}}()
 ex3_v200_buying_history = []
-ex3_v200_quality = []
-ex3_v200_durability = []
-ex3_v200_margin = []
-ex3_v200_quality_exp = []
-ex3_v200_durability_exp = []
-ex3_v200_H = []
-ex3_v200_Li = []
-ex3_v200_Lw = []
-ex3_v200_sv = []
+ex3_v200_quality = Vector{Vector{Vector{Float64}}}()
+ex3_v200_durability = Vector{Vector{Vector{Float64}}}()
+ex3_v200_margin = Vector{Vector{Vector{Float64}}}()
+ex3_v200_quality_exp = Vector{Vector{Vector{Float64}}}()
+ex3_v200_durability_exp = Vector{Vector{Vector{Float64}}}()
+ex3_v200_sv = Vector{Vector{Float64}}()
 
-ex3_v201_total_surplus = []
-ex3_v201_producer_surplus = []
-ex3_v201_consumer_surplus = []
-ex3_v201_price = []
-ex3_v201_quantity_produced = []
-ex3_v201_quantity_sold = []
-ex3_v201_quantity_leased = []
-ex3_v201_reselling = []
-ex3_v201_producer_surplus_singleton = []
+ex3_v201_total_surplus = Vector{Vector{Float64}}()
+ex3_v201_producer_surplus = Vector{Vector{Float64}}()
+ex3_v201_consumer_surplus = Vector{Vector{Float64}}()
+ex3_v201_price = Vector{Vector{Vector{Float64}}}()
+ex3_v201_quantity_produced = Vector{Vector{Vector{Float64}}}()
+ex3_v201_quantity_sold = Vector{Vector{Vector{Float64}}}()
+ex3_v201_reselling = Vector{Vector{Vector{Float64}}}()
+ex3_v201_producer_surplus_singleton = Vector{Vector{Vector{Float64}}}()
 ex3_v201_buying_history = []
-ex3_v201_quality = []
-ex3_v201_durability = []
-ex3_v201_margin = []
-ex3_v201_quality_exp = []
-ex3_v201_durability_exp = []
-ex3_v201_sv = []
+ex3_v201_quality = Vector{Vector{Vector{Float64}}}()
+ex3_v201_durability = Vector{Vector{Vector{Float64}}}()
+ex3_v201_margin = Vector{Vector{Vector{Float64}}}()
+ex3_v201_quality_exp = Vector{Vector{Vector{Float64}}}()
+ex3_v201_durability_exp = Vector{Vector{Vector{Float64}}}()
+ex3_v201_sv = Vector{Vector{Float64}}()
 
-ex3_v200201_H = []
-ex3_v200201_Li = []
-ex3_v200201_Lw = []
-ex3_v200201_sd = []
-ex3_v200201_cu = []
-ex3_v200201_sm = []
-ex3_v200201_nl = []
-ex3_v200201_ρm = []
-ex3_v200201_cc = []
-ex3_v200201_m = []
+ex3_v202_total_surplus = Vector{Vector{Float64}}()
+ex3_v202_producer_surplus = Vector{Vector{Float64}}()
+ex3_v202_consumer_surplus = Vector{Vector{Float64}}()
+ex3_v202_price = Vector{Vector{Vector{Float64}}}()
+ex3_v202_quantity_produced = Vector{Vector{Vector{Float64}}}()
+ex3_v202_quantity_sold = Vector{Vector{Vector{Float64}}}()
+ex3_v202_reselling = Vector{Vector{Vector{Float64}}}()
+ex3_v202_producer_surplus_singleton = Vector{Vector{Vector{Float64}}}()
+ex3_v202_buying_history = []
+ex3_v202_quality = Vector{Vector{Vector{Float64}}}()
+ex3_v202_durability = Vector{Vector{Vector{Float64}}}()
+ex3_v202_margin = Vector{Vector{Vector{Float64}}}()
+ex3_v202_quality_exp = Vector{Vector{Vector{Float64}}}()
+ex3_v202_durability_exp = Vector{Vector{Vector{Float64}}}()
+ex3_v202_sv = Vector{Vector{Float64}}()
 
-for i in 1:500
+ex3_v200201_H = Vector{Int64}()
+ex3_v200201_Li = Vector{Float64}()
+ex3_v200201_Lw = Vector{Float64}()
+ex3_v200201_sd = Vector{Int64}()
+ex3_v200201_cu = Vector{Float64}()
+ex3_v200201_sm = Vector{Float64}()
+ex3_v200201_nl = Vector{Int64}()
+ex3_v200201_ρm = Vector{Float64}()
+ex3_v200201_cc = Vector{Float64}()
+ex3_v200201_m = Vector{Float64}()
+
+for i in 1:50
 
     println(i)
 
@@ -64,7 +118,7 @@ for i in 1:500
 
     li = sample(0.5:0.1:1.0)
     lw = sample(0.5:0.1:1.0)
-    h = sample(3:5)
+    h = sample(3:8)
     sd = sample(1:100000)
     cu = sample(0.0:0.1:0.5)
     sm = sample(0.10:0.05:0.30)
@@ -72,6 +126,18 @@ for i in 1:500
     ρm = rand(Uniform(0.5, 0.95))
     cc = sample(0.4:0.1:0.6)
     m = sample(1.1:0.1:1.3)
+
+    Random.seed!(sd)
+
+    ex3_v200_sim = TO_GO(500, 2, N, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[1., 2.], [1., 2.]], cu, true, 0, [ρm, 1.], "softmax", ["internal knowledge", "internal knowledge"], [0., 0.], h, "dist", TriangularDist(0,1,0.5))
+
+    Random.seed!(sd)
+
+    ex3_v201_sim = TO_GO(500, 2, N, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[1., 2.], [1., 2.]], cu, true, 0, [ρm, 1.], "softmax", ["market research", "internal knowledge"], [sm, 0.], h, "dist", TriangularDist(0,1,0.5))
+
+    #Random.seed!(sd)
+
+    #ex3_v202_sim = TO_GO(500, 2, N, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[1., 2.], [1., 2.]], cu, true, 0, [ρm, 1.], "softmax", ["random", "internal knowledge"], [0., 0.], h, "dist", TriangularDist(0,1,0.5))
 
     push!(ex3_v200201_H, h)
     push!(ex3_v200201_Li, li)
@@ -83,14 +149,6 @@ for i in 1:500
     push!(ex3_v200201_ρm, ρm)
     push!(ex3_v200201_cc, cc)
     push!(ex3_v200201_m, m)
-
-    Random.seed!(sd)
-
-    ex3_v200_sim = TO_GO(500, 2, N, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[1., 2.], [1., 2.]], cu, true, 0, [ρm, 1.], "softmax", [false, false], [0., 0.], h, "dist", false, TriangularDist(0,1,0.5))
-
-    Random.seed!(sd)
-
-    ex3_v201_sim = TO_GO(500, 2, N, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[1., 2.], [1., 2.]], cu, true, 0, [ρm, 1.], "softmax", [true, false], [sm, 0.], h, "dist", false, TriangularDist(0,1,0.5))
 
     push!(ex3_v200_total_surplus, calculate_surplus(ex3_v200_sim, "total", false))
     push!(ex3_v200_producer_surplus, calculate_surplus(ex3_v200_sim, "producer", false))
@@ -124,17 +182,137 @@ for i in 1:500
     push!(ex3_v201_durability_exp, [mean([getindex.(x,y) for x in getfield.(ex3_v201_sim.buyers, :durability_expectation_history)]) for y in 1:2])
     push!(ex3_v201_sv, getfield.(ex3_v201_sim.buyers, :signal_volume))
 
+    """push!(ex3_v202_total_surplus, calculate_surplus(ex3_v202_sim, "total", false))
+    push!(ex3_v202_producer_surplus, calculate_surplus(ex3_v202_sim, "producer", false))
+    push!(ex3_v202_consumer_surplus, calculate_surplus(ex3_v202_sim, "consumer,total",false))
+    push!(ex3_v202_quality, getfield.(ex3_v202_sim.sellers, :quality_history))
+    push!(ex3_v202_durability, getfield.(ex3_v202_sim.sellers, :durability_history))
+    push!(ex3_v202_margin, getfield.(ex3_v202_sim.sellers, :margin_history))
+    push!(ex3_v202_price, calculate_price_history.(ex3_v202_sim.sellers; product_life = h))
+    push!(ex3_v202_quantity_produced, getfield.(ex3_v202_sim.sellers, :quantity_produced_history))
+    push!(ex3_v202_quantity_sold, getfield.(ex3_v202_sim.sellers, :quantity_sold_history))
+    push!(ex3_v202_producer_surplus_singleton, calculate_profit_history.(ex3_v202_sim.sellers))
+    push!(ex3_v202_reselling, getfield.(ex3_v202_sim.sellers, :reselling_history))
+    push!(ex3_v202_buying_history, getfield.(ex3_v202_sim.buyers, :unit_buying_selling_history))
+    push!(ex3_v202_quality_exp, [mean([getindex.(x,y) for x in getfield.(ex3_v202_sim.buyers, :quality_expectation_history)]) for y in 1:2])
+    push!(ex3_v202_durability_exp, [mean([getindex.(x,y) for x in getfield.(ex3_v202_sim.buyers, :durability_expectation_history)]) for y in 1:2])
+    push!(ex3_v202_sv, getfield.(ex3_v202_sim.buyers, :signal_volume))"""
+
 end
 
-[mean([getindex.(x,y) for x in getfield.(sim_single.buyers, :quality_expectation_history)]) for y in 1:2]
+##### HISTORIA ############
 
-RMSE(x,y) = sqrt(mean((x .- y).^2))
-xydiff(x,y) = mean(x .- y)
-cv(x) = std(x) / mean(x)
+# Czy zyski producentów prowadzących badania i nie się różnią?
 
-###############################
+ex3_4_pl = plot_ecdf(true, sum.(getindex.(ex3_v200_producer_surplus_singleton, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
+plot_ecdf(false, sum.(getindex.(ex3_v201_producer_surplus_singleton, 1)), "Producent bada oczekiwania konsumentów")
+plot_ecdf(false, sum.(getindex.(ex3_v202_producer_surplus_singleton, 1)), "Producent działa losowo")
 
-ex3_v200_quality_exp[1]
+ex3_4_pl = plot_ecdf(true, sum.(getindex.(ex3_v200_producer_surplus_singleton, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta", xlim = (-500, 0), legend = :topleft)
+plot_ecdf(false, sum.(getindex.(ex3_v201_producer_surplus_singleton, 1)), "Producent bada oczekiwania konsumentów", xlim = (-500, 0))
+
+ApproximateTwoSampleKSTest(sum.(getindex.(ex3_v200_producer_surplus_singleton, 1)), sum.(getindex.(ex3_v201_producer_surplus_singleton, 1))) # producent robiący badania osiąga statystycznie istotnie wyższe zyski
+
+# Czy jeśli nie robi się badań, to jest większe zagrożenie stratą?
+
+transition_percentile(sum.(getindex.(ex3_v200_producer_surplus_singleton, 1)))
+transition_percentile(sum.(getindex.(ex3_v201_producer_surplus_singleton, 1)))
+
+# Tak, jest - czy oczekiwana strata jest wyższa?
+
+mean(sum.(getindex.(ex3_v200_producer_surplus_singleton, 1))[sum.(getindex.(ex3_v200_producer_surplus_singleton, 1)) .< 0])
+mean(sum.(getindex.(ex3_v201_producer_surplus_singleton, 1))[sum.(getindex.(ex3_v201_producer_surplus_singleton, 1)) .< 0])
+
+median(sum.(getindex.(ex3_v200_producer_surplus_singleton, 1))[sum.(getindex.(ex3_v200_producer_surplus_singleton, 1)) .< 0])
+median(sum.(getindex.(ex3_v201_producer_surplus_singleton, 1))[sum.(getindex.(ex3_v201_producer_surplus_singleton, 1)) .< 0])
+
+# Tak, w przypadku średniej i mediany oczekiwanych strat, jeśli nie prowadzi się badań to są one wyższe
+
+### Czy zmienność zysków w czasie również jest niższa, jeśli prowadzi się badania?
+
+ex3_4_pl = plot_ecdf(true, std.(getindex.(ex3_v200_producer_surplus_singleton, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
+plot_ecdf(false, std.(getindex.(ex3_v201_producer_surplus_singleton, 1)), "Producent bada oczekiwania konsumentów")
+
+UnequalVarianceTTest(std.(getindex.(ex3_v200_producer_surplus_singleton, 1)), std.(getindex.(ex3_v201_producer_surplus_singleton, 1)))
+ApproximateTwoSampleKSTest(std.(getindex.(ex3_v200_producer_surplus_singleton, 1)), std.(getindex.(ex3_v201_producer_surplus_singleton, 1)))
+
+# Z czego wynikają wyższe zyski producentów?
+
+selling_income_200 = sum.(multi.(getindex.(ex3_v200_price, 1), getindex.(ex3_v200_quantity_sold, 1)))
+utilization_cost_200 = (1 .- ex3_v200201_cu) .* sum.(multi.(divide.(getindex.(ex3_v200_price, 1), getindex.(ex3_v200_margin, 1)), getindex.(ex3_v200_quantity_produced, 1) .- getindex.(ex3_v200_quantity_sold, 1)))
+
+TR200 = selling_income_200 .+ utilization_cost_200
+
+selling_income_201 = sum.(multi.(getindex.(ex3_v201_price, 1), getindex.(ex3_v201_quantity_sold, 1)))
+utilization_cost_201 = (1 .- ex3_v200201_cu) .* sum.(multi.(divide.(getindex.(ex3_v201_price, 1), getindex.(ex3_v201_margin, 1)), getindex.(ex3_v201_quantity_produced, 1) .- getindex.(ex3_v201_quantity_sold, 1)))
+
+TR201 = selling_income_201 .+ utilization_cost_201
+
+ex3_4_pl = plot_ecdf(true, TR200, "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
+plot_ecdf(false, TR201, "Producent bada oczekiwania konsumentów")
+
+ex3_4_pl = plot_ecdf(true, selling_income_200, "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
+plot_ecdf(false, selling_income_201, "Producent bada oczekiwania konsumentów")
+
+ex3_4_pl = plot_ecdf(true, utilization_cost_200, "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
+plot_ecdf(false, utilization_cost_201, "Producent bada oczekiwania konsumentów")
+
+# Nie z przychodu, przychody firm kierujących się swoim przeczuciem są wyższe
+
+fTC(Q, K, D, H, c) = Q .* c .* K .* (1 .- D .^ H) ./ (1 .- D)
+fATC(K, D, H, c) = c .* K .* (1 .- D .^ H) ./ (1 .- D)
+
+
+CS200 = sum.(fTC.(getindex.(ex3_v200_quantity_produced,1), getindex.(ex3_v200_quality,1), getindex.(ex3_v200_durability,1), ex3_v200201_H, ex3_v200201_cc))
+CS201 = sum.(fTC.(getindex.(ex3_v201_quantity_produced,1), getindex.(ex3_v201_quality,1), getindex.(ex3_v201_durability,1), ex3_v200201_H, ex3_v200201_cc))
+
+ATC200 = mean.(fATC.(getindex.(ex3_v200_quality,1), getindex.(ex3_v200_durability,1), ex3_v200201_H, ex3_v200201_cc))
+ATC201 = mean.(fATC.(getindex.(ex3_v201_quality,1), getindex.(ex3_v201_durability,1), ex3_v200201_H, ex3_v200201_cc))
+
+ex3_4_pl = plot_ecdf(true, CS200, "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
+plot_ecdf(false, CS201, "Producent bada oczekiwania konsumentów")
+
+ex3_4_pl = plot_ecdf(true, sum.(getindex.(ex3_v200_quantity_produced,1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
+plot_ecdf(false, sum.(getindex.(ex3_v201_quantity_produced,1)), "Producent bada oczekiwania konsumentów")
+
+StatsPlots.density((mean.(getindex.(ex3_v200_quantity_produced,1)) .- mean.(getindex.(ex3_v201_quantity_produced,1))) ./ mean.(getindex.(ex3_v200_quantity_produced,1)))
+
+ex3_4_pl = plot_ecdf(true, ATC200, "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
+plot_ecdf(false, ATC201, "Producent bada oczekiwania konsumentów")
+
+
+
+####
+
+ex3_4_pl = plot_ecdf(true, std.(getindex.(ex3_v200_quantity_sold, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
+plot_ecdf(false, std.(getindex.(ex3_v201_quantity_sold, 1)), "Producent bada oczekiwania konsumentów")
+
+UnequalVarianceTTest(std.(getindex.(ex3_v200_quantity_sold, 1)), std.(getindex.(ex3_v201_quantity_sold, 1)))
+ApproximateTwoSampleKSTest(std.(getindex.(ex3_v200_quantity_sold, 1)), std.(getindex.(ex3_v201_quantity_sold, 1)))
+
+
+
+####
+
+ex3_4_pl = plot_ecdf(true, mean.(getindex.(ex3_v200_quality, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
+plot_ecdf(false, mean.(getindex.(ex3_v201_quality, 1)), "Producent bada oczekiwania konsumentów")
+
+ApproximateTwoSampleKSTest(std.(getindex.(ex3_v200_quality, 1)), std.(getindex.(ex3_v201_quality, 1)))
+
+ex3_4_pl = plot_ecdf(true, mean.(getindex.(ex3_v200_durability, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
+plot_ecdf(false, mean.(getindex.(ex3_v201_durability, 1)), "Producent bada oczekiwania konsumentów")
+
+mean(mean.(getindex.(ex3_v200_durability, 1)))
+mean(mean.(getindex.(ex3_v201_durability, 1)))
+
+UnequalVarianceTTest(mean.(getindex.(ex3_v200_durability, 1)), mean.(getindex.(ex3_v201_durability, 1)))
+ApproximateTwoSampleKSTest(mean.(getindex.(ex3_v200_durability, 1)), mean.(getindex.(ex3_v201_durability, 1)))
+
+ex3_4_pl = plot_ecdf(true, mean.(getindex.(ex3_v200_price, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
+plot_ecdf(false, mean.(getindex.(ex3_v201_price, 1)), "Producent bada oczekiwania konsumentów")
+
+ApproximateTwoSampleKSTest(mean.(getindex.(ex3_v200_price, 1)), std.(getindex.(ex3_v201_price, 1)))
+
 
 Plots.plot(mean(getindex.(ex3_v200_quality,1)))
 Plots.plot!(mean(getindex.(ex3_v201_quality,1)))
@@ -179,11 +357,35 @@ Plots.plot!(mean([getindex.(x,1) for x in ex3_v201_quality_exp]))
 
 Plots.scatter(xydiff.(getindex.(ex3_v201_quality, 1), getindex.(ex3_v201_quality_exp,1)), mean.(getindex.(ex3_v201_producer_surplus_singleton, 1)))
 
+mod201 = GLM.lm(@formula(y~1/x), DataFrame(x = xydiff.(getindex.(ex3_v201_quality, 1), getindex.(ex3_v201_quality_exp,1)), y = mean.(getindex.(ex3_v201_producer_surplus_singleton, 1))))
+
+Plots.plot!(xydiff.(getindex.(ex3_v201_quality, 1), getindex.(ex3_v201_quality_exp,1)), coef(mod201)[1] .+ coef(mod201)[2] ./ xydiff.(getindex.(ex3_v201_quality, 1), getindex.(ex3_v201_quality_exp,1)))
+
+Plots.scatter(xydiff.(getindex.(ex3_v200_quality, 1), getindex.(ex3_v200_quality_exp,1)), mean.(getindex.(ex3_v200_producer_surplus_singleton, 1)))
+
 #87
 
-k = 5
+
+getindex.(ex3_v201_producer_surplus_singleton, 1)[BitVector([all(x .<= 100) for x in getindex.(ex3_v201_quantity_produced, 1)])]
+
+ex3_4_pl = plot_ecdf(true, sum.(getindex.(ex3_v200_producer_surplus_singleton, 1)[BitVector([all(x .<= 40) for x in getindex.(ex3_v200_quantity_produced, 1)])]), "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
+plot_ecdf(false, sum.(getindex.(ex3_v201_producer_surplus_singleton, 1)[BitVector([all(x .<= 40) for x in getindex.(ex3_v201_quantity_produced, 1)])]), "Producent bada oczekiwania konsumentów")
+
+collect(1:475)[BitVector([any(x .> 100) for x in getindex.(ex3_v200_quantity_produced, 1)])]
+collect(1:475)[BitVector([any(x .> 100) for x in getindex.(ex3_v201_quantity_produced, 1)])]
+
+k = 45
+
+Plots.plot(ex3_v200_quantity_produced[k][1])
+Plots.plot!(ex3_v200_quantity_sold[k][1])
+
+Plots.plot(ex3_v201_quantity_produced[k][1])
+Plots.plot!(ex3_v201_quantity_sold[k][1])
+
 Plots.plot(ex3_v201_quality[k][1])
 Plots.plot!(ex3_v201_quality_exp[k][1])
+Plots.plot!(twinx(), ex3_v201_producer_surplus_singleton[k][1], color = "black", linealpha = 0.5)
+
 Plots.plot!(ex3_v200_quality[k][1])
 Plots.plot!(ex3_v200_quality_exp[k][1])
 
@@ -238,7 +440,7 @@ getindex.(ex3_v200_price, 1)
 
 Plots.plot( U(ex3_v201_quality_exp[k][1], ex3_v201_durability_exp[k][1], ex3_v200201_H[k], 0.9, ex3_v201_price[k][1]), color = "red")
 Plots.plot!()
-Plots.plot!(twinx(), cumsum(ex3_v201_producer_surplus_singleton[k][1]))
+
 
 Plots.plot!(twinx(), ex3_v201_margin[k][1])
 Plots.plot!(twinx(), ex3_v201_quality[k][1])
@@ -252,17 +454,6 @@ Plots.plot(U(ex3_v201_quality_exp[k][1], ex3_v201_durability_exp[k][1], ex3_v200
 Plots.plot!(twinx(), ex3_v201_price[k][1])
 
 Plots.scatter(U(ex3_v201_quality_exp[k][1], ex3_v201_durability_exp[k][1], ex3_v200201_H[k], 0.9, ex3_v201_price[k][1]), ex3_v201_quantity_sold[k][1])
-
-
-
-Plots.plot!(ex3_v201_margin[k][1])
-
-Plots.plot(ex3_v201_quantity_produced[k][1])
-Plots.plot(ex3_v201_producer_surplus_singleton[k][1])
-
-Plots.plot(ex3_v200_quantity_produced[k][1])
-
-mean(ex3_v201_quality[210][1] .- ex3_v201_quality_exp[210][1])
 
 ##############################
 
@@ -320,11 +511,9 @@ savefigs(p_ex3_3_eng, "\\plots\\ex2\\ENG boxplot diff expectations vs average du
 
 #############################################################################################################
 
-ex3_4_pl = plot_ecdf(true, sum.(getindex.(ex3_v200_producer_surplus_singleton, 1)), "Producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta", ylabel = "F(x)", title = "Dystrybuanta empiryczna - zysk producenta")
-plot_ecdf(false, sum.(getindex.(ex3_v201_producer_surplus_singleton, 1)), "Producent bada oczekiwania konsumentów")
 
-percentile(sum.(getindex.(ex3_v200_producer_surplus_singleton, 1)), 37)
-percentile(sum.(getindex.(ex3_v201_producer_surplus_singleton, 1)), 27)
+percentile(sum.(getindex.(ex3_v200_producer_surplus_singleton, 1)), 36.5)
+percentile(sum.(getindex.(ex3_v201_producer_surplus_singleton, 1)), 26)
 
 median(sum.(getindex.(ex3_v200_producer_surplus_singleton, 1)))
 median(sum.(getindex.(ex3_v201_producer_surplus_singleton, 1)))
@@ -335,6 +524,16 @@ ex3_4_eng = plot_ecdf(true, sum.(getindex.(ex3_v200_producer_surplus_singleton, 
 plot_ecdf(false, sum.(getindex.(ex3_v201_producer_surplus_singleton, 1)), "Research")
 
 savefigs(ex3_4_eng, "\\plots\\ex1\\ENG ECDF producer profit")
+
+1 - percentile(sum.(getindex.(ex3_v201_producer_surplus_singleton, 1)), 5) / percentile(sum.(getindex.(ex3_v200_producer_surplus_singleton, 1)), 5)
+
+percentile(sum.(getindex.(ex3_v200_producer_surplus_singleton, 1)), 36.12)
+percentile(sum.(getindex.(ex3_v201_producer_surplus_singleton, 1)), 25.65)
+
+
+
+mean(sum.(getindex.(ex3_v201_producer_surplus_singleton, 1))[sum.(getindex.(ex3_v201_producer_surplus_singleton, 1)) .< 0]) / mean(sum.(getindex.(ex3_v200_producer_surplus_singleton, 1))[sum.(getindex.(ex3_v200_producer_surplus_singleton, 1)) .< 0])
+
 
 ###########################################################################################
 
@@ -385,6 +584,67 @@ plot_ecdf(false, sum.(getindex.(ex3_v201_producer_surplus_singleton, 1))[ex3_v20
 Plots.plot(ex3_8_pl, ex3_9_pl, ex3_10_pl, ex3_11_pl)
 
 ############################################################################################
+
+Plots.scatter(ex3_v200201_Li, mean.(getindex.(ex3_v200_producer_surplus_singleton, 1)))
+Plots.scatter!(ex3_v200201_Li, mean.(getindex.(ex3_v201_producer_surplus_singleton, 1)))
+
+λ = sort(unique(ex3_v200201_Li))
+θ = sort(unique(ex3_v200201_Lw))
+
+mean_surplus_no_research = [mean(mean.(getindex.(ex3_v200_producer_surplus_singleton, 1))[(ex3_v200201_Li .== li) .& (ex3_v200201_Lw .== lw)]) for li in λ, lw in θ]
+
+ex4_p3 = StatsPlots.heatmap(λ, θ, mean_surplus_no_research', xlabel = "λ, produkty oceniane osobiście", ylabel = "θ, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka producenta badającego konsumentów", titlefontsize = 8)
+
+
+mean_surplus_research = [mean(mean.(getindex.(ex3_v201_producer_surplus_singleton, 1))[(ex3_v200201_Li .== li) .& (ex3_v200201_Lw .== lw)]) for li in λ, lw in θ]
+
+ex4_p3 = StatsPlots.heatmap(λ, θ, mean_surplus_research', xlabel = "λ, produkty oceniane osobiście", ylabel = "θ, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka producenta badającego konsumentów", titlefontsize = 8)
+
+mean_surplus_difference = [mean((mean.(getindex.(ex3_v201_producer_surplus_singleton, 1)) .- mean.(getindex.(ex3_v200_producer_surplus_singleton, 1)))[(ex3_v200201_Li .== li) .& (ex3_v200201_Lw .== lw)]) for li in λ, lw in θ]
+
+ex4_p3 = StatsPlots.heatmap(λ, θ, mean_surplus_difference', xlabel = "λ, produkty oceniane osobiście", ylabel = "θ, produkty oceniane przez sąsiadów", title = "Współczynniki siły nowych sygnałów a nadwyżka producenta badającego konsumentów", titlefontsize = 8)
+nl=200
+
+ex3_4_eng = Plots.plot(sort(sum.(getindex.(ex3_v200_producer_surplus_singleton, 1))), (1:length(sum.(getindex.(ex3_v200_producer_surplus_singleton, 1))))./length(sum.(getindex.(ex3_v200_producer_surplus_singleton, 1))), xlabel = "Profit of firms", ylabel = "Empirical Cumulative Distribution Function", title = "Emprical Cumulative Distribution Function of firms' profits", label = "Firm doesn't invest in market research", legend=:bottomright, legendfontsize = 12)
+Plots.plot!(sort(sum.(getindex.(ex3_v201_producer_surplus_singleton, 1))), (1:length(sum.(getindex.(ex3_v201_producer_surplus_singleton, 1))))./length(sum.(getindex.(ex3_v201_producer_surplus_singleton, 1))), label = "Firm invests in market research", titlefontsize = 14, xlabelfontsize = 14, ylabelfontsize = 14, size = (750, 550))
+
+ex4_p5 = Plots.scatter(sort(unique(ex3_v200201_nl[1:1020])) / 200, [mean((mean.(getindex.(ex3_v201_producer_surplus_singleton, 1)) .- mean.(getindex.(ex3_v200_producer_surplus_singleton, 1)))[ex3_v200201_nl[1:1020] .== nl]) for nl in sort(unique(ex3_v200201_nl))], xlabel = "Number of connections per single consumer", ylabel = "Additional profit from market research", title = "Market research incremental effect", color = "red", legend = false, titlefontsize = 14, xlabelfontsize = 14, ylabelfontsize = 14, size = (750, 550))
+
+mod = GLM.lm(@formula(y~x), DataFrame(x = 1 ./ (sort(unique(ex3_v200201_nl[1:1020]))/200), y = [mean((mean.(getindex.(ex3_v201_producer_surplus_singleton, 1)) .- mean.(getindex.(ex3_v200_producer_surplus_singleton, 1)))[ex3_v200201_nl[1:1020] .== nl]) for nl in sort(unique(ex3_v200201_nl))]))
+
+using Measures
+
+Plots.plot!(coef(mod)[1] .+ coef(mod)[2] ./ (sort(unique(ex3_v200201_nl[1:1020]))/200))
+
+p12 = Plots.plot(ex3_4_eng, ex4_p5, layout=(1,2), size = (1500, 550), margin = 15mm)
+
+savefigs(p12, "\\plots\\ex1\\SATU")
+
+# największa różnica pomiędzy zyskami producentów robiących badania i nie jest wtedy, 
+
+########################################################################
+
+Plots.scatter()
+
+#########################################################################
+
+
+
+TR200 = mean.(multi.(getindex.(ex3_v200_price, 1), getindex.(ex3_v200_quantity_sold, 1)))
+TR201 = mean.(multi.(getindex.(ex3_v201_price, 1), getindex.(ex3_v201_quantity_sold, 1)))
+
+Plots.plot(sort(mean.(getindex.(ex3_v200_price, 1))), (1:length(mean.(getindex.(ex3_v200_price, 1))))./length(mean.(getindex.(ex3_v200_price, 1))), xlabel = "Profit", ylabel = "ECDF", title = "ECDF - Profit", label = "No research", legend=:bottomright, legendfontsize = 8)
+Plots.plot!(sort(mean.(getindex.(ex3_v201_price, 1))), (1:length(mean.(getindex.(ex3_v201_price, 1))))./length(mean.(getindex.(ex3_v201_price, 1))), xlabel = "Profit", ylabel = "ECDF", title = "ECDF - Profit", label = "No research", legend=:bottomright, legendfontsize = 8)
+
+Plots.plot(sort(mean.(getindex.(ex3_v200_quantity_sold, 1))), (1:length(mean.(getindex.(ex3_v200_quantity_sold, 1))))./length(mean.(getindex.(ex3_v200_quantity_sold, 1))), xlabel = "Profit", ylabel = "ECDF", title = "ECDF - Profit", label = "No research", legend=:bottomright, legendfontsize = 8)
+Plots.plot!(sort(mean.(getindex.(ex3_v201_quantity_sold, 1))), (1:length(mean.(getindex.(ex3_v201_quantity_sold, 1))))./length(mean.(getindex.(ex3_v201_quantity_sold, 1))), xlabel = "Profit", ylabel = "ECDF", title = "ECDF - Profit", label = "No research", legend=:bottomright, legendfontsize = 8)
+
+Plots.plot(sort(TR200), (1:length(TR200))./length(TR200), xlabel = "Profit", ylabel = "ECDF", title = "ECDF - Profit", label = "No research", legend=:bottomright, legendfontsize = 8)
+Plots.plot!(sort(TR201), (1:length(TR201))./length(TR201), xlabel = "Profit", ylabel = "ECDF", title = "ECDF - Profit", label = "No research", legend=:bottomright, legendfontsize = 8)
+
+
+
+#########################################################################
 
 bounds = collect(-50:5:100)
 

@@ -98,9 +98,9 @@ function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64
 
     o_U = s .* sum_of_geom_series_finite(o_K, eρ * o_D; t = product_life) .- o_P # użyteczność dobra konkurencji, jeśli liczba konkurentów > 1, to o_k, o_D i o_P są średnimi
 
-    U = s .* sum_of_geom_series_finite.(eK, eρ .* eD; t = product_life)  .- cost_coefficient(K, D, cc) .* sum_of_geom_series_infinite(K, D) .* M # użyteczność mojego dobra przy parametrach K, D, M
-
     price = cost_coefficient(K, D, cc) * sum_of_geom_series_finite(K, D; t = product_life) * M  # marża na 1 sprzedanym produkcie
+
+    U = s .* sum_of_geom_series_finite.(eK, eρ .* eD; t = product_life)  .- price # użyteczność mojego dobra przy parametrach K, D, M
 
     upper_price_limit = β_dist ./ ps_dist
 
@@ -319,3 +319,25 @@ function savefigs(plt, target)
     Plots.savefig(plt, pwd() * target * ".svg") # for pptx
     Plots.savefig(plt, pwd() * target * ".pdf") # for thesis, latex
 end
+
+function initial_m(β, k1, d1, k2, d2, H, c, m2)
+    m1= (β*sum_of_geom_series_finite(k1,d1;t=H)-sum_of_geom_series_finite(k2,d2;t=H) * (β - m2 * c)) / (c * sum_of_geom_series_finite(k1,d1;t=H))
+    return m1
+end
+
+RMSE(x,y) = sqrt(mean((x .- y).^2))
+xydiff(x,y) = mean(x .- y)
+cv(x) = std(x) / mean(x)
+
+function transition_percentile(x)
+    trans_perc = 0.0
+    for i in 100.0:-0.01:0.01
+        if (percentile(x, i) >= 0) & (percentile(x, i - 0.01) < 0)
+            trans_perc = i
+        end
+    end
+    return trans_perc
+end
+
+multi(x,y) = x .* y
+divide(x,y) = x ./ y
