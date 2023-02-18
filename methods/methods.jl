@@ -510,7 +510,7 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
 
             @assert _seller.quality_range[1] <= _seller.quality <= _seller.quality_range[2]
             @assert _seller.durability_range[1] <= _seller.durability <= _seller.durability_range[2]
-            @assert _seller.margin_range[1] <= _seller.margin <= _seller.margin_range[2]
+            @assert _seller.margin_range[1] <= _seller.margin <= _seller.margin_range[2] [println(_seller.margin)]
             @assert _seller.quality_range[1] <= _seller.quality <= _seller.quality_range[2]
 
             @assert _seller.quantity_produced >= 0
