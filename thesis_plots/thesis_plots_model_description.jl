@@ -8,20 +8,18 @@ function utility_stream(k,d;h)
     return k * (1-d^h)/(1-d)
 end
 
-[average_cost(k,d;h=1) for k in K, d in D]
-
 K = LinRange(0.010:0.010:0.990)
 D = LinRange(0.010:0.010:0.990)
 
-ac_p1 = contour(K,D, (K,D)->utility_stream(K,D;h=1), levels=50, xlabel = "Wstępna jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Całkowita użyteczność dla H = 1", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
-ac_p2 = contour(K,D, (K,D)->utility_stream(K,D;h=2), levels=50, xlabel = "Wstępna jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Całkowita użyteczność dla H = 2", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
-ac_p5 = contour(K,D, (K,D)->utility_stream(K,D;h=5), levels=50, xlabel = "Wstępna jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Całkowita użyteczność dla H = 5", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
-ac_p10 = contour(K,D, (K,D)->utility_stream(K,D;h=10), levels=50, xlabel = "Wstępna jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Całkowita użyteczność dla H = 10", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
+ac_p1 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=1), levels=50, xlabel = "Średnia jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Całkowita użyteczność dla H = 1", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
+ac_p2 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=2), levels=50, xlabel = "Średnia jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Całkowita użyteczność dla H = 2", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
+ac_p5 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=5), levels=50, xlabel = "Średnia jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Całkowita użyteczność dla H = 5", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
+ac_p10 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=10), levels=50, xlabel = "Średnia jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Całkowita użyteczność dla H = 10", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
 
-ac_p = plot(ac_p1, ac_p2, ac_p5, ac_p10, layout = (2,2))
+ac_p = Plots.plot(ac_p1, ac_p2, ac_p5, ac_p10, layout = (2,2))
 
-savefig(ac_p, pwd() * "\\Documents\\GitHub\\PhD-Model\\thesis_plots\\contour_utility_stream.pdf")
-
+Plots.savefig(ac_p, pwd() * "\\thesis_plots\\contour_utility_stream.pdf")
+Plots.savefig(ac_p, pwd() * "\\thesis_plots\\contour_utility_stream.svg")
 ############## sieć powiązań
 
 using Graphs

@@ -1,7 +1,0 @@
-O modelu: Wykorzystując podejście symulacyjne możliwe jest stworzenie modelu rynku dóbr trwałych, na którym autonomiczni producenci dokonują pomiarów preferencji konsumentów, projektują dobra i planują proces produkcji. Modelowany rynek odznacza się występowaniem heterogenicznych konsumentów, podejmujących decyzje na podstawie formułowanych i dynamicznie aktualizowanych oczekiwań.
-
-O oczekiwaniach konsumentów: Zwiększanie przez firmy wiedzy o oczekiwaniach konsumentów i uwzględnianie tej wiedzy w planach produkcyjnych powoduje zwiększenie osiąganych przez firmę zysków. Im dłużej dany typ dobra trwałego pozostaje w użyciu, tym bardziej zagrożony jest zysk przedsiębiorstwa, które nie uwzględnia w swoich planach informacji o oczekiwaniach klientów.
-
-O konkurencji: W duopolu, w którym obaj producenci podejmują decyzje w oparciu o wyniki badań konsumenckich można zaobserwować wyższe łączne zyski producentów i wyższą łączną nadwyżkę konsumentów niż na rynku, gdzie tylko jeden z graczy działa w ten sposób. 
-
-O komunikacji między konsumentami: Im częstsza jest wymiana informacji pomiędzy konsumentami tym wyższa jest efektywność rynku. Im wyższa jest częstotliwość wymiany informacji pomiędzy konsumentami, tym wyższy zysk osiąga producent, który opiera swoje decyzje o wyniki badań oczekiwań klientów.

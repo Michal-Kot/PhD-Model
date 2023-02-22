@@ -7,12 +7,32 @@ include(pwd() * "\\methods\\methods.jl")
 #################################### AUX FUNCTIONS ##############################################################
 
 @time Random.seed!(1234)
+Bool.([0,1]) .+ Bool.([0,1])
+@time sim_single = TO_GO(500, 2, 200, 200, [0.4, 0.4], [1.1, 1.1], "random", .75, .75, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.10, true, 1, [0.7, 1.], "softmax", ["market research", "internal knowledge"], [0.1, 0.], 4, "dist", TriangularDist(0,1,0.5))
 
-@time sim_single = TO_GO(200, 2, 400, 600, [0.4, 0.4], [1.3, 1.3], "random", .25, .25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.10, true, 1, [0.7, 1.], "softmax", [false, true], [0., 0.1], 6, false, false)
 
+
+get_expectation_buyers(sim_single.buyers, :durability_expectation_history; s = 2, T = 500)
+
+
+
+
+
+Plots.plot(mean_na.([getindex.(getindex.(buyers_expectations, 1), t) for t in 1:500]))
+
+Plots.plot(sim_single.sellers[1].quality_history)
+Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)]))
+
+sim_single.sellers[2].seller_type
+
+[any_vec(x,1) for x in getfield.(sim_single.buyers, :unit_possessed_history)]
+getfield.(sim_single.buyers, :unit_possessed_history)[1]
 Plots.plot(getfield.(sim_single.sellers, :quality_history))
+Plots.plot(getfield.(sim_single.sellers, :durability_history))
+Plots.plot(getfield.(sim_single.sellers, :margin_history))
+Plots.plot(getfield.(sim_single.sellers, :quantity_produced_history))
 
-Plots.plot(calculate_profit_history.(sim_single.sellers))
+Plots.plot(cumsum.(calculate_profit_history.(sim_single.sellers)))
 
 [[getindex.(x,j) for x in getfield.(sim_single.buyers, :quality_expectation_history)] for j in 1:2]
 
@@ -72,8 +92,9 @@ Plots.plot!(u.(sim_single.sellers[2].quality_history,
 
 #####
 
+@time sim_single = TO_GO(100, 2, 400, 200, [0.4, 0.4], [1.3, 1.3], "random", .25, .25, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.10, true, 1, [0.7, 1.], "softmax", [true, false], [0.1, 0.], 4, false, false)
 
-quality_expectation_buyers = [[] for _ = 1:200] # to T
+quality_expectation_buyers = [[] for _ = 1:100] # to T
 sim_single.buyers[1].unit_buying_selling_history
 for b in sim_single.buyers
     ubsh = b.unit_buying_selling_history
@@ -93,7 +114,24 @@ Plots.plot!(sim_single.sellers[1].quality_history, label = "Średnia jakość, p
 Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "red", linewidth = 2, label = "Oczekiwana jakość, cała populacja")
 Plots.plot!(mean_nothing.(quality_expectation_buyers), label = "Oczekiwana jakość, kupujący w t", linewidth = 2, color = "orange")
 
-
+quality_expectation_buyers = [[] for _ = 1:100] # to T
+for b in sim_single.buyers
+    ubsh = b.unit_buying_selling_history
+    for item in ubsh
+        if item.decision == "buy, primary market"
+            qe = getindex.(b.quality_expectation_history, 2)[item.t]
+            push!(quality_expectation_buyers[item.t], qe)
+        end
+    end
+end
+p = Plots.plot(xlabel = "T", ylabel = "Jakość / oczekiwana jakość", legend = :bottomleft)
+for i in 1:400
+    p = Plots.plot!(getindex.(sim_single.buyers[i].quality_expectation_history, 2), color = "grey", linealpha = 0.10, label = nothing)
+end
+p
+Plots.plot!(sim_single.sellers[2].quality_history, label = "Średnia jakość, producent", linewidth = 2, color = "blue")
+Plots.plot!(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "red", linewidth = 2, label = "Oczekiwana jakość, cała populacja")
+Plots.plot!(mean_nothing.(quality_expectation_buyers), label = "Oczekiwana jakość, kupujący w t", linewidth = 2, color = "orange")
 
 Plots.savefig(p, pwd() * "\\thesis_plots\\quality_expected_average.pdf")
 

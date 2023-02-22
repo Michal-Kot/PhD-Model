@@ -18,6 +18,10 @@ function trim_extremes(x, t = 10)
 
 end
 
+function non_extreme_values(x, t = 10)
+    return (x .>= percentile(x, t)) .& (x .<= percentile(x, 100-t))
+end
+
 function in_boundaries(x::Float64,lb::Float64,ub::Float64)::Float64
     return max(min(x,ub),lb)
 end
@@ -341,3 +345,121 @@ end
 
 multi(x,y) = x .* y
 divide(x,y) = x ./ y
+
+function find_nash_eq_pure(payoff_matrix::Matrix)
+    # player 1
+    is_nash_eq_1 = zeros(Int64, size(payoff_matrix))
+    for col in 1:size(payoff_matrix, 2)
+        is_nash_eq_1[argmax(getindex.(payoff_matrix[:,col], 1)), col] = 1
+    end
+    # player 2
+    is_nash_eq_2 = zeros(Int64, size(payoff_matrix))
+    for row in 1:size(payoff_matrix, 1)
+        is_nash_eq_2[row, argmax(getindex.(payoff_matrix[row,:], 2))] = 1
+    end
+    is_nash_eq = is_nash_eq_1 .* is_nash_eq_2
+    return is_nash_eq
+end
+
+function find_nash_eq_mixed(payoff_matrix::Matrix)
+    # player 1
+    payoffs1 = getindex.(payoff_matrix, 1)
+    q = (payoffs1[2,2] - payoffs1[1,2]) / (payoffs1[1,1] + payoffs1[2,2] - payoffs1[1,2] - payoffs1[2,1])
+    payoffs2 = getindex.(payoff_matrix, 2)
+    p = (payoffs2[2,2] - payoffs2[2,1]) / (payoffs2[1,1] + payoffs2[2,2] - payoffs2[1,2] - payoffs2[2,1])
+    #if (p >= 0) & (p <= 1) & (q >= 0) & (q <= 1)
+        return (p,q)
+    #else
+    #    return missing
+    #end 
+end
+
+
+
+
+function simulate_ne_for_costs(payoff1, payoff2, costs, ret)
+
+    equilibriums = []
+
+    for c in costs
+        payoff1_cost = payoff1 .- [0, c, 0, c]
+        payoff2_cost = payoff2 .- [0, 0, c, c]
+        PM = construct_payoff_matrix(payoff1_cost, payoff2_cost, (2,2))
+        isPD = check_if_prisoners_dilemma(PM)
+        pNE = find_nash_eq_pure(PM)
+        mNE = find_nash_eq_mixed(PM)
+        push!(equilibriums, (PM, pNE, mNE, isPD))
+    end
+
+    nash_equilibriums_pure = getindex.(equilibriums, 2)
+    positions = [1 3
+    2 4]
+
+    nash_equilibriums_pure = [ne .* positions for ne in nash_equilibriums_pure]
+
+    if ret == "pNE"
+
+        return nash_equilibriums_pure
+
+    elseif ret == "mNE"
+
+        return getindex.(equilibriums, 3)
+
+    elseif ret == "PD"
+
+        return getindex.(equilibriums, 4)
+
+    end
+
+end
+
+function construct_payoff_matrix(payoff1, payoff2, shape = (2,2))
+    payoff_matrix = [(x,y) for (x,y) in zip(payoff1, payoff2)]
+    payoff_matrix = reshape(payoff_matrix, shape)
+    return payoff_matrix
+end
+
+function check_if_prisoners_dilemma(pm, detailed = false)
+
+# T>R>P>S: betray > cooperate > punishment > fool
+
+    pm1 = getindex.(pm, 1)
+
+    TR1 = pm1[1,2] > pm1[2,2]
+    RP1 = pm1[2,2] > pm1[1,1]
+    PS1 = pm1[1,1] > pm1[2,1]
+
+    pd1 = TR1 & RP1 & PS1
+
+    pm2 = getindex.(pm, 2)
+
+    TR2 = pm2[2,1] > pm2[2,2]
+    RP2 = pm2[2,2] > pm2[1,1]
+    PS2 = pm2[1,1] > pm2[1,2]
+
+    pd2 = TR2 & RP2 & PS2
+
+    if detailed
+        return (pd1&pd2, pd1, (TR1, RP1, PS1), pd2, (TR2, RP2, PS2))
+    else
+        return pd1&pd2
+    end
+end
+
+
+true_or_missing(x; k) = x == 1 ? k : missing
+
+fTC(Q, K, D, H, c) = Q .* c .* K .* (1 .- D .^ H) ./ (1 .- D)
+fATC(K, D, H, c) = c .* K .* (1 .- D .^ H) ./ (1 .- D)
+
+any_vec(x, s) = any.(getindex.(x,s) .> 0)
+
+multi_with_missing(x,y) = x == 0 ? missing : x * y
+mean_na(x) = all(ismissing.(x)) ? missing : mean(x[.!ismissing.(x)])
+function get_expectation_buyers(buyers, metric; s, T)
+
+    buyers_expectations = [[getindex.([multi_with_missing.(x,y) for (x,y) in zip(getfield(b, :received_signal_history), getfield(b, metric))], x) for x in 1:s] for b in buyers]
+
+    return [mean_na.([getindex.(getindex.(buyers_expectations, s), t) for t in 1:T]) for s in 1:2]
+
+end
