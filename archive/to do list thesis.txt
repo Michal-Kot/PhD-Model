@@ -1,0 +1,20 @@
+to do list phd
+
+[X] przegląd literatury \subsection{Niespójność czasowa decyzji producentów}
+[X] przegląd literatury \subsection{Rynki wtórne} - empiryczne dowody w Ghose Internet
+[X] przegląd literatury \subsection{Polityka cenowa}
+[X] przegląd literatury \subsection{Strategiczne interakcje}
+[] przegląd literatury \subsection{Decyzje firm}
+[] przegląd literatury \subsection{Badania rynkowe}
+[X] schemat wdrażania modelu wieloagentowego
+[] przykłady wykorzystania modeli wieloagentowych
+[] walidacja modelu wieloagentowego - weryfikacja hipotezy 1
+[] weryfikacja hipotezy 2
+[] weryfikacja hipotezy 3
+[] weryfikacja hipotezy 4
+[] dyskusja osiągniętych wyników
+[] podsumowanie
+[] braki w pracy & planowane/proponowane rozwinięcia
+[] protokół ODD
+
+5/16
