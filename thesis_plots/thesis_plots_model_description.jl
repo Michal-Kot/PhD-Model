@@ -11,14 +11,14 @@ end
 K = LinRange(0.010:0.010:0.990)
 D = LinRange(0.010:0.010:0.990)
 
-ac_p1 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=1), levels=50, xlabel = "Średnia jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Całkowita użyteczność dla H = 1", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
-ac_p2 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=2), levels=50, xlabel = "Średnia jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Całkowita użyteczność dla H = 2", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
-ac_p5 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=5), levels=50, xlabel = "Średnia jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Całkowita użyteczność dla H = 5", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
-ac_p10 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=10), levels=50, xlabel = "Średnia jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Całkowita użyteczność dla H = 10", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
+ac_p1 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=1), levels=5, xlabel = "Jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Warstwice funkcji całkowitej użyteczności " * L"W_{ijt}" * " \n dla H = 1", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo)
+ac_p2 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=2), levels=5, xlabel = "Jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Warstwice funkcji całkowitej użyteczności " * L"W_{ijt}" * " \n dla H = 2", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo)
+ac_p5 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=5), levels=5, xlabel = "Jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Warstwice funkcji całkowitej użyteczności " * L"W_{ijt}" * " \n dla H = 5", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo)
+ac_p10 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=10), levels=5, xlabel = "Jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Warstwice funkcji całkowitej użyteczności " * L"W_{ijt}" * " \n dla H = 10", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo)
 
 ac_p = Plots.plot(ac_p1, ac_p2, ac_p5, ac_p10, layout = (2,2))
 
-Plots.savefig(ac_p, pwd() * "\\thesis_plots\\contour_utility_stream.pdf")
+Plots.savefig(ac_p, pwd() * "\\plots_to_export\\contour_utility_stream.pdf")
 Plots.savefig(ac_p, pwd() * "\\thesis_plots\\contour_utility_stream.svg")
 ############## sieć powiązań
 
@@ -129,17 +129,17 @@ using Plots
 using LaTeXStrings
 
 β = 0.8
-c = 0.6
+c = 0.5
 m = 1.1
 
 k1 = 0.85
-k2 = 0.85
+k2 = 0.15
 
 d1 = 0.85
-d2 = 0.78
+d2 = 0.45
 
 ρ = 0.85
-H = 4
+H = 6
 
 betas = LinRange(0.001:0.001:0.999)
 
@@ -156,11 +156,13 @@ s2 = max.(0, s2)
 
 calc_prob(x1,x2) = (x1 == 0) & (x2 == 0) ? 0 : x1 / (x1+x2)
 
-beta_prob = Plots.plot(betas, calc_prob.(s1, s2), xlabel = "Cena rezerwacji, " * L"\beta_i", ylabel = "Prawdopodobieństwo wyboru", ylim = (0,1), legend = :topleft, label = "Firma 1, " * L"(K_{jt} = 0.85, D_{jt} = 0.85)", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, title = "Prawdopodobieństwo zakupu a cena rezerwacji")
-Plots.plot!(betas, calc_prob.(s2, s1), label = "Firma 2, " * L"(K_{jt} = 0.15, D_{jt} = 0.45)")
+beta_prob = Plots.plot(betas, calc_prob.(s1, s2), xlabel = "Cena rezerwacji, " * L"\beta_i", ylabel = "Prawdopodobieństwo wyboru", legend = :topleft, label = "Firma 1, " * L"(K_{jt} = 0.85, D_{jt} = 0.85)", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, title = "Prawdopodobieństwo zakupu a cena rezerwacji", linewidth = 2, ylim = (-0.01, 1.01))
+Plots.plot!(betas, calc_prob.(s2, s1), label = "Firma 2, " * L"(K_{jt} = 0.15, D_{jt} = 0.45)", linewidth = 2)
 
-savefig(beta_prob, pwd() * "\\Documents\\GitHub\\PhD-Model\\thesis_plots\\beta_vs_probability.pdf")
+calc_prob.(s2, s1)[739]
 
+savefig(beta_prob, pwd() * "\\plots_to_export\\beta_vs_probability.pdf")
+savefig(beta_prob, pwd() * "\\thesis_plots\\beta_vs_probability.svg")
 # kupowanie
 
 using StatsBase
