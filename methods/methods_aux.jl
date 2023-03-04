@@ -350,12 +350,22 @@ function find_nash_eq_pure(payoff_matrix::Matrix)
     # player 1
     is_nash_eq_1 = zeros(Int64, size(payoff_matrix))
     for col in 1:size(payoff_matrix, 2)
-        is_nash_eq_1[argmax(getindex.(payoff_matrix[:,col], 1)), col] = 1
+        max_val = maximum(getindex.(payoff_matrix[:,col], 1))
+        for row in 1:size(payoff_matrix, 1)
+            if payoff_matrix[row, col][1] == max_val
+                is_nash_eq_1[row, col] = 1
+            end
+        end
     end
     # player 2
     is_nash_eq_2 = zeros(Int64, size(payoff_matrix))
     for row in 1:size(payoff_matrix, 1)
-        is_nash_eq_2[row, argmax(getindex.(payoff_matrix[row,:], 2))] = 1
+        max_val = maximum(getindex.(payoff_matrix[row,:], 2))
+        for col in 1:size(payoff_matrix, 2)
+            if payoff_matrix[row, col][2] == max_val
+                is_nash_eq_2[row, col] = 1
+            end
+        end
     end
     is_nash_eq = is_nash_eq_1 .* is_nash_eq_2
     return is_nash_eq

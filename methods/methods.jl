@@ -18,6 +18,17 @@ using JLD2
 using FileIO
 using Loess
 
+using PyCall
+using Conda
+
+"""Conda.pip_interop(true)
+Conda.pip("install", "pysdtest")
+
+Conda.list()
+ENV["PYTHON"] = ""
+Pkg.build("PyCall")"""
+pysdtest = pyimport("pysdtest")
+
 ################################# STRUCTS ####################################################################
 
 """
@@ -653,7 +664,7 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
 
 end
 
-function consumers_discover_q_d(buyers::Vector{buyer}, sellers::Vector{seller}, iter::Int64, ϵ_q::Float64=0.1, ϵ_d::Float64=0.05)::Vector{buyer}
+function consumers_discover_q_d(buyers::Vector{buyer}, sellers::Vector{seller}, iter::Int64, ϵ_q::Float64=0.025, ϵ_d::Float64=0.025)::Vector{buyer}
     for _buyer in buyers
 
         push!(_buyer.unit_possessed_history, _buyer.unit_possessed)

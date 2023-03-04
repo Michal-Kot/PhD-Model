@@ -4,17 +4,21 @@ to do list phd
 [X] przegląd literatury \subsection{Rynki wtórne} - empiryczne dowody w Ghose Internet
 [X] przegląd literatury \subsection{Polityka cenowa}
 [X] przegląd literatury \subsection{Strategiczne interakcje}
-[] przegląd literatury \subsection{Decyzje firm}
-[] przegląd literatury \subsection{Badania rynkowe}
+[X] przegląd literatury \subsection{Decyzje firm}
+[X] przegląd literatury \subsection{Badania rynkowe}
 [X] schemat wdrażania modelu wieloagentowego
-[] przykłady wykorzystania modeli wieloagentowych
+[X] przykłady wykorzystania modeli wieloagentowych
 [] walidacja modelu wieloagentowego - weryfikacja hipotezy 1
-[] weryfikacja hipotezy 2
+[X] weryfikacja hipotezy 2
 [] weryfikacja hipotezy 3
 [] weryfikacja hipotezy 4
 [] dyskusja osiągniętych wyników
 [] podsumowanie
-[] braki w pracy & planowane/proponowane rozwinięcia
+[X] braki w pracy & planowane/proponowane rozwinięcia
 [] protokół ODD
 
-5/16
+10/16
+
+\textbf{W rozprawie zakłada się, że producenci podejmują łącznie decyzje odnośnie wielu aspektów tworzenia i oferowania dóbr trwałych. Decyzje odnośnie wszystkich tych obszarów wpływają na późniejsze decyzje zakupowe podejmowane przez konsumentów}. Dzięki zastosowaniu ujęcia łączącego różne decyzje firm odnośnie oferty produktowej z decyzjami konsumentów, możliwe jest pełne zrozumienie tego mechanizmu i precyzyjne oszacowanie wpływu każdej decyzji. Następnie, dzięki zrozumieniu w jaki sposób decyzje producentów dóbr trwałych oddziałują na decyzje konsumentów, możliwe jest sformułowanie rekomendacji i wspomaganie firm w podejmowaniu decyzji w kolejnych okresach.
+
+Problem producenta rozpatrywany w rozprawie związany jest z procesem tworzenia i dostarczenia na rynek produktów. W rozprawie zakłada się, że proces ten jest podzielony na trzy fazy: (1) fazę wyboru cech produktu; (2) fazę wyboru wielkości produkcji i (3) fazę wyboru polityki cenowej. Warto podkreślić, że w przypadku rynków oligopolistycznych na których występuje zróżnicowanie jakości dóbr, a taki rynek jest przedmiotem proponowanej rozprawy, zmiennymi decyzyjnymi producentów są zazwyczaj ceny oraz wielkości produkcji \citep{Singh1984PriceDuopoly, Hackner2000AOligopolies, Toshimitsu2016PriceEffects}. W kolejnych akapitach zostaną przedstawione  dominujące w literaturze ekonomicznej podejścia pozwalające producentom podejmować odpowiednie działania w każdej fazie.  \newline

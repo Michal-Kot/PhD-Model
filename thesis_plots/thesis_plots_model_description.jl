@@ -11,10 +11,10 @@ end
 K = LinRange(0.010:0.010:0.990)
 D = LinRange(0.010:0.010:0.990)
 
-ac_p1 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=1), levels=5, xlabel = "Jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Warstwice funkcji całkowitej użyteczności " * L"W_{ijt}" * " \n dla H = 1", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo)
-ac_p2 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=2), levels=5, xlabel = "Jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Warstwice funkcji całkowitej użyteczności " * L"W_{ijt}" * " \n dla H = 2", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo)
-ac_p5 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=5), levels=5, xlabel = "Jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Warstwice funkcji całkowitej użyteczności " * L"W_{ijt}" * " \n dla H = 5", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo)
-ac_p10 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=10), levels=5, xlabel = "Jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}",title = "Warstwice funkcji całkowitej użyteczności " * L"W_{ijt}" * " \n dla H = 10", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo)
+ac_p1 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=1), levels=5, xlabel = "Jakość dobra, " * L"K_{ijt}", ylabel = "Trwałość dobra, " * L"D_{ijt}",title = "Warstwice funkcji całkowitej użyteczności " * L"W_{ijt}" * " \n dla H = 1", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo, colorbar_title = L"W_{ijt}")
+ac_p2 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=2), levels=5, xlabel = "Jakość dobra, " * L"K_{ijt}", ylabel = "Trwałość dobra, " * L"D_{ijt}",title = "Warstwice funkcji całkowitej użyteczności " * L"W_{ijt}" * " \n dla H = 2", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo, colorbar_title = L"W_{ijt}")
+ac_p5 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=5), levels=5, xlabel = "Jakość dobra, " * L"K_{ijt}", ylabel = "Trwałość dobra, " * L"D_{ijt}",title = "Warstwice funkcji całkowitej użyteczności " * L"W_{ijt}" * " \n dla H = 5", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo, colorbar_title = L"W_{ijt}")
+ac_p10 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=10), levels=5, xlabel = "Jakość dobra, " * L"K_{ijt}", ylabel = "Trwałość dobra, " * L"D_{ijt}",title = "Warstwice funkcji całkowitej użyteczności " * L"W_{ijt}" * " \n dla H = 10", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo, colorbar_title = L"W_{ijt}")
 
 ac_p = Plots.plot(ac_p1, ac_p2, ac_p5, ac_p10, layout = (2,2))
 
@@ -344,3 +344,15 @@ Plots.plot!(LinRange((a+0.001):0.001:(b-0.001)), [moved_bates(x;n=10, a=a, b=b) 
 savefig(bates_dist_p, pwd() * "\\thesis_plots\\bates_dist.pdf")
 
 #### Expectation walk
+
+
+#### beta and ps
+
+beta = rand(TriangularDist(0,1,0.5), 100000)
+ps = rand(TriangularDist(1,2,1.5), 100000)
+
+p_beta = Plots.plot([0,1], [0,1], color = "black", legend = nothing, ylabel = L"\frac{\beta_i}{p_i}", xlabel = L"\beta_i", title = "Zależność pomiędzy " * L"\beta_i" * " i " * L"\frac{\beta_i}{p_i}")
+Plots.plot!([0,1], [0,0.5], color = "black")
+Plots.plot!([1,1], [0.5,1], color = "black")
+
+Plots.savefig(p_beta, pwd() * "\\plots_to_export\\beta_ps.pdf")
