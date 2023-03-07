@@ -31,6 +31,9 @@ plot_ecdf(false, sum.(getindex.(ex3_v301_producer_surplus_singleton, 1)), "Produ
 plot_ecdf(false, sum.(getindex.(ex3_v302_producer_surplus_singleton, 1)), "Producent nie bada oczekiwań konsumentów jako jedyny")
 plot_ecdf(false, sum.(getindex.(ex3_v303_producer_surplus_singleton, 1)), "Obaj producenci badają oczekiwania konsumentów")
 
+Plots.savefig(p_h2_1, pwd() * "\\plots\\h2\\ecdf_profit.svg")
+Plots.savefig(p_h2_1, pwd() * "\\plots_to_export\\ecdf_profit.pdf")
+
 # Barrett test for s-th order SD, H0: s1 SD s-th s2, H1: ~H0
 
 pysdtest.test_sd(sample1 = sum.(getindex.(ex3_v301_producer_surplus_singleton, 1)), 
@@ -54,9 +57,6 @@ latexify(
     median(sum.(getindex.(ex3_v302_producer_surplus_singleton, 1))),
     median(sum.(getindex.(ex3_v303_producer_surplus_singleton, 1)))], digits = 1))
 , env = :table) |> print
-
-Plots.savefig(p_h2_1, pwd() * "\\plots\\h2\\ecdf_profit.svg")
-Plots.savefig(p_h2_1, pwd() * "\\plots_to_export\\ecdf_profit.pdf")
 
 DataFrame(Typ = ["Producenci nie badają konsumentów", "Producent bada konsumentów jako jedyny", "Producent nie bada konsumentów jako jedyny", "Producenci badają konsumentów"], Zysk = round.([
     median(sum.(getindex.(ex3_v300_producer_surplus_singleton, 1))), 
@@ -199,8 +199,8 @@ UnequalVarianceTTest(sum.(getindex.(ex3_v300_producer_surplus_singleton, 1))[sum
 UnequalVarianceTTest(sum.(getindex.(ex3_v301_producer_surplus_singleton, 1))[sum.(getindex.(ex3_v301_producer_surplus_singleton, 1)) .<= 0], 
                     sum.(getindex.(ex3_v303_producer_surplus_singleton, 1))[sum.(getindex.(ex3_v303_producer_surplus_singleton, 1)) .<= 0])        
 
-p_h2_p_h = Plots.scatter(sort(unique(ex3_v300301302303_H)), [transition_percentile(sum.(getindex.(ex3_v300_producer_surplus_singleton, 1))[ex3_v300301302303_H .== h]) for h in sort(unique(ex3_v300301302303_H))], xlabel = "Okres przydatności dobra H", ylabel = "Prawdopodobieństwo poniesienia straty, [%]", label = "Producent nie prowadzi badań", markerstrokewidth = 0, markersize = 4)
-Plots.scatter!(sort(unique(ex3_v300301302303_H)), [transition_percentile(sum.(getindex.(ex3_v301_producer_surplus_singleton, 1))[ex3_v300301302303_H .== h]) for h in sort(unique(ex3_v300301302303_H))], label = "Producent prowadzi badania", markerstrokewidth = 0, markersize = 4)
+p_h2_p_h = Plots.scatter(sort(unique(ex3_v300301302303_H)), [transition_percentile(sum.(getindex.(ex3_v300_producer_surplus_singleton, 1))[ex3_v300301302303_H .== h]) for h in sort(unique(ex3_v300301302303_H))], xlabel = "Okres przydatności dobra H", ylabel = "Prawdopodobieństwo poniesienia straty, [%]", label = "Producent nie prowadzi badań", markersize = 4)
+Plots.scatter!(sort(unique(ex3_v300301302303_H)), [transition_percentile(sum.(getindex.(ex3_v301_producer_surplus_singleton, 1))[ex3_v300301302303_H .== h]) for h in sort(unique(ex3_v300301302303_H))], label = "Producent prowadzi badania", markersize = 4)
 
 Plots.savefig(p_h2_p_h, pwd() * "\\plots_to_export\\loss probability vs h.pdf")
 
@@ -210,58 +210,34 @@ Plots.savefig(p_h2_p_h, pwd() * "\\plots_to_export\\loss probability vs h.pdf")
 Istnieje zależność pomiędzy częstotliwością wymiany informacji pomiędzy konsumentami a poziomem nadzwyczajnego zysku firmy wynikającego z prowadzenia badań konsumenckich
 """
 
-avg_quality_diff_300 = mean.(getindex.(ex3_v300_quality, 1)) .- mean.(getindex.(ex3_v300_quality_exp, 1))
-avg_quality_diff_301 = mean.(getindex.(ex3_v301_quality, 1)) .- mean.(getindex.(ex3_v301_quality_exp, 1))
-avg_quality_diff_302 = mean.(getindex.(ex3_v302_quality, 1)) .- mean.(getindex.(ex3_v302_quality_exp, 1))
-avg_quality_diff_303 = mean.(getindex.(ex3_v303_quality, 1)) .- mean.(getindex.(ex3_v303_quality_exp, 1))
+p_h3_sv = Plots.scatter(sort(unique(ex3_v300301302303_nl)), [mean(mean.(ex3_v300_sv)[ex3_v300301302303_nl .== nl]) for nl in sort(unique(ex3_v300301302303_nl))], xlabel = "Liczba połączeń", ylabel = "Średnia liczba otrzymanych sygnałów", legend = false, ylim = (0,300))
 
-p = Plots.plot(legend = nothing)
+Plots.savefig(p_h3_sv, pwd() * "\\plots_to_export\\average volume of signals.pdf")
+
 ds300 = getindex.(ex3_v300_quality, 1) .- getindex.(ex3_v300_quality_exp, 1)
 ds300b = getindex.(ex3_v300_quality, 1) .- getindex.(ex3_v300_quality_exp_buyers, 1)
 ds301 = getindex.(ex3_v301_quality, 1) .- getindex.(ex3_v301_quality_exp, 1)
 ds301b = getindex.(ex3_v301_quality, 1) .- getindex.(ex3_v301_quality_exp_buyers, 1)
 
-for q in ds300
-    p = Plots.plot!(q, color = "grey", alpha = 0.1)
-end
+p_h3_nl = Plots.scatter(sort(unique(ex3_v300301302303_nl)), [mean(mean.(ds300)[ex3_v300301302303_nl .== nl]) for nl in sort(unique(ex3_v300301302303_nl))], xlabel = "Liczba połączeń w sieci", ylabel = "Różnica między oczekiwaniami konsumentów \n a średnim poziomem jakości", label = "Brak badań konsumentów", titlefontsize = 10)
+Plots.scatter!(sort(unique(ex3_v300301302303_nl)), [mean(mean.(ds301)[ex3_v300301302303_nl .== nl]) for nl in sort(unique(ex3_v300301302303_nl))], label = "Wykonywanie badań konsumentów")
 
-id_learning = (ex3_v300301302303_Li .>= 0.9) .& (ex3_v300301302303_Lw .>= 0.9)
-sum(id_learing)
-id_connections = (ex3_v300301302303_nl .> 800) 
+Plots.savefig(p_h3_nl, pwd() * "\\plots_to_export\\nl vs quality.pdf")
 
-mean_missing(x) = mean(x[.!ismissing.(x)])
+p_h3_l_nr = Plots.scatter(sort(unique(ex3_v300301302303_Li)), [mean(mean.(ds300)[(ex3_v300301302303_Li .== li) .& (ex3_v300301302303_Lw .== 0.0)]) for li in sort(unique(ex3_v300301302303_Li))], ylabel = "Różnica między oczekiwaniami konsumentów \n a średnim poziomem jakości", xlabel = L"\lambda_i", title = "Brak badań konsumentów", label = L"\theta_i = 0", ylim = (-0.15, 0.15))
+Plots.scatter!(sort(unique(ex3_v300301302303_Li)), [mean(mean.(ds300)[(ex3_v300301302303_Li .== li) .& (ex3_v300301302303_Lw .> 0.0)]) for li in sort(unique(ex3_v300301302303_Li))], label = L"\theta_i > 0")
 
-mean_missing([1,2,3,missing])
+p_h3_l_rr = Plots.scatter(sort(unique(ex3_v300301302303_Li)), [mean(mean.(ds301)[(ex3_v300301302303_Li .== li) .& (ex3_v300301302303_Lw .== 0.0)]) for li in sort(unique(ex3_v300301302303_Li))], title = "Badania konsumentów",  label= L"\theta_i = 0", ylabel = "Różnica między oczekiwaniami konsumentów \n a średnim poziomem jakości", xlabel = L"\lambda_i",ylim = (-0.15, 0.15))
+Plots.scatter!(sort(unique(ex3_v300301302303_Li)), [mean(mean.(ds301)[(ex3_v300301302303_Li .== li) .& (ex3_v300301302303_Lw .> 0.0)]) for li in sort(unique(ex3_v300301302303_Li))], label = L"\theta_i > 0")
 
-Plots.plot(ds300[1:100], color = "grey", alpha = 0.1, legend = false)
+p_h3_l = Plots.plot(p_h3_l_nr, p_h3_l_rr, size = (1000, 500))
 
-p = Plots.plot!(mean(ds300[(ex3_v300301302303_nl .>= 2000) .& id_learning]), color = "red", linewidth = 2)
-p = Plots.plot!(mean(ds301[(ex3_v300301302303_nl .>= 2000) .& id_learning]), color = "green", linewidth = 2)
-p = Plots.plot!(mean_missing(ds300b), color = "red", linewidth = 2, linestyle = :dash)
-p = Plots.plot!(mean_missing(ds301b), color = "green", linewidth = 2)
+Plots.savefig(p_h3_l, pwd() * "\\plots_to_export\\lambda vs quality.pdf")
 
-Plots.plot(mean(getindex.(ex3_v300_quality, 1)))
-Plots.plot!(mean(getindex.(ex3_v300_quality_exp, 1)))
+p_h3_w = Plots.scatter(sort(unique(ex3_v300301302303_Lw)), [mean(mean.(ds300)[ex3_v300301302303_Lw .== lw]) for lw in sort(unique(ex3_v300301302303_Lw))], ylabel = "Różnica między oczekiwaniami konsumentów \n a średnim poziomem jakości", xlabel = L"\theta_i", label = "Brak badań konsumentów")
+Plots.scatter!(sort(unique(ex3_v300301302303_Lw)), [mean(mean.(ds301)[ex3_v300301302303_Lw .== lw]) for lw in sort(unique(ex3_v300301302303_Lw))], label = "Badania konsumentów")
 
-Plots.plot(mean(getindex.(ex3_v301_quality, 1)))
-Plots.plot!(mean(getindex.(ex3_v301_quality_exp, 1)))
-
-p_h3_1 = Plots.scatter(sort(unique(ex3_v300301302303_nl)), [mean(avg_quality_diff_300[ex3_v300301302303_nl .== nl]) for nl in sort(unique(ex3_v300301302303_nl))], smooth = true, xlabel = "Liczba połączeń w sieci", ylabel = "Różnica między oczekiwaniami konsumentów \n a średnim poziomem jakości", label = "Brak badań konsumentów", titlefontsize = 10)
-Plots.scatter!(sort(unique(ex3_v300301302303_nl)), [mean(avg_quality_diff_301[ex3_v300301302303_nl .== nl]) for nl in sort(unique(ex3_v300301302303_nl))], smooth = true, label = "Wykonywanie badań konsumentów")
-Plots.scatter!(sort(unique(ex3_v300301302303_nl)), [mean(avg_quality_diff_302[ex3_v300301302303_nl .== nl]) for nl in sort(unique(ex3_v300301302303_nl))], smooth = true, label = "Wykonywanie badań konsumentów")
-Plots.scatter!(sort(unique(ex3_v300301302303_nl)), [mean(avg_quality_diff_303[ex3_v300301302303_nl .== nl]) for nl in sort(unique(ex3_v300301302303_nl))], smooth = true, label = "Wykonywanie badań konsumentów")
-
-Plots.savefig(p_h3_1, pwd() * "\\plots\\h3\\expectation bias vs connection number.svg")
-
-# Większa liczba połączeń prowadzi do zbliżenia oczekiwań konsumentów do rzeczywistych wartości
-
-dK300 = cut_integer(abs.(mean.(getindex.(ex3_v300_quality, 1)) .- mean.(getindex.(ex3_v300_quality_exp, 1))), 8)
-dK301 = cut_integer(abs.(mean.(getindex.(ex3_v301_quality, 1)) .- mean.(getindex.(ex3_v301_quality_exp, 1))), 8)
-
-p_h3_2 = Plots.scatter(dK300[2], [mean(sum.(getindex.(ex3_v300_producer_surplus_singleton, 1))[dK300[1] .== g]) for g in 1:8], smooth = true, xlabel = "Różnica między oczekiwaniami konsumentów \n a średnim poziomem jakości", ylabel = "Średni zysk firmy", label = "Brak badań konsumentów")
-Plots.scatter!(dK301[2], [mean(sum.(getindex.(ex3_v301_producer_surplus_singleton, 1))[dK301[1] .== g]) for g in 1:8], smooth = true, label = "Wykonywanie badań konsumentów")
-
-Plots.savefig(p_h3_2, pwd() * "\\plots\\h3\\profit vs expectation bias.svg")
+Plots.savefig(p_h3_w, pwd() * "\\plots_to_export\\theta vs quality.pdf")
 
 Plots.scatter(sort(unique(ex3_v300301302303_nl)), [mean(mean.(getindex.(ex3_v300_producer_surplus_singleton, 1))[ex3_v300301302303_nl .== nl]) for nl in sort(unique(ex3_v300301302303_nl))], smooth = true)
 Plots.scatter!(sort(unique(ex3_v300301302303_nl)), [mean(mean.(getindex.(ex3_v301_producer_surplus_singleton, 1))[ex3_v300301302303_nl .== nl]) for nl in sort(unique(ex3_v300301302303_nl))], smooth = true)
@@ -317,22 +293,12 @@ model_t = GLM.lm(@formula(yt~x), lt_df)
 fit_l = GLM.predict(model_l, lt_df_pred)
 fit_t = GLM.predict(model_t, lt_df_pred)
 
-Plots.scatter(sort(unique(ex3_v300301302303_Li)), incr_profit_l, markerstrokewidth = 0, label = "Dodatkowy zysk, sygnały indywidualne, " * L"\lambda", color = :blue)
+p_h3_lt = Plots.scatter(sort(unique(ex3_v300301302303_Li)), incr_profit_l, markerstrokewidth = 0, label = "Dodatkowy zysk, sygnały indywidualne, " * L"\lambda", color = :blue)
 Plots.plot!(0.00:0.01:0.99, fit_l, color = "blue", label = "")
 Plots.scatter!(sort(unique(ex3_v300301302303_Lw)), incr_profit_t, legend = :topleft, markerstrokewidth = 0, label = "Dodatkowy zysk, sygnały od innych konsumentów, " * L"\theta", color = :green)
 Plots.plot!(0.00:0.01:0.99, fit_t, color = "green", legend = :topright, xlabel = "Wagi sygnałów " * L"\lambda, \theta", ylabel = "Dodatkowy zysk firmy z tytułu \n prowadzenia badań konsumenckich", label = "")
 
-λ = ex3_v300301302303_Li
-θ = ex3_v300301302303_Lw
-
-nl_id = ex3_v300301302303_nl .<= 600
-
-hm_rs = [mean(incr_profit[(λ .== l) .& (θ .== t) .& nl_id]) for l in sort(unique(λ)), t in sort(unique(θ))]
-
-Plots.plot([mean(x) for x in eachrow(hm_rs)]) # by λ
-Plots.plot([mean(x) for x in eachcol(hm_rs)]) # by θ
-
-ex4_p1 = StatsPlots.heatmap(sort(unique(λ))[2:end], sort(unique(θ))[2:end], hm_rs'[2:end, 2:end], xlabel = "λ, produkty oceniane osobiście", ylabel = "θ, produkty oceniane przez sąsiadów", titlefontsize = 8)
+Plots.savefig(p_h3_lt, pwd() * "\\plots_to_export\\incremental profit vs lambda and theta.pdf")
 
 ########## Hipoteza 4 ############
 
@@ -340,7 +306,7 @@ ex4_p1 = StatsPlots.heatmap(sort(unique(λ))[2:end], sort(unique(θ))[2:end], hm
 Decyzja producenta o uwzględnianiu wyników badań preferencji konsumentów w prowadzonych przez niego działaniach zależy od ceny pomiaru preferencji oraz horyzontu czasowego planowania producenta
 """
 
-low_nl = ex3_v300301302303_nl .<= 800
+low_nl = ex3_v300301302303_nl .<= 1000
 
 payoff1_low_nl = [mean(
         [median(sum.(getindex.(ex3_v300_producer_surplus_singleton, 1))[low_nl]), median(sum.(getindex.(ex3_v300_producer_surplus_singleton, 2))[low_nl])
@@ -390,7 +356,7 @@ Plots.plot!(costs[valid_mixed_NE_high_nl], fill(2, count(valid_mixed_NE_high_nl)
 Plots.plot!(yticks = ([1,2], ["Żaden producent nie prowadzi badań", "Obaj producenci prowadzą badania"]), size = (1000, 200))
 xaxis!(xlabel = "Koszt pomiaru preferencji")
 
-p_high_nl = Plots.plot(payoff1_high_nl[[1,2,4,3,1]], payoff2_high_nl[[1,2,4,3,1]], legend = :outerright, marker = :circle, label = "C = 0", xlabel = "Wypłata firmy #1", ylabel = "Wypłata firmy #2", xlim = (0,80), ylim = (0,80))
+p_high_nl = Plots.plot(payoff1_high_nl[[1,2,4,3,1]], payoff2_high_nl[[1,2,4,3,1]], legend = :outerright, marker = :circle, label = "C = 0", xlabel = "Zysk firmy #1", ylabel = "Zysk firmy #2", xlim = (0,80), ylim = (0,80))
 annotate!.(payoff1_high_nl[[1,2,4,3]] .+ [-2,2,2,-2], payoff2_high_nl[[1,2,4,3]] .+ [-2,2,2,2], Plots.text.(["(N,N)", "(R,N)", "(R,R)", "(N,R)"], fill(8,4), :blue), alpha = 0.5)
 
 c = 15; Plots.plot!(payoff1_high_nl[[1,2,4,3,1]] .- [0, c, c, 0, 0], payoff2_high_nl[[1,2,4,3,1]] .- [0, 0, c, c, 0], marker = :circle, label = "C = " * string(c))
@@ -403,7 +369,7 @@ c = 45; Plots.plot!(payoff1_high_nl[[1,2,4,3,1]] .- [0, c, c, 0, 0], payoff2_hig
 annotate!.(payoff1_high_nl[[2,4,3]] .+ [2,2,-2] .- [c, c, 0], payoff2_high_nl[[2,4,3]] .+ [2,2,-2] .- [0, c, c], Plots.text.(["(R,N)", "(R,R)", "(N,R)"], fill(8,3), :purple), linealpha = 0.5)
 
 Plots.savefig(p_high_nl, pwd() * "\\plots_to_export\\nash_equilibriums_h.pdf")
-Plots.savefig(p, pwd() * "\\plots\\h4\\nash_equilibriums_h.svg")
+Plots.savefig(p_high_nl, pwd() * "\\plots\\h4\\nash_equilibriums_h.svg")
 
 
 #### Low NL
@@ -423,7 +389,7 @@ Plots.plot!(costs[valid_mixed_NE_low_nl], fill(2, count(valid_mixed_NE_low_nl)),
 Plots.plot!(yticks = ([1,2], ["Żaden producent nie prowadzi badań", "Obaj producenci prowadzą badania"]), size = (1000, 200))
 xaxis!(xlabel = "Koszt pomiaru preferencji")
 
-p_low_nl = Plots.plot(payoff1_low_nl[[1,2,4,3,1]], payoff2_low_nl[[1,2,4,3,1]], legend = :outerright, marker = :circle, label = "C = 0", xlabel = "Wypłata firmy #1", ylabel = "Wypłata firmy #2", xlim = (0,80), ylim = (0,80))
+p_low_nl = Plots.plot(payoff1_low_nl[[1,2,4,3,1]], payoff2_low_nl[[1,2,4,3,1]], legend = :outerright, marker = :circle, label = "C = 0", xlabel = "Zysk firmy #1", ylabel = "Zysk firmy #2", xlim = (0,80), ylim = (0,80))
 annotate!.(payoff1_low_nl[[1,2,4,3]] .+ [-2,2,2,-2], payoff2_low_nl[[1,2,4,3]] .+ [-2,2,2,2], Plots.text.(["(N,N)", "(R,N)", "(R,R)", "(N,R)"], fill(8,4), :blue), alpha = 0.5)
 
 c = 15; Plots.plot!(payoff1_low_nl[[1,2,4,3,1]] .- [0, c, c, 0, 0], payoff2_low_nl[[1,2,4,3,1]] .- [0, 0, c, c, 0], marker = :circle, label = "C = " * string(c))
@@ -437,10 +403,8 @@ annotate!.(payoff1_low_nl[[2,4,3]] .+ [2,2,-2] .- [c, c, 0], payoff2_low_nl[[2,4
 
 p_low_nl
 
-Plots.savefig(p_low_nl, pwd() * "\\plots_to_export\\nash_equilibriums.pdf")
-Plots.savefig(p_low_nl, pwd() * "\\plots\\h4\\nash_equilibriums.svg")
-
-
+Plots.savefig(p_low_nl, pwd() * "\\plots_to_export\\nash_equilibriums_l.pdf")
+Plots.savefig(p_low_nl, pwd() * "\\plots\\h4\\nash_equilibriums_l.svg")
 
 ######## EXPORT PLOTS ##############
 

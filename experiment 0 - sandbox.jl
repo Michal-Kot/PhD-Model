@@ -8,8 +8,20 @@ include(pwd() * "\\methods\\methods.jl")
 
 @time Random.seed!(1234)
 Bool.([0,1]) .+ Bool.([0,1])
-@time sim_single = TO_GO(500, 2, 200, 200, [0.4, 0.4], [1.1, 1.1], "random", .75, .75, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.10, true, 1, [0.7, 1.], "softmax", ["market research", "internal knowledge"], [0.1, 0.], 4, "dist", TriangularDist(0,1,0.5))
+@time sim_single = TO_GO(500, 2, 200, 2000, [0.6, 0.6], [1.1, 1.1], "random", .8, .8, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[1., 2.], [1., 2.]], 0.10, true, 1, [0.85, 1.], "softmax", ["market research", "market research"], [0.1, 0.1], 3, "dist", TriangularDist(0,1,0.5))
 
+
+
+Plots.plot(sim_single.sellers[1].quality_history)
+Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)]))
+
+Plots.plot(sim_single.sellers[2].quality_history)
+Plots.plot!(mean([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectation_history)]))
+
+
+Plots.plot()
+
+Plots.plot(getfield.(sim_single.buyers, :std_reservation_price))
 
 
 get_expectation_buyers(sim_single.buyers, :durability_expectation_history; s = 2, T = 500)

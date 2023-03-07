@@ -351,7 +351,7 @@ savefig(bates_dist_p, pwd() * "\\thesis_plots\\bates_dist.pdf")
 beta = rand(TriangularDist(0,1,0.5), 100000)
 ps = rand(TriangularDist(1,2,1.5), 100000)
 
-p_beta = Plots.plot([0,1], [0,1], color = "black", legend = nothing, ylabel = L"\frac{\beta_i}{p_i}", xlabel = L"\beta_i", title = "Zależność pomiędzy " * L"\beta_i" * " i " * L"\frac{\beta_i}{p_i}")
+p_beta = Plots.plot([0,1], [0,1], color = "black", legend = nothing, ylabel = L"\frac{\beta_i}{\gamma_i}", xlabel = L"\beta_i", title = "Zależność pomiędzy " * L"\beta_i" * " i " * L"\frac{\beta_i}{\gamma_i}", margin=2.5Plots.mm)
 Plots.plot!([0,1], [0,0.5], color = "black")
 Plots.plot!([1,1], [0.5,1], color = "black")
 

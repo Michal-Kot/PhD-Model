@@ -10,8 +10,8 @@ to do list phd
 [X] przykłady wykorzystania modeli wieloagentowych
 [] walidacja modelu wieloagentowego - weryfikacja hipotezy 1
 [X] weryfikacja hipotezy 2
-[] weryfikacja hipotezy 3
-[] weryfikacja hipotezy 4
+[X] weryfikacja hipotezy 3
+[X] weryfikacja hipotezy 4
 [] dyskusja osiągniętych wyników
 [] podsumowanie
 [X] braki w pracy & planowane/proponowane rozwinięcia

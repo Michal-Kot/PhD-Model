@@ -3,7 +3,7 @@
 # TESTUJ NOWA F-KCJE, RANDOM ZMIANA 
 
 """
-jldsave("C:\\Users\\User\\Documents\\PhDWorkspace_4cases_2.jld2"; ex3_v300_total_surplus,
+jldsave("C:\\Users\\User\\Documents\\PhDWorkspace_more_nl.jld2"; ex3_v300_total_surplus,
 ex3_v300_producer_surplus,
 ex3_v300_consumer_surplus,
 ex3_v300_price,
@@ -86,8 +86,6 @@ ex3_v300301302303_nl,
 ex3_v300301302303_ρm,
 ex3_v300301302303_cc,
 ex3_v300301302303_m)"""
-
-
 
 # Impact on social communication of simulation dynamics
 
@@ -178,7 +176,7 @@ ex3_v300301302303_ρm = Vector{Float64}()
 ex3_v300301302303_cc = Vector{Float64}()
 ex3_v300301302303_m = Vector{Float64}()
 
-for i in 1:322
+for i in 1:800
 
     println(i)
 
@@ -190,12 +188,14 @@ for i in 1:322
     sd = sample(1:100000)
     cu = sample(0.0:0.1:0.5)
     sm = sample(0.10:0.05:0.30)
-    nl = sample(N:N:(5*N))
+    nl = sample(N:N:(15*N))
     ρm = rand(Uniform(0.5, 0.95))
     cc = sample(0.4:0.1:0.6)
     m = sample(1.1:0.1:1.3)
 
     Random.seed!(sd)
+
+    println([li, lw, h, cu, sm, nl, ρm, cc, m])
 
     ex3_v300_sim = TO_GO(500, 2, N, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[1., 2.], [1., 2.]], cu, true, 0, [ρm, 1.], "softmax", ["internal knowledge", "internal knowledge"], [0., 0.], h, "dist", TriangularDist(0,1,0.5))
 
