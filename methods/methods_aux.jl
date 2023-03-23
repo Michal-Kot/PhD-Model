@@ -1,57 +1,134 @@
-#### AUX functions
+#######################################################################################################
+
+# Auxiliary functions used in the process of  modelling
+
+#######################################################################################################
 
 function sum_of_geom_series_infinite(a0,q)
-    return a0 ./ (1 .- q.^2)
+
+    """
+    Calculates a sum of infinite geometric series for initial value of a0 and difference q
+    Inputs:
+        a0 - initial value
+        q - difference between subsequent elements
+    Returns:
+    sum of inifinite series
+    """
+
+    return a0 ./ (1 .- q)
+
 end
 
 function sum_of_geom_series_finite(a0,q;t)
+
+    """
+    Calculates a sum of t elements of geometric series for initial value of a0 and difference q
+    Inputs:
+        a0 - initial value
+        q - difference between subsequent elements
+        t - number of elements
+    Returns:
+    sum of finite series
+    """
+
     return a0 .* (1 .- q.^t) ./ (1 .- q)
 end
 
 function trim_first(x; trimmed = 3)
+
+    """
+    Trims first elements of a vector
+    Inputs:
+        x - vector
+        trimmed - number of elements to be trimmed - 1
+    Returns:
+    vector without first trimmed-1 elements
+    """
+
+    @assert trimmed <= lastindex(x)
+
     return x[trimmed:end]
+
 end
 
 function trim_extremes(x, t = 10)
+
+    """
+    Trims first and last elements of a vector, based on percentile t
+    Inputs:
+        x - vector
+        t - percentile to be trimmed at each extreme, 100-2t middle elements are left
+    Returns:
+    vector without trimmed elements
+
+    """
+
+    @assert t < 50
 
     return x[(x .>= percentile(x, t)) .& (x .<= percentile(x, 100-t))]
 
 end
 
-function non_extreme_values(x, t = 10)
-    return (x .>= percentile(x, t)) .& (x .<= percentile(x, 100-t))
-end
-
 function in_boundaries(x::Float64,lb::Float64,ub::Float64)::Float64
+
+    """
+    Ensure that all elements of x are between lb (lower bound) and ub (upper bound)
+    Inputs:
+        x - vector
+        lb - lower bound
+        ub - upper bound
+    Returns:
+    vector in which all elements are between lb and ub, if in initial vector any element was outside feasible region (lb, ub) it is changed to the boundary value
+    """
+
     return max(min(x,ub),lb)
 end
 
 function cost_coefficient(k,d,cc)
+
+    """
+    Calculate cost coefficient
+    Inputs:
+        k - quality
+        d - durability
+        cc - cost coefficient of production
+    Returns:
+    cost coefficient, if k & d are not used then production function is constant
+    """
+
+    @assert 0 < cc < 1
+
     return cc
 end
 
 average_nan(v,d) = d == 0 ? 0 : v/d
 
 function average_signal(signal_value, signal_volume)
+
+    """
+    Calculate average signal from neighbours
+    Inputs:
+        signal_value - average of signals
+        signal_volume - number of signals
+    Returns:
+    vector of average signals, elements being means of 0, if signal_volume = 0
+    """
+
     signal_average = average_nan.(signal_value, signal_volume)
     return signal_average
 end
 
-function softmax(x::Vector, scale::Bool = true)
-
-    y = copy(x)
-
-    if scale
-
-        y = y / std(y)
-
-    end
-
-
-
-end
-
 function create_weights(x::Vector, method::String, scale::Bool = true)
+
+    """
+    Calculate transformation of weights
+    Inputs:
+        x - weights to be transformed
+        method - method to transform weights: softmax, relu or argmax
+        scale - if weights shall be scaled prior to transformation
+    Returns:
+    vector of weights transformed in line with softmax
+    """
 
     y = copy(x)
 
@@ -60,9 +137,7 @@ function create_weights(x::Vector, method::String, scale::Bool = true)
     if method == "softmax"
 
         if scale
-
             y = y / std(y)
-
         end
 
         return exp.(y) ./ sum(exp.(y)) 
@@ -85,9 +160,27 @@ end
 
 function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64, eD_dist::Vector{Float64}, M::Float64, Q::Float64, o_K::Float64, o_D::Float64, o_P::Float64, N::Int64, μ_c::Float64, cc::Float64, ρ_dist::Vector{Float64}, β_dist::Vector{Float64}, ps_dist::Vector{Float64}, return_type::String, product_life::Int64)
     """
-
-    Funkcja licząca oczekiwany zysk z danego stanu. Wykorzystywana przez firmę do szacowania efektu zmiany stanu.
-
+    Calculate expected profit or demand from given state, used by firms to estimate effects of strategy change
+    Inputs:
+        K - average quality, known to producer
+        eK_dist - expected quality, based on research or assumptions <- most important difference between firms of two types
+        D - average durability, known to producer
+        eD_dist - expected durablity, based on research or assumptions <- most important difference between firms of two types
+        M - margin
+        Q - quantity of production
+        o_K - quality of competitors products, averaged
+        o_D - durability of competitors products, averaged
+        o_P - price of competitors products, averaged
+        N - population size
+        μ_c - discount in the secondary B2C market
+        cc - cost coefficient
+        ρ_dist - future discount of consumers based on research or assumptions <- most important difference between firms of two types
+        β_dist - taste for quality of consumers based on research or assumptions <- most important difference between firms of two types
+        ps_dist - price sensitivity of consumers based on research or assumptions <- most important difference between firms of two types
+        return_type - type of return, demand or profit
+        product_life - products' ability to serve, in steps
+    Returns:
+    estimated profit or demand
     """
 
     s = β_dist
@@ -107,8 +200,6 @@ function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64
     U = s .* sum_of_geom_series_finite.(eK, eρ .* eD; t = product_life)  .- price # użyteczność mojego dobra przy parametrach K, D, M
 
     upper_price_limit = β_dist ./ ps_dist
-
-    # 
 
     demand = sum((U .> 0) .& (U .> o_U) .& (rand(N) .< 1/product_life) .& (price .<= upper_price_limit)) # szacowany popyt. warunek 1: moja użyteczność > 0, warunek 2: moja użyteczność wyższa niż użyteczność dobra konkurencyjnego, warunek 3: oczekiwana liczba klientów poszukujących dobra - skalowanie dla dóbr trwałych > 1 okres
 
@@ -131,59 +222,111 @@ function calculate_state_profit(K::Float64, eK_dist::Vector{Float64}, D::Float64
 end
 
 function calculate_cost(_seller::seller; product_life::Int64)::Float64
+
+    """
+    Calculate cost of production
+    Inputs:
+        _seller - producer object
+        product_life - products' ability to serve, in steps
+    Returns:
+    cost of good production for given parameters
+    """
+
     cost = sum_of_geom_series_finite(_seller.quality, _seller.durability; t=product_life) * cost_coefficient(_seller.quality, _seller.durability, _seller.cost_coefficient) #_seller.cost_coefficient
     return cost
 end
 
 
 function calculate_cost_history(_seller::seller; product_life::Int64)::Vector{Float64}
+
+    """
+    Calculate history of cost of production
+    Inputs:
+        _seller - producer object
+        product_life - products' ability to serve, in steps
+    Returns:
+    historical cost of good production for given parameters
+    """
+
     cost = sum_of_geom_series_finite.(_seller.quality_history, _seller.durability_history; t = product_life) .* cost_coefficient.(_seller.quality_history, _seller.durability_history, _seller.cost_coefficient)
     return cost
 end
 
 
 function calculate_price(_seller::seller; product_life::Int64)::Float64
+
+    """
+    Calculate price of product
+    Inputs:
+        _seller - producer object
+        product_life - products' ability to serve, in steps
+    Returns:
+    price of product for given parameters
+    """
+
     price = calculate_cost(_seller; product_life =  product_life) * _seller.margin
     return price
 end
 
 function calculate_price_history(_seller::seller; product_life::Int64)::Vector{Float64}
+
+    """
+    Calculate history of prices of products
+    Inputs:
+        _seller - producer object
+        product_life - products' ability to serve, in steps
+    Returns:
+    historical prices of goods for given parameters
+    """
+
     price = calculate_cost_history(_seller; product_life =  product_life) .* _seller.margin_history
     return price
 end
 
-
-function u2w(u::Vector{Float64}, p_min::Float64 = 0.1)::Vector{Float64}
-
-    if p_min > 0
-
-        u_min = count(u .== minimum(u))
-
-        ut = u .- minimum(u)
-        wgt = ut ./ sum(ut) .* (1 - u_min * p_min)
-        wgt[argmin(u)] = p_min
-
-    else
-
-        wgt = u ./ sum(u)
-
-    end
-
-    return wgt
-end
-
 function calculate_profit_history(_seller::seller)::Vector{Float64}
+
+    """
+    Calculate history of profit
+    Inputs:
+        _seller - producer object
+    Returns:
+    historical profit if producer
+    """
+
     profit_history = _seller.selling_income_history .- _seller.cost_of_production_history .+ _seller.utilization_cost_history
     return profit_history
 end
 
 function create_bool_purchase(n::Int64,k::Int64)::Vector{Bool}
+
+    """
+    Present purchase decision as vector of bool instead of product's ID = k
+    Inputs:
+        n - number of available products
+        k - chosen product
+    Returns:
+    vector of bool, true if product is chosen, false otherwise
+    """
+
     x = fill(false, n)
     x[k] = true
+
+    @assert sum(x) == 1
+
     return x
 end
 
 function calculate_surplus(sim_single, type::String, cumulated::Bool)
+
+    """
+    Calculate history of surpluses
+    Inputs:
+        sim_single - simulation results
+        type - type of surplus to be calculated
+        cumulated - if cumulated surplus be returned, or vector of surpluses in each step
+    Returns:
+    surplus of given type, cumulated or not
+    """
 
     if type == "consumer,pm"
 
@@ -265,6 +408,15 @@ end
 
 function cut_integer(x::Vector{Float64},k::Int64)
 
+    """
+    Cut numeric vector into k groups
+    Inputs:
+        x - vector to be cut
+        k - number of groups
+    Returns:
+    group assignment, boundaries between groups
+    """
+
     bin_width = 1 / k * (maximum(x) - minimum(x)) 
     bin_up_bounds = minimum(x) .+ collect(1:k) .* bin_width
     
@@ -279,61 +431,35 @@ function cut_integer(x::Vector{Float64},k::Int64)
 
 end
 
-function calculate_expectation(sim_res, metric, cumulated = false)
-
-    if metric == "quality"
-        if cumulated
-            return mean.([getindex.(mean(getfield.(sim_res.buyers, :quality_expectation_history)),x) for x in 1:sim_res.function_args.num_sellers])
-        else
-            return [getindex.(mean(getfield.(sim_res.buyers, :quality_expectation_history)),x) for x in 1:sim_res.function_args.num_sellers]
-        end
-    elseif metric == "durability"
-        if cumulated
-            return mean.([getindex.(mean(getfield.(sim_res.buyers, :durability_expectation_history)),x) for x in 1:sim_res.function_args.num_sellers])
-        else
-            return [getindex.(mean(getfield.(sim_res.buyers, :durability_expectation_history)),x) for x in 1:sim_res.function_args.num_sellers]
-        end
-    end
-
-end
-
-function test_if_buyer_has_no_product(_buyer::buyer)
-    x1 = _buyer.expected_surplus == 0
-    x2 = all(_buyer.unit_possessed .== false) 
-    x3 = _buyer.unit_possessed_is_new == false
-    x4 = isnothing(_buyer.unit_possessed_time)
-    x5 = isnothing(_buyer.unit_first_possessed_time)
-    x6 = isnothing(_buyer.quality_of_unit_possessed_history)
-    x7 = isnothing(_buyer.durability_of_unit_possessed)
-    x8 = isnothing(_buyer.current_quality_of_unit_possessed)
-
-    is_cleared = x1 & x2 & x3 & x4 & x5 & x6 & x7 & x8
-
-    return is_cleared
-
-end
-
-mean_nothing(x) = length(x) == 0 ? missing : mean(x)
-maximum_nothing(x) = length(x) == 0 ? missing : maximum(x)
-minimum_nothing(x) = length(x) == 0 ? missing : minimum(x)
-std_nothing(x) = length(x) == 0 ? missing : std(x)
-sum_na(x) = lastindex(x) == 0 ? 0 : sum(x)
-
-function savefigs(plt, target)
-    Plots.savefig(plt, pwd() * target * ".svg") # for pptx
-    Plots.savefig(plt, pwd() * target * ".pdf") # for thesis, latex
-end
-
 function initial_m(β, k1, d1, k2, d2, H, c, m2)
+
+    """
+    Calculate initial m to ensure that for customer with β expected utility of both goods is equal
+    Inputs:
+        β - taste for quality
+        k1, d1 - quality and durability of good #1
+        k2, d2 - quality and durability of good #2
+        H - products' ability to serve, in steps
+        c - cost coefficient
+        m2 - margin of the competitor's product
+    Returns:
+    margin of firm #1
+    """
+    
     m1= (β*sum_of_geom_series_finite(k1,d1;t=H)-sum_of_geom_series_finite(k2,d2;t=H) * (β - m2 * c)) / (c * sum_of_geom_series_finite(k1,d1;t=H))
     return m1
 end
 
-RMSE(x,y) = sqrt(mean((x .- y).^2))
-xydiff(x,y) = mean(x .- y)
-cv(x) = std(x) / mean(x)
-
 function transition_percentile(x)
+
+    """
+    calculate probabiity of loss
+    Inputs:
+       x - vector of profits
+    Returns:
+    percentile in which profit becomes positive
+    """
+    
     trans_perc = 0.0
     for i in 100.0:-0.01:0.01
         if (percentile(x, i) >= 0) & (percentile(x, i - 0.01) < 0)
@@ -343,10 +469,17 @@ function transition_percentile(x)
     return trans_perc
 end
 
-multi(x,y) = x .* y
-divide(x,y) = x ./ y
 
 function find_nash_eq_pure(payoff_matrix::Matrix)
+
+    """
+    find pure nash equilibria in (2,2) Matrix
+    Inputs:
+        payoff_matrix - matrix of payoffs, each element being a tuple (payoff_player_1, payoff_player_2)
+    Returns:
+    bool matrix with true if given strategy is NE, false otherwise
+    """
+
     # player 1
     is_nash_eq_1 = zeros(Int64, size(payoff_matrix))
     for col in 1:size(payoff_matrix, 2)
@@ -372,6 +505,15 @@ function find_nash_eq_pure(payoff_matrix::Matrix)
 end
 
 function find_nash_eq_mixed(payoff_matrix::Matrix)
+
+    """
+    find mixed nash equilibria in (2,2) Matrix
+    Inputs:
+        payoff_matrix - matrix of payoffs, each element being a tuple (payoff_player_1, payoff_player_2)
+    Returns:
+    (p,q) - probabilities of playing strategy one by each of players
+    """
+
     # player 1
     payoffs1 = getindex.(payoff_matrix, 1)
     q = (payoffs1[2,2] - payoffs1[1,2]) / (payoffs1[1,1] + payoffs1[2,2] - payoffs1[1,2] - payoffs1[2,1])
@@ -384,10 +526,18 @@ function find_nash_eq_mixed(payoff_matrix::Matrix)
     #end 
 end
 
-
-
-
 function simulate_ne_for_costs(payoff1, payoff2, costs, ret)
+
+    """
+    find all equilibria for given payoffs and cost of research
+    Inputs:
+        payoff1 - payoffs of player 1
+        payoff2 - payoffs of player 2
+        costs - cost of research
+        ret - type of return
+    Returns:
+    pure / mixed equlibria or check if prisoners' dilemma
+    """
 
     equilibriums = []
 
@@ -424,12 +574,31 @@ function simulate_ne_for_costs(payoff1, payoff2, costs, ret)
 end
 
 function construct_payoff_matrix(payoff1, payoff2, shape = (2,2))
+
+    """
+    construct payoff matrix for given payoffs
+    Inputs:
+        payoff1 - payoffs of player 1
+        payoff2 - payoffs of player 2
+        shape - shape of payoff matrix
+    Returns:
+    payoff matrix
+    """
+
     payoff_matrix = [(x,y) for (x,y) in zip(payoff1, payoff2)]
     payoff_matrix = reshape(payoff_matrix, shape)
     return payoff_matrix
 end
 
 function check_if_prisoners_dilemma(pm, detailed = false)
+
+    """
+    check if given payoffs implicate problem being a prisoner's dilemma
+    Inputs:
+        pm - payoff matrix
+    Returns:
+    if prisoner's dilemma
+    """
 
 # T>R>P>S: betray > cooperate > punishment > fool
 
@@ -456,20 +625,40 @@ function check_if_prisoners_dilemma(pm, detailed = false)
     end
 end
 
-
-true_or_missing(x; k) = x == 1 ? k : missing
-
-fTC(Q, K, D, H, c) = Q .* c .* K .* (1 .- D .^ H) ./ (1 .- D)
-fATC(K, D, H, c) = c .* K .* (1 .- D .^ H) ./ (1 .- D)
-
-any_vec(x, s) = any.(getindex.(x,s) .> 0)
-
-multi_with_missing(x,y) = x == 0 ? missing : x * y
-mean_na(x) = all(ismissing.(x)) ? missing : mean(x[.!ismissing.(x)])
 function get_expectation_buyers(buyers, metric; s, T)
+
+    """
+    calculate expected features ofor buyers only
+    Inputs:
+        buyers - population of consumers
+        metric - feature of product to calculate expectation upon
+        s - number of sellers
+        T - number of periods
+    Returns:
+    vector of expected features
+    """
 
     buyers_expectations = [[getindex.([multi_with_missing.(x,y) for (x,y) in zip(getfield(b, :received_signal_history), getfield(b, metric))], x) for x in 1:s] for b in buyers]
 
     return [mean_na.([getindex.(getindex.(buyers_expectations, s), t) for t in 1:T]) for s in 1:2]
 
 end
+
+######### Additional methods ###################
+
+true_or_missing(x; k) = x == 1 ? k : missing
+fTC(Q, K, D, H, c) = Q .* c .* K .* (1 .- D .^ H) ./ (1 .- D)
+fATC(K, D, H, c) = c .* K .* (1 .- D .^ H) ./ (1 .- D)
+any_vec(x, s) = any.(getindex.(x,s) .> 0)
+multi_with_missing(x,y) = x == 0 ? missing : x * y
+mean_na(x) = all(ismissing.(x)) ? missing : mean(x[.!ismissing.(x)])
+RMSE(x,y) = sqrt(mean((x .- y).^2))
+xydiff(x,y) = mean(x .- y)
+cv(x) = std(x) / mean(x)
+multi(x,y) = x .* y
+divide(x,y) = x ./ y
+mean_nothing(x) = length(x) == 0 ? missing : mean(x)
+maximum_nothing(x) = length(x) == 0 ? missing : maximum(x)
+minimum_nothing(x) = length(x) == 0 ? missing : minimum(x)
+std_nothing(x) = length(x) == 0 ? missing : std(x)
+sum_na(x) = lastindex(x) == 0 ? 0 : sum(x)
