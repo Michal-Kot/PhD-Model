@@ -40,6 +40,8 @@ function create_destroy(_buyer, product_id)
     return b
 end
 
+sim_single.buyers[193].unit_buying_selling_history
+
 function create_resell(_buyer, product_id)
     b = []
     for item in _buyer.unit_buying_selling_history
@@ -170,8 +172,8 @@ sim_single.buyers[1].signal_volume == countmap(getfield.(sim_single.buyers[2].un
 sim_single.buyers[1].unit_buying_selling_history
 sim_single.buyers[2].signal_volume == countmap(getfield.(sim_single.buyers[1].unit_buying_selling_history, :decision))["buy, primary market"]
 
-p3 = Plots.plot(sim_single.sellers[1].quality_history, label = "Średnia jakość", xlabel = "Czas", ylabel = "Średnia / oczekiwana / rzeczywista jakość", legend = :outertopright)
-Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1), label = "Oczekiwana jakość")
+p3 = Plots.plot(sim_single.sellers[1].quality_history, label = "Średnia jakość", xlabel = "Czas", ylabel = "Jakość", legend = :outerright)
+Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1), label = "Przekonanie o jakości " * L"K_{ijt}")
 Plots.scatter!(get_signal_value(sim_single.buyers[1], 1, 1), label = "Rzeczywista jakość " * L"\hat K_{ijt}" )
 Plots.scatter!(get_signal_value(sim_single.buyers[2], 1, 1), label = "Rzeczywista jakość " * L"\bar K_{ijt}")
 
@@ -191,7 +193,7 @@ linestyle = :dash)
 
 ## EXP = 0, WOM = 1
 
-Random.seed!(123456)
+Random.seed!(1425)
 
 sim_single = TO_GO(50, 2, 2, 1, [0.4, 0.4], [1.0, 1.0], "random", 0.0, 1.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", ["internal knowledge", "market research"], [0, 0.5], 4, "dist", TriangularDist(0,1,0.5))
 
@@ -205,8 +207,8 @@ Plots.plot!(create_destroy(sim_single.buyers[1], 2), seriestype = :vline, color 
 
 [any(x .== 0) for x in check_impact_of_signals(sim_single, 1, 1)]
 
-p1 = Plots.plot(sim_single.sellers[1].quality_history, label = "Średnia jakość dobra", xlabel = "Czas", ylabel = "Średnia / oczekiwana jakość dobra", legend = :outerright)
-Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1), label = "Oczekiwana jakość dobra")
+p1 = Plots.plot(sim_single.sellers[1].quality_history, label = "Średnia jakość dobra", xlabel = "Czas", ylabel = "Jakość", legend = :outerright)
+Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1), label = "Przekonanie o jakości " * L"K_{ijt}")
 Plots.plot!(create_buying(sim_single.buyers[1], 1) .+ 0.1, seriestype = :vline, linestyle = :dash, label = "Własne doświadczenie")
 Plots.plot!(create_buying(sim_single.buyers[2], 1) .- 0.1, seriestype = :vline, linestyle = :dash, label = "Wymiana informacji")
 
@@ -222,12 +224,12 @@ linestyle = :dash)
 
 ## EXP = 1, WOM = 0
 
-Random.seed!(19)
+Random.seed!(15512)
 
 sim_single = TO_GO(50, 2, 2, 1, [0.4, 0.4], [1.0, 1.0], "random", 1.0, 0.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", ["internal knowledge", "market research"], [0, 0.5], 4, "dist", TriangularDist(0,1,0.5))
 
-p2 = Plots.plot(sim_single.sellers[1].quality_history, label = "Średnia jakość dobra", xlabel = "Czas", ylabel = "Średnia / oczekiwana jakość dobra", legend = :outerright)
-Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1), label = "Oczekiwana jakość dobra")
+p2 = Plots.plot(sim_single.sellers[1].quality_history, label = "Średnia jakość dobra", xlabel = "Czas", ylabel = "Jakość", legend = :outerright)
+Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1), label = "Przekonanie o jakości " * L"K_{ijt}")
 Plots.plot!(create_buying(sim_single.buyers[1], 1) .+ 0.1, seriestype = :vline, linestyle = :dash, label = "Własne doświadczenie")
 Plots.plot!(create_buying(sim_single.buyers[2], 1) .- 0.1, seriestype = :vline, linestyle = :dash, label = "Wymiana informacji")
 
@@ -246,8 +248,8 @@ Random.seed!(20)
 
 sim_single = TO_GO(50, 2, 2, 1, [0.4, 0.4], [1.0, 1.0], "random", 0.0, 0.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", ["internal knowledge", "market research"], [0, 0.5], 4, "dist", TriangularDist(0,1,0.5))
 
-p3 = Plots.plot(sim_single.sellers[1].quality_history, label = "Średnia jakość dobra", xlabel = "Czas", ylabel = "Średnia / oczekiwana jakość dobra", legend = :outerright)
-Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1), label = "Oczekiwana jakość dobra")
+p3 = Plots.plot(sim_single.sellers[1].quality_history, label = "Średnia jakość dobra", xlabel = "Czas", ylabel = "Jakość", legend = :outerright)
+Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1), label = "Przekonanie o jakości " * L"K_{ijt}")
 Plots.plot!(create_buying(sim_single.buyers[1], 1) .+ 0.1, seriestype = :vline, linestyle = :dash, label = "Własne doświadczenie")
 Plots.plot!(create_buying(sim_single.buyers[2], 1) .- 0.1, seriestype = :vline, linestyle = :dash, label = "Wymiana informacji")
 
@@ -258,8 +260,8 @@ Random.seed!(21)
 
 sim_single = TO_GO(50, 2, 2, 0, [0.4, 0.4], [1.0, 1.0], "random", 1.0, 1.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", ["internal knowledge", "market research"], [0, 0.5], 4, "dist", TriangularDist(0,1,0.5))
 
-p4 = Plots.plot(sim_single.sellers[1].quality_history, label = "Średnia jakość dobra", xlabel = "Czas", ylabel = "Średnia / oczekiwana jakość dobra", legend = :outertopright)
-Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1), label = "Oczekiwana jakość dobra")
+p4 = Plots.plot(sim_single.sellers[1].quality_history, label = "Średnia jakość dobra", xlabel = "Czas", ylabel = "Jakość", legend = :outerright)
+Plots.plot!(getindex.(sim_single.buyers[1].quality_expectation_history, 1), label = "Przekonanie o jakości " * L"K_{ijt}")
 Plots.plot!(create_buying(sim_single.buyers[1], 1) .+ 0.1, seriestype = :vline, linestyle = :dash, label = "Własne doświadczenie")
 
 Plots.savefig(p4, pwd() * "\\plots_to_export\\verification_m0.pdf")
@@ -270,11 +272,26 @@ Random.seed!(8)
 
 sim_single = TO_GO(50, 2, 200, 400, [0.4, 0.4], [1.0, 1.0], "random", 0.0, 1.0, "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", ["internal knowledge", "market research"], [0, 0.5], 4, "dist", TriangularDist(0,1,0.5))
 
-p2 = Plots.plot(getfield.(sim_single.buyers, :reselling_probability_history)[1], color = :black, linewidth = 2, label = L"p_{it}^R", xlabel = "Czas", ylabel = "Prawdopodobieństwo odsprzedaży", legend = :outerright)
-Plots.plot!(create_failed_resell(sim_single.buyers[1], 1), linetype = :vline, color = "red", linestyle = :dash, label = "")
-Plots.plot!(create_failed_resell(sim_single.buyers[1], 2), linetype = :vline, color = "red", linestyle = :dash, label = "Nieudana transakcja odsprzedaży")
-Plots.plot!(create_resell(sim_single.buyers[1], 1), linetype = :vline, color = "green", linestyle = :dash, label = "Udana transakcja odsprzedaży")
-Plots.plot!(create_resell(sim_single.buyers[1], 2), linetype = :vline, color = "green", linestyle = :dash, label = "Udana transakcja odsprzedaży")
+function check_changes(x)
+    dx = sign.(diff(x))
+    lowered = any(dx .< 0) ? true : false
+    uppered = any(dx .> 0) ? true : false
+    if lowered & uppered
+        println("Check this buyer")
+    end
+end
+
+for i in 1:200
+    println(i)
+    check_changes(getfield.(sim_single.buyers, :reselling_probability_history)[i])
+end
+
+k=193
+p2 = Plots.plot(getfield.(sim_single.buyers, :reselling_probability_history)[k], color = :black, linewidth = 2, label = L"p_{it}^R", xlabel = "Czas", ylabel = "Prawdopodobieństwo odsprzedaży", legend = :outerright)
+Plots.plot!(create_failed_resell(sim_single.buyers[k], 1), linetype = :vline, color = "red", linestyle = :dash, label = "")
+Plots.plot!(create_failed_resell(sim_single.buyers[k], 2), linetype = :vline, color = "red", linestyle = :dash, label = "Nieudana transakcja odsprzedaży")
+Plots.plot!(create_resell(sim_single.buyers[k], 1), linetype = :vline, color = "green", linestyle = :dash, label = "Udana transakcja odsprzedaży")
+Plots.plot!(create_resell(sim_single.buyers[k], 2), linetype = :vline, color = "green", linestyle = :dash, label = "Udana transakcja odsprzedaży")
 
 Plots.savefig(p2, pwd() * "\\plots_to_export\\verification_pir.pdf")
 
@@ -334,11 +351,11 @@ allequal([getindex.(x,2) for x in getfield.(sim_single.buyers, :quality_expectat
 ########################################### Sampled product quality
 ## -> in the mean shall be 'close' to producers' decisions
 
-sim_single = TO_GO(200, 2, 1000, 2000, [0.4, 0.4], [1.0, 1.0], "random", 0., 0., "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", ["internal knowledge", "market research"], [0, 0.1], 8, "dist", TriangularDist(0,1,0.5))
+sim_single = TO_GO(200, 2, 1000, 2000, [0.4, 0.4], [1.0, 1.0], "random", 0., 0., "stochastic", [[0.2, 0.8], [0.2, 0.8]], [[0.2, 0.8], [0.2, 0.8]], [[.8, 2.], [.8, 2.]], 0.50, true, 0, [0.7, 1.], "softmax", ["internal knowledge", "market research"], [0, 0.1], 4, "dist", TriangularDist(0,1,0.5), 0.1)
 
 plot_quantity(sim_single.sellers, 1)
 
-p = Plots.plot(sim_single.sellers[1].quality_history, label = L"K_{jt}", color="black", linewidth = 2, legend = :outerright, xlabel = "Czas", ylabel = "Średnia / oczekiwana jakość")
+p = Plots.plot(sim_single.sellers[1].quality_history, label = L"K_{jt}", color="black", linewidth = 2, legend = :outerright, xlabel = "Czas", ylabel = "Jakość")
 Plots.plot!(sim_single.sellers[1].quality_history .+ 0.1, color="black", linewidth = 0.5, label = "")
 Plots.plot!(sim_single.sellers[1].quality_history .- 0.1, color="black", linewidth = 0.5, label = L"K_{jt} \pm 0.1")
 qs = quality_sampled_products(sim_single.buyers, 1, 1)

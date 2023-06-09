@@ -1,6 +1,5 @@
 include(pwd() * "\\methods\\methods.jl")
 @load "C:\\Users\\User\\Documents\\PhDWorkspace_more_nl.jld2"
-
 # Potwierdzenie istnienia planned obsolence
 
 xd = collect(0.10:0.10:0.90)
@@ -11,14 +10,16 @@ iter0 = 100
 
 for i in 1:(lastindex(xd)-1)
     for j in 1:(lastindex(yd)-1)
-        mat[i,j] = count((xd[i] .<= mean([getindex.(getindex.(ex3_no_sm_durability, 1), m) for m in iter0:500]) .< xd[i+1]) .& (yd[j] .<= mean([getindex.(getindex.(ex3_no_sm_durability, 2), m) for m in iter0:500]) .< yd[j+1]))
+        mat[i,j] = count((xd[i] .<= mean([getindex.(getindex.(ex3_v300_durability, 1), m) for m in iter0:500]) .< xd[i+1]) .& (yd[j] .<= mean([getindex.(getindex.(ex3_v300_durability, 2), m) for m in iter0:500]) .< yd[j+1]))
     end
 end
+
+
 
 val_p1 = StatsPlots.heatmap(xd, yd, mat', c = cgrad(:roma, scale = :exp, rev = true), fill_z=mat, aspect_ratio=:equal, xlabel = "Trwałość producenta pierwszego", ylabel = "Trwałość producenta drugiego", xlim = (0.10, 0.90), ylim = (0.10, 0.90), colorbar_title = "") 
 
 nrow, ncol = size(mat)
-ann = [(xd[i] + 0.05,yd[j]+0.05, Plots.text(round(mat[i,j] / sum(mat), digits=3), 8, :black, :center))
+ann = [(xd[i] + 0.05,yd[j]+0.05, Plots.text(string.(round(100 * mat[i,j] / sum(mat), digits=1)) .* "%", 8, :black, :center))
             for i in 1:nrow for j in 1:ncol]
 annotate!(ann, linecolor=:white)
 
@@ -227,7 +228,7 @@ alphas[[any(getfield.(x, :decision) .== "buy, primary market") for x in getfield
 colors[[any(getfield.(x, :decision) .== "buy, secondary market") & all(getfield.(x, :decision) .!= "buy, primary market") for x in getfield.(sim_single.buyers, :unit_buying_selling_history)]] .= "green"
 alphas[[any(getfield.(x, :decision) .== "buy, secondary market") & all(getfield.(x, :decision) .!= "buy, primary market") for x in getfield.(sim_single.buyers, :unit_buying_selling_history)]] .= 1
 
-val_p4 = Plots.scatter((1:lastindex(sim_single.buyers)) ./ lastindex(sim_single.buyers), sort(getfield.(sim_single.buyers, :std_reservation_price), rev = true), color = colors[sortperm(getfield.(sim_single.buyers, :std_reservation_price), rev = true)], markerstrokewidth = 0, markeralpha = alphas[sortperm(getfield.(sim_single.buyers, :std_reservation_price), rev = true)], xlabel = "% populacji konsumentów", ylabel = "Cena rezerwacji " * L"\beta_i", label = "")
+val_p4 = Plots.scatter((1:lastindex(sim_single.buyers)) ./ lastindex(sim_single.buyers), sort(getfield.(sim_single.buyers, :std_reservation_price), rev = true), color = colors[sortperm(getfield.(sim_single.buyers, :std_reservation_price), rev = true)], markerstrokewidth = 0, markeralpha = alphas[sortperm(getfield.(sim_single.buyers, :std_reservation_price), rev = true)], xlabel = "% populacji konsumentów", ylabel = L"\beta_i", label = "")
 Plots.scatter!(1, 1, color = "red", label = "Kupno na rynku pierwotnym", markerstrokewidth = 0)
 Plots.scatter!(1, 1, color = "green", label = "Kupno tylko na rynku wtórnym", markerstrokewidth = 0)
 Plots.scatter!(1, 1, color = "grey", alpha = 0.25, label = "Brak zakupów", markerstrokewidth = 0)

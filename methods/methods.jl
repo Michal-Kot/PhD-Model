@@ -1,3 +1,11 @@
+#######################################################################################################
+
+# Main functions used in the simulation process
+
+#######################################################################################################
+
+# Required libraries
+
 using Distributions, StatsBase
 using OrderedCollections
 using Plots
@@ -20,6 +28,8 @@ using Loess
 
 using PyCall
 using Conda
+
+# Conda environment used for data visualization, in order to properl install unhash
 
 """Conda.pip_interop(true)
 Conda.pip("install", "pysdtest")
@@ -87,6 +97,13 @@ mutable struct seller
 end
 
 function create_sellers(num_sellers::Int64,c::Vector{Float64},m::Vector{Float64}, kr::Vector{Vector{Float64}}, dr::Vector{Vector{Float64}}, mr::Vector{Vector{Float64}}, cr::Vector{String}, ss::Vector{Float64}, product_life::Int64)::Vector{seller}
+
+    """
+
+    Seller class constructor for given initial parameters, returns object of class seller
+
+    """
+
     
     @assert length(c) == num_sellers
     @assert length(m) == num_sellers
@@ -192,6 +209,13 @@ mutable struct buyer
 end
 
 function create_buyers(num_buyers::Int64, sellers::Vector{seller}, num_sellers::Int64, network::SimpleGraph{Int64}, future_discount_range::Vector{Float64}, product_life::Int64, beta_dist)::Vector{buyer}
+
+    """
+
+    Buyer class constructor for given initial parameters, returns object of class buyer
+
+    """
+
     buyers_vector = []
     for b in 1:num_buyers
         my_neighbours = neighbors(network, b)
@@ -296,7 +320,7 @@ function create_network(type::String; num_buyers::Int64, num_links::Int64=0, pre
     end
 end
 
-###### Load AUX
+###### Load AUX functions, required for main simulation functions
 
 include(pwd() * "\\methods\\methods_visualization.jl")
 include(pwd() * "\\methods\\methods_aux.jl")
@@ -312,11 +336,6 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
     """
 
     for _seller in sellers
-
-        #δ_k = round(sample(0:0.01:0.05), digits = 2)
-        #δ_d = round(sample(0:0.01:0.05), digits = 2)
-        #δ_m = round(sample(0:0.01:0.05), digits = 2)
-        #δ_q = sample(1:10)
 
         δ_k = 0.025
         δ_d = 0.025
@@ -416,8 +435,6 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
             @assert all(0 .<= ρ_mean .<= 1)
             @assert all(0 .<= β_mean .<= 1)
             @assert all(1 .<= ps_mean .<= 2)
-            #@assert all(0 .<= o_k .<= 1)              
-            #@assert all(0 .<= o_d .<= 1)
 
             expected_profit_around = [calculate_state_profit(k + dk, e_k .+ dk, d + dd, e_d .+ dd, m + dm, q + dq, o_k, o_d, o_p, num_buyers, μ_c, _seller.cost_coefficient, ρ_mean, β_mean, ps_mean, "profit", product_life) for dk in K_range, dd in D_range, dm in M_range, dq in Q_range] # prior
 
@@ -436,17 +453,14 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
 
             # reduce price to increase surplus
 
-            price = cost_coefficient(k, d, _seller.cost_coefficient) * sum_of_geom_series_finite(k, d; t = product_life) * m  # marża na 1 sprzedanym produkcie
+            price = cost_coefficient(k, d, _seller.cost_coefficient) * sum_of_geom_series_finite(k, d; t = product_life) * m  # margin on a single sold product
 
-            u = β_mean .* sum_of_geom_series_finite.(e_k, ρ_mean .* e_d; t = product_life)  .- price # użyteczność mojego dobra przy parametrach K, D, M
+            u = β_mean .* sum_of_geom_series_finite.(e_k, ρ_mean .* e_d; t = product_life)  .- price # utility of my product for chosen parameters
 
             if (mean(u) < 0) & (calculate_profit_history(_seller)[end] <= 0.0) & (iter >= 2)
-                #println("Price lowered in " * string(iter))
                 if rand() < 0.50
                     optimal_profit_args = Base.setindex(optimal_profit_args, 1, 3)
                 end
-                #println(optimal_profit_args)
-                #println(M_range[optimal_profit_args[3]])
             end
 
             new_quality = k + K_range[optimal_profit_args[1]]
@@ -487,7 +501,6 @@ function sellers_choose_qp_k_d_m_states(buyers::Vector{buyer}, sellers::Vector{s
 
             @assert _seller.quality_range[1] <= _seller.quality <= _seller.quality_range[2]
             @assert _seller.durability_range[1] <= _seller.durability <= _seller.durability_range[2]
-            #@assert _seller.margin_range[1] <= _seller.margin <= _seller.margin_range[2] [println(_seller.margin)]
             @assert _seller.quality_range[1] <= _seller.quality <= _seller.quality_range[2]
 
             @assert _seller.quantity_produced >= 0
@@ -538,6 +551,12 @@ function consumers_compare_offers(buyers::Vector{buyer}, sellers::Vector{seller}
 end
 
 function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller}, num_sellers::Int64, iter::Int64, buyer_behaviour::String, secondary_market_exists::Bool, product_life::Int64)
+
+    """
+
+    Simulate consumers making purchase decisions in the primary market 
+
+    """
 
     for _seller in sellers
         _seller.selling_income = 0.0
@@ -665,6 +684,14 @@ function consumers_make_decision(buyers::Vector{buyer}, sellers::Vector{seller},
 end
 
 function consumers_discover_q_d(buyers::Vector{buyer}, sellers::Vector{seller}, iter::Int64, ϵ_q::Float64=0.025, ϵ_d::Float64=0.025)::Vector{buyer}
+
+    """
+
+    Simulate consumers discovering true products' parameters
+
+    """
+
+
     for _buyer in buyers
 
         push!(_buyer.unit_possessed_history, _buyer.unit_possessed)
@@ -737,6 +764,13 @@ function consumers_discover_q_d(buyers::Vector{buyer}, sellers::Vector{seller}, 
 end
 
 function consumers_update_expectations(buyers, iter, λ_ind, λ_wom)
+
+    """
+
+    Simulate consumers updating their beliefs
+
+    """
+
 
     for _buyer in buyers
 
@@ -816,6 +850,13 @@ end
 
 function sellers_utilize_not_sold_products(sellers::Vector{seller}, μ_c::Float64, product_life::Int64)
 
+    """
+
+    Simulate consumers get rid of their used products
+
+    """
+
+
     for _seller in sellers
 
         push!(_seller.utilization_cost_history, (1 - μ_c) * calculate_cost(_seller; product_life = product_life) * (_seller.quantity_produced - _seller.quantity_sold))
@@ -830,6 +871,13 @@ function sellers_utilize_not_sold_products(sellers::Vector{seller}, μ_c::Float6
 end
 
 function buyers_products_age(buyers::Vector{buyer}, sellers::Vector{seller}, iter::Int64, product_life::Int64)
+
+    """
+
+    Simulate the process of products deterioration
+
+    """
+
 
     for _buyer in buyers
 
@@ -872,6 +920,13 @@ function buyers_products_age(buyers::Vector{buyer}, sellers::Vector{seller}, ite
 end
 
 function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{seller}, iter::Int64, buyer_behaviour::String, secondary_market_exists::Bool, method_weight::String, product_life::Int64)
+
+    """
+
+    Simulate consumers making purchase decisions in the secondary market 
+
+    """
+
 
     products_for_resale = any.(getfield.(buyers, :unit_for_sale))
 
@@ -1022,33 +1077,16 @@ function buyers_choose_secondary_market(buyers::Vector{buyer}, sellers::Vector{s
 
 end
 
-function sellers_assess_decisions(sellers)
+function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, λ, θ, buyer_behaviour, kr, dr, mr, μ_c, secondary_market_exists, rand_period, future_discount_range, method_weight, consumer_research, sample_size, product_life, mean_or_distr, beta_dist, ϵ_q = 0.025, ϵ_d = 0.025)
 
-    for _seller in sellers
+    """
 
-        profit_history = calculate_profit_history(_seller)
-        quality_history = _seller.quality_history
-        durability_history = _seller.durability_history
-        margin_history = _seller.margin_history
-        quantity_history = _seller.quantity_produced_history
+    MAIN SIMULATION SCRIPT
 
-        profit_change = sign.(diff(profit_history))
-        quality_change = sign.(diff(quality_history))
-        durability_change = sign.(diff(durability_history))
-        margin_change = sign.(diff(margin_history))
-        quantity_change = sign.(diff(quantity_history))
+    Iterate through subsequent stages of sellers/consumers life to obtain results
 
-        new_data = [sum_na(profit_change[(quality_change .== qlc) .& (durability_change .== dc) .& (margin_change .== mc) .& (quantity_change .== qtc)]) for qlc in (-1,0,1), dc in (-1,0,1), mc in (-1,0,1), qtc in (-1,0,1)]
+    """
 
-        _seller.memory = new_data
-
-    end
-
-    return sellers
-
-end
-
-function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, λ, θ, buyer_behaviour, kr, dr, mr, μ_c, secondary_market_exists, rand_period, future_discount_range, method_weight, consumer_research, sample_size, product_life, mean_or_distr, beta_dist)
 
     ρm = future_discount_range[1]
 
@@ -1071,7 +1109,7 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
 
             buyers, sellers = consumers_make_decision(buyers, sellers, num_sellers, iter, buyer_behaviour, secondary_market_exists, product_life)
 
-            buyers = consumers_discover_q_d(buyers, sellers, iter)
+            buyers = consumers_discover_q_d(buyers, sellers, iter, ϵ_q, ϵ_d)
 
             buyers = consumers_update_expectations(buyers, iter, λ, θ)
 
@@ -1092,7 +1130,7 @@ function TO_GO(maxIter, num_sellers, num_buyers, num_links, c, m, network_type, 
 
             buyers, sellers = buyers_choose_secondary_market(buyers, sellers, iter, buyer_behaviour, secondary_market_exists, method_weight, product_life)
 
-            buyers = consumers_discover_q_d(buyers, sellers, iter)
+            buyers = consumers_discover_q_d(buyers, sellers, iter, ϵ_q, ϵ_d)
 
             buyers = consumers_update_expectations(buyers, iter, λ, θ)
 

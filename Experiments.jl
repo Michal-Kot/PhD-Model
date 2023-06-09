@@ -1,9 +1,11 @@
+include(pwd() * "\\methods\\methods.jl")
+
 # Experiment 3
 
 # TESTUJ NOWA F-KCJE, RANDOM ZMIANA 
 
 """
-jldsave("C:\\Users\\User\\Documents\\PhDWorkspace_more_nl.jld2"; ex3_v300_total_surplus,
+jldsave("C:\\Users\\User\\Documents\\PhDWorkspace_more_nl_varianteps.jld2"; ex3_v300_total_surplus,
 ex3_v300_producer_surplus,
 ex3_v300_consumer_surplus,
 ex3_v300_price,
@@ -85,7 +87,9 @@ ex3_v300301302303_sm,
 ex3_v300301302303_nl,
 ex3_v300301302303_ρm,
 ex3_v300301302303_cc,
-ex3_v300301302303_m)"""
+ex3_v300301302303_m,
+ex3_v300301302303_ϵq,
+ex3_v300301302303_ϵd)"""
 
 # Impact on social communication of simulation dynamics
 
@@ -175,8 +179,10 @@ ex3_v300301302303_nl = Vector{Int64}()
 ex3_v300301302303_ρm = Vector{Float64}()
 ex3_v300301302303_cc = Vector{Float64}()
 ex3_v300301302303_m = Vector{Float64}()
+ex3_v300301302303_ϵq = Vector{Float64}()
+ex3_v300301302303_ϵd = Vector{Float64}()
 
-for i in 1:800
+for i in 1:300
 
     println(i)
 
@@ -192,24 +198,26 @@ for i in 1:800
     ρm = rand(Uniform(0.5, 0.95))
     cc = sample(0.4:0.1:0.6)
     m = sample(1.1:0.1:1.3)
+    ϵ_q = sample(0.025:0.025:0.20)
+    ϵ_d = sample(0.025:0.025:0.20)
 
     Random.seed!(sd)
 
     println([li, lw, h, cu, sm, nl, ρm, cc, m])
 
-    ex3_v300_sim = TO_GO(500, 2, N, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[1., 2.], [1., 2.]], cu, true, 0, [ρm, 1.], "softmax", ["internal knowledge", "internal knowledge"], [0., 0.], h, "dist", TriangularDist(0,1,0.5))
+    ex3_v300_sim = TO_GO(500, 2, N, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[1., 2.], [1., 2.]], cu, true, 0, [ρm, 1.], "softmax", ["internal knowledge", "internal knowledge"], [0., 0.], h, "dist", TriangularDist(0,1,0.5), ϵ_q, ϵ_d)
 
     Random.seed!(sd)
 
-    ex3_v301_sim = TO_GO(500, 2, N, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[1., 2.], [1., 2.]], cu, true, 0, [ρm, 1.], "softmax", ["market research", "internal knowledge"], [sm, 0.], h, "dist", TriangularDist(0,1,0.5))
+    ex3_v301_sim = TO_GO(500, 2, N, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[1., 2.], [1., 2.]], cu, true, 0, [ρm, 1.], "softmax", ["market research", "internal knowledge"], [sm, 0.], h, "dist", TriangularDist(0,1,0.5), ϵ_q, ϵ_d)
 
     Random.seed!(sd)
 
-    ex3_v302_sim = TO_GO(500, 2, N, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[1., 2.], [1., 2.]], cu, true, 0, [ρm, 1.], "softmax", ["internal knowledge", "market research"], [0., sm], h, "dist", TriangularDist(0,1,0.5))
+    ex3_v302_sim = TO_GO(500, 2, N, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[1., 2.], [1., 2.]], cu, true, 0, [ρm, 1.], "softmax", ["internal knowledge", "market research"], [0., sm], h, "dist", TriangularDist(0,1,0.5), ϵ_q, ϵ_d)
 
     Random.seed!(sd)
 
-    ex3_v303_sim = TO_GO(500, 2, N, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[1., 2.], [1., 2.]], cu, true, 0, [ρm, 1.], "softmax", ["market research", "market research"], [sm, sm], h, "dist", TriangularDist(0,1,0.5))
+    ex3_v303_sim = TO_GO(500, 2, N, nl, [cc, cc], [m, m], "random", li, lw, "stochastic", [[0.05, 0.95], [0.05, 0.95]], [[0.05, 0.95], [0.05, 0.95]], [[1., 2.], [1., 2.]], cu, true, 0, [ρm, 1.], "softmax", ["market research", "market research"], [sm, sm], h, "dist", TriangularDist(0,1,0.5), ϵ_q, ϵ_d)
 
     push!(ex3_v300301302303_H, h)
     push!(ex3_v300301302303_Li, li)
@@ -221,6 +229,8 @@ for i in 1:800
     push!(ex3_v300301302303_ρm, ρm)
     push!(ex3_v300301302303_cc, cc)
     push!(ex3_v300301302303_m, m)
+    push!(ex3_v300301302303_ϵq, ϵ_q)
+    push!(ex3_v300301302303_ϵd, ϵ_d)
 
     push!(ex3_v300_total_surplus, calculate_surplus(ex3_v300_sim, "total", false))
     push!(ex3_v300_producer_surplus, calculate_surplus(ex3_v300_sim, "producer", false))
@@ -297,6 +307,14 @@ for i in 1:800
 
 
 end
+
+profit_diff_300301 = sum.(getindex.(ex3_v301_producer_surplus_singleton, 2)) .- sum.(getindex.(ex3_v300_producer_surplus_singleton, 2))
+
+profit_diff_302303 = sum.(getindex.(ex3_v303_producer_surplus_singleton, 2)) .- sum.(getindex.(ex3_v302_producer_surplus_singleton, 2))
+
+Plots.scatter(sort(unique(ex3_v300301302303_ϵq)), [mean(profit_diff_300301[ex3_v300301302303_ϵq .== eq]) for eq in sort(unique(ex3_v300301302303_ϵq))], xlabel = "Wariancja jakości produktów", ylabel = "Dodatkowy zysk z prowadzenia badań konsumenckich", label = "Firma konkurencyjna nie prowadzi badań", smooth = true)
+Plots.scatter!(sort(unique(ex3_v300301302303_ϵq)), [mean(profit_diff_302303[ex3_v300301302303_ϵq .== eq]) for eq in sort(unique(ex3_v300301302303_ϵq))], label = "Firma konkurencyjna prowadzi badania", smooth = true)
+
 
 
 DataFrame(Typ = ["Producenci nie badają konsumentów", "Producent bada konsumentów jako jedyny", "Producent nie bada konsumentów jako jedyny", "Producenci badają konsumentów"], Zysk = round.([

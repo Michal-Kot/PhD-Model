@@ -11,20 +11,42 @@ end
 K = LinRange(0.010:0.010:0.990)
 D = LinRange(0.010:0.010:0.990)
 
-ac_p1 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=1), levels=5, xlabel = "Jakość dobra, " * L"K_{ijt}", ylabel = "Trwałość dobra, " * L"D_{ijt}",title = "Warstwice funkcji całkowitej użyteczności " * L"W_{ijt}" * " \n dla H = 1", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo, colorbar_title = L"W_{ijt}")
-ac_p2 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=2), levels=5, xlabel = "Jakość dobra, " * L"K_{ijt}", ylabel = "Trwałość dobra, " * L"D_{ijt}",title = "Warstwice funkcji całkowitej użyteczności " * L"W_{ijt}" * " \n dla H = 2", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo, colorbar_title = L"W_{ijt}")
-ac_p5 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=5), levels=5, xlabel = "Jakość dobra, " * L"K_{ijt}", ylabel = "Trwałość dobra, " * L"D_{ijt}",title = "Warstwice funkcji całkowitej użyteczności " * L"W_{ijt}" * " \n dla H = 5", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo, colorbar_title = L"W_{ijt}")
-ac_p10 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=10), levels=5, xlabel = "Jakość dobra, " * L"K_{ijt}", ylabel = "Trwałość dobra, " * L"D_{ijt}",title = "Warstwice funkcji całkowitej użyteczności " * L"W_{ijt}" * " \n dla H = 10", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo, colorbar_title = L"W_{ijt}")
+plotattr(:countour)
+
+ac_p1 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=1), levels=5, xlabel = "Jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}", xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo, colorbar_title = L"W_{jt}", title = "H = 1", titlefontsize = 10, colorbar_titlefontsize = 8, colorbar_tickfontsize = 6)
+ac_p2 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=2), levels=5, xlabel = "Jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}", xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo, colorbar_title = L"W_{jt}", title = "H = 2", titlefontsize = 10, colorbar_titlefontsize = 8, colorbar_tickfontsize = 6)
+ac_p5 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=5), levels=5, xlabel = "Jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}", xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo, colorbar_title = L"W_{jt}", title = "H = 5", titlefontsize = 10, colorbar_titlefontsize = 8, colorbar_tickfontsize = 6)
+ac_p10 = Plots.contour(K,D, (K,D)->utility_stream(K,D;h=10), levels=5, xlabel = "Jakość dobra, " * L"K_{jt}", ylabel = "Trwałość dobra, " * L"D_{jt}", xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo, colorbar_title = L"W_{jt}", title = "H = 10", titlefontsize = 10, colorbar_titlefontsize = 8, colorbar_tickfontsize = 6)
 
 ac_p = Plots.plot(ac_p1, ac_p2, ac_p5, ac_p10, layout = (2,2))
 
 Plots.savefig(ac_p, pwd() * "\\plots_to_export\\contour_utility_stream.pdf")
-Plots.savefig(ac_p, pwd() * "\\thesis_plots\\contour_utility_stream.svg")
+
 ############## sieć powiązań
 
 using Graphs
 using GraphPlot
 using Compose, Cairo, Fontconfig
+
+function rectangle_graph(a::Int,b::Int,T=SimpleWeightedGraph; seed=0, rrand=0.9, scale=1.0)
+    # utils
+    mt = MersenneTwister(seed)
+    add_edge2!(g,a,b,w) = add_edge!.(Ref(g),[a,b],[b,a],w) 
+    r() = rand(mt)*rrand-rrand/2
+  
+    locs = DataFrame(vec([(;x=j+r(), y=i+r()) for i=1:a for j=1:b]))  # pozycje węzłów
+    locs.x .*= scale
+    locs.y .*= scale
+    dist(n1,n2) = √((locs.x[n1]-locs.x[n2])^2+(locs.y[n1]-locs.y[n2])^2)  # funkcja licząca dystans
+
+    g = T(nrow(locs))
+    for i=1:a, j=1:b
+        n = b*(i-1) + j
+        j <= b-1 && add_edge2!(g,n,n+1,dist(n,n+1))
+        i <= a-1 && add_edge2!(g,n,n+b,dist(n,n+b))
+    end
+    (;g,locs)
+end
 
 function neighbourhood(g, i, k)
     n_v = []
@@ -44,23 +66,25 @@ function neighbourhood(g, i, k)
 end
 
 G = Graphs.erdos_renyi(30, 45)
-nlist = Vector{Vector{Int}}(undef, 2) # two shells
-nlist[1] = 1:10 # first shell
-nlist[2] = 11:Graphs.nv(G) # second shell
-locs_x, locs_y = shell_layout(g, nlist)
+typeof(G)
+
+using Random
+using DataFrames
+using SimpleWeightedGraphs
+G_l = rectangle_graph(5,5)
 
 # n = 1
 
 println(cgrad(:matter, 5, categorical = true)[1])
 
-colors = fill(cgrad(:matter, 5, categorical = true)[5], Graphs.nv(G))
-colors[neighbourhood(G, 1, 4)] .= cgrad(:matter, 5, categorical = true)[4]
-colors[neighbourhood(G, 1, 3)] .= cgrad(:matter, 5, categorical = true)[3]
-colors[neighbourhood(G, 1, 2)] .= cgrad(:matter, 5, categorical = true)[2]
-colors[neighbourhood(G, 1, 1)] .= cgrad(:matter, 5, categorical = true)[1]
+colors = fill(cgrad(:matter, 5, categorical = true)[5], Graphs.nv(G_l.g))
+colors[neighbourhood(G_l.g, 1, 4)] .= cgrad(:matter, 5, categorical = true)[4]
+colors[neighbourhood(G_l.g, 1, 3)] .= cgrad(:matter, 5, categorical = true)[3]
+colors[neighbourhood(G_l.g, 1, 2)] .= cgrad(:matter, 5, categorical = true)[2]
+colors[neighbourhood(G_l.g, 1, 1)] .= cgrad(:matter, 5, categorical = true)[1]
 colors[1] = RGBA(1.,1.,1.)
-gr1 = gplot(G, locs_x, locs_y, nodelabel = 1:Graphs.nv(G), nodefillc = colors, nodestrokec = "black", nodestrokelw  = 1)
-draw(PDF(pwd() * "\\Documents\\GitHub\\PhD-Model\\thesis_plots\\network_graph.pdf", 16cm, 16cm), gr1)
+gr1 = gplot(G_l.g, G_l.locs.x, G_l.locs.y, nodelabel = 1:Graphs.nv(G_l.g), nodefillc = colors, nodestrokec = "black", nodestrokelw  = 1)
+draw(PDF(pwd() * "\\plots_to_export\\network_graph.pdf", 16cm, 16cm), gr1)
 
 ############## oczekiwana dalsza użyteczność
 
@@ -82,16 +106,16 @@ end
 
 [utility_next(t, ts, H, β, k, d, ρ) for t in 1:10]
 
-eu_p = plot([utility_next(t, ts, H, β, k, 0.25, ρ) for t in 1:H], markershape = :circle, xlim = (0,H+1), xticks = collect(0:(H+1)), xlabel = "Czas, zakup w momencie t=1", ylabel = "Oczekiwana użyteczność z konsumpcji dobra", xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, label = L"\hat D_{ijt} = 0.25", title = "Oczekiwana użyteczność z konsumpcji a " * L"\hat D_{ijt}")
+eu_p = plot([utility_next(t, ts, H, β, k, 0.25, ρ) for t in 1:H], markershape = :circle, xlim = (0,H+1), xticks = collect(0:(H+1)), xlabel = "Czas, zakup w momencie t=1", ylabel = "Oczekiwana użyteczność z konsumpcji dobra", xlabelfontsize = 10, ylabelfontsize = 10, xtickfontsize = 6, ytickfontsize = 6, label = L"\hat D_{ijt} = 0.25")
 
-plot!([utility_next(t, ts, H, β, k, 0.50, ρ) for t in 1:H], markershape = :circle, xlim = (0,H+1), xticks = collect(0:(H+1)), xlabel = "Czas, zakup w momencie t=1", ylabel = "Oczekiwana użyteczność z konsumpcji dobra", xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, label = L"\hat D_{ijt} = 0.50")
+plot!([utility_next(t, ts, H, β, k, 0.50, ρ) for t in 1:H], markershape = :circle, xlim = (0,H+1), xticks = collect(0:(H+1)), xlabel = "Czas, zakup w momencie t=1", ylabel = "Oczekiwana użyteczność z konsumpcji dobra", xlabelfontsize = 10, ylabelfontsize = 10, xtickfontsize = 6, ytickfontsize = 6, label = L"\hat D_{ijt} = 0.50")
 
-plot!([utility_next(t, ts, H, β, k, 0.75, ρ) for t in 1:H], markershape = :circle, xlim = (0,H+1), xticks = collect(0:(H+1)), xlabel = "Czas, zakup w momencie t=1", ylabel = "Oczekiwana użyteczność z konsumpcji dobra", xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, label = L"\hat D_{ijt} = 0.75")
+plot!([utility_next(t, ts, H, β, k, 0.75, ρ) for t in 1:H], markershape = :circle, xlim = (0,H+1), xticks = collect(0:(H+1)), xlabel = "Czas, zakup w momencie t=1", ylabel = "Oczekiwana użyteczność z konsumpcji dobra", xlabelfontsize = 10, ylabelfontsize = 10, xtickfontsize = 6, ytickfontsize = 6, label = L"\hat D_{ijt} = 0.75")
 
-savefig(eu_p, pwd() * "\\thesis_plots\\expected_further_utility.pdf")
+savefig(eu_p, pwd() * "\\plots_to_export\\expected_further_utility.pdf")
 
 
-############## cechy dobra a oczekiwania
+############## cechy dobra a przekonania
 
 using Plots
 using LaTeXStrings
@@ -119,9 +143,10 @@ beta_req(0.5,0.5;t=1,ts=1,H=10,k=0.5,d=0.5,c=c,m=m,ρ=ρ)
 K = LinRange(0.30:0.010:0.70)
 D = LinRange(0.30:0.010:0.70)
 
-beta_min_p1 = contour(K,D, (K,D)->beta_req(K,D;t=1,ts=1,H=10,k=0.5,d=0.5,c=c,m=m,ρ=ρ), levels=100, xlabel = "Oczekiwana jakość dobra, " * L"K_{ijt}^E", ylabel = "Oczekiwana trwałość dobra, " * L"D_{ijt}^E", title = "Minimalna wartość parametru " * L"\beta_i" * " aby doszło do zakupu", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
+beta_min_p1 = contour(K,D, (K,D)->beta_req(K,D;t=1,ts=1,H=10,k=0.5,d=0.5,c=c,m=m,ρ=ρ), levels=20, xlabel = "Przekonanie o jakości dobra, " * L"K_{ijt}", ylabel = "Przekonanie o trwałości dobra, " * L"D_{ijt}", titlefontsize = 10, xlabelfontsize = 10, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo, colorbar_title = L"\beta_i")
+Plots.scatter!([0.5], [0.5], color = :black, legend = false)
 
-savefig(beta_min_p1, pwd() * "\\thesis_plots\\beta_min_to_purchase.pdf")
+savefig(beta_min_p1, pwd() * "\\plots_to_export\\beta_min_to_purchase.pdf")
 
 #### probability of choosing
 
@@ -156,7 +181,7 @@ s2 = max.(0, s2)
 
 calc_prob(x1,x2) = (x1 == 0) & (x2 == 0) ? 0 : x1 / (x1+x2)
 
-beta_prob = Plots.plot(betas, calc_prob.(s1, s2), xlabel = "Cena rezerwacji, " * L"\beta_i", ylabel = "Prawdopodobieństwo wyboru", legend = :topleft, label = "Firma 1, " * L"(K_{jt} = 0.85, D_{jt} = 0.85)", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6, title = "Prawdopodobieństwo zakupu a cena rezerwacji", linewidth = 2, ylim = (-0.01, 1.01))
+beta_prob = Plots.plot(betas, calc_prob.(s1, s2), xlabel = L"\beta_i", ylabel = "Prawdopodobieństwo wyboru", legend = :topleft, label = "Firma 1, " * L"(K_{jt} = 0.85, D_{jt} = 0.85)", titlefontsize = 8, xlabelfontsize = 10, ylabelfontsize = 10, xtickfontsize = 6, ytickfontsize = 6, linewidth = 2, ylim = (-0.01, 1.01))
 Plots.plot!(betas, calc_prob.(s2, s1), label = "Firma 2, " * L"(K_{jt} = 0.15, D_{jt} = 0.45)", linewidth = 2)
 
 calc_prob.(s2, s1)[739]
@@ -218,11 +243,8 @@ using LaTeXStrings
 β = 0.8
 c = 0.4
 m = 1.2
-
 ke = 0.5
-
 de = 0.5
-
 ρ = 0.95
 H = 5
 
@@ -233,9 +255,10 @@ utility_diff(k, d; ke, de, H, ρ) = (β * ke * (1-(ρ*de)^H)/(1-ρ*de) - β * k 
 
 utility_diff(0.5, 0.5; ke = 0.5, de = 0.5, H = 5, ρ = 0.95)
 
-kd_vs_kede = contour(K,D, (K,D)->utility_diff(K,D;ke = 0.5, de = 0.5, H=5 ,ρ=ρ), levels=100, xlabel = "Zakładana przez producenta jakość dobra, " * L"K_{jt}", ylabel = "Zakładana przez producenta trwałość dobra, " * L"D_{jt}", title = "Różnica [%] w użyteczności w następstwie przyjęcia " * L"K_{jt}" * "i " * L"D_{jt}" * " jako oczekiwań konsumentów", titlefontsize = 8, xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
+kd_vs_kede = contour(K,D, (K,D)->utility_diff(K,D;ke = 0.5, de = 0.5, H=5 ,ρ=ρ), levels=20, xlabel = "Zakładana przez producenta jakość dobra, " * L"K_{jt}", ylabel = "Zakładana przez producenta trwałość dobra, " * L"D_{jt}", titlefontsize = 10, xlabelfontsize = 10, ylabelfontsize = 10, xtickfontsize = 6, ytickfontsize = 6, clabels=true, color=:turbo, colorbar_title = "Różnica [%] oczekiwanej użyteczności \n i użyteczności zakładanej przez producenta")
+Plots.scatter!([0.5], [0.5], color = :black, legend = false)
 
-savefig(kd_vs_kede, pwd() * "\\thesis_plots\\kd_vs_kede.pdf")
+savefig(kd_vs_kede, pwd() * "\\plots_to_export\\kd_vs_kede.pdf")
 
 #### diff between producer resarch and lack of
 
@@ -321,9 +344,9 @@ x = [-1,0,1,2]
 clip(x) = min(max(0, x), 1)
 y = clip.(x)
 
-clip_p = Plots.plot(x,y, xlabel = "x", ylabel = "f(x)", legend = nothing, xlim = (-1,2), title = "Transformacja clip")
+clip_p = Plots.plot(x,y, xlabel = "x", ylabel = "f(x)", legend = nothing, xlim = (-1,2))
 
-savefig(clip_p, pwd() * "\\thesis_plots\\clip_transform.pdf")
+savefig(clip_p, pwd() * "\\plots_to_export\\clip_transform.pdf")
 
 #### Bates Distributions
 
@@ -355,13 +378,16 @@ using LaTeXStrings
 beta = rand(TriangularDist(0,1,0.5), 100000)
 ps = rand(TriangularDist(1,2,1.5), 100000)
 
-p_beta = Plots.plot([0,1], [0,1], color = "black", legend = nothing, ylabel = L"\frac{\beta_i}{\gamma_i}", xlabel = L"\beta_i", title = "Zależność pomiędzy " * L"\beta_i" * " i " * L"\frac{\beta_i}{\gamma_i}", margin=2.5Plots.mm)
-Plots.plot!([0,1], [0,0.5], color = "black")
-Plots.plot!([1,1], [0.5,1], color = "black")
+p_beta = Plots.plot([0,1], [0,1], color = "black", legend = nothing, ylabel = L"\beta_i", xlabel = L"\frac{\beta_i}{\gamma_i}", margin=2.5Plots.mm)
+Plots.plot!([0,0.5], [0,1.], color = "black")
+Plots.annotate!(0.2, 0.55, L"\gamma_i = 2")
+Plots.annotate!(0.45, 0.55, L"\gamma_i = 1")
 
 Plots.savefig(p_beta, pwd() * "\\plots_to_export\\beta_ps.pdf")
 
 ####
+
+include(pwd() * "\\methods\\methods.jl")
 
 Random.seed!(12345)
 
@@ -379,13 +405,13 @@ for b in sim_single.buyers
         end
     end
 end
-p = Plots.plot(xlabel = "T", ylabel = "Jakość / oczekiwana jakość", legend = :bottomleft, ylim = (0.2, 0.7))
+p = Plots.plot(xlabel = "T", ylabel = "Jakość / przekonanie o jakości", legend = :bottomleft, ylim = (0.2, 0.7))
 for i in 1:200
     p = Plots.plot!(getindex.(sim_single.buyers[i].quality_expectation_history, 1), color = "grey", linealpha = 0.10, label = nothing)
 end
 p
 Plots.plot!(sim_single.sellers[1].quality_history, label = "Średnia jakość, producent", linewidth = 2, color = "blue")
-Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "red", linewidth = 2, label = "Oczekiwana jakość, cała populacja")
-Plots.plot!(mean_nothing.(quality_expectation_buyers), label = "Oczekiwana jakość, kupujący w t", linewidth = 2, color = "orange")
+Plots.plot!(mean([getindex.(x,1) for x in getfield.(sim_single.buyers, :quality_expectation_history)]), color = "red", linewidth = 2, label = "Przekonanie o jakości, cała populacja")
+Plots.plot!(mean_nothing.(quality_expectation_buyers), label = "Przekonanie o jakości, kupujący w t", linewidth = 2, color = "orange")
 
 Plots.savefig(p, pwd() * "\\plots_to_export\\quality_expected_average.pdf")

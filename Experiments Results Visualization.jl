@@ -6,14 +6,19 @@ using Latexify
 
 iterSum = lastindex(ex3_v303_producer_surplus_singleton)
 
-p_h0_1 = Plots.plot(cumsum(mean.(getindex.(ex3_v303_quality, 1))) ./ collect(1:iterSum), xlabel = "Liczba symulacji", ylabel = "Średnia wartość miary dla \n danej liczby ukończonych symulacji", legend = false, title = "Średnia jakość produktu, \n producent pierwszy")
-p_h0_2 = Plots.plot(cumsum(sum.(getindex.(ex3_v303_durability, 1))) ./ collect(1:iterSum), xlabel = "Liczba symulacji", ylabel = "Średnia wartość miary dla \n danej liczby ukończonych symulacji", legend = false, title = "Średnia trwałość produktu, \n producent pierwszy")
-p_h0_3 = Plots.plot(cumsum(sum.(getindex.(ex3_v303_quantity_sold, 1))) ./ collect(1:iterSum), xlabel = "Liczba symulacji", ylabel = "Średnia wartość miary dla \n danej liczby ukończonych symulacji", legend = false, title = "Średnia liczba sprzedanych produktów, \n producent pierwszy")
-p_h0_4 = Plots.plot(cumsum(sum.(getindex.(ex3_v303_producer_surplus_singleton, 1))) ./ collect(1:iterSum), xlabel = "Liczba symulacji", ylabel = "Średnia wartość miary dla \n danej liczby ukończonych symulacji", legend = false, title = "Średni zysk, \n producent pierwszy")
+p_h0_1 = Plots.plot(cumsum(mean.(getindex.(ex3_v303_quality, 1))) ./ collect(1:iterSum), xlabel = "Liczba symulacji", ylabel = "Średnia wartość miary", legend = false,  xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
+p_h0_2 = Plots.plot(cumsum(sum.(getindex.(ex3_v303_durability, 1))) ./ collect(1:iterSum), xlabel = "Liczba symulacji", ylabel = "Średnia wartość miary", legend = false,  xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
+p_h0_3 = Plots.plot(cumsum(sum.(getindex.(ex3_v303_quantity_sold, 1))) ./ collect(1:iterSum), xlabel = "Liczba symulacji", ylabel = "Średnia wartość miary", legend = false,  xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
+p_h0_4 = Plots.plot(cumsum(sum.(getindex.(ex3_v303_producer_surplus_singleton, 1))) ./ collect(1:iterSum), xlabel = "Liczba symulacji", ylabel = "Średnia wartość miary", legend = false,  xlabelfontsize = 8, ylabelfontsize = 8, xtickfontsize = 6, ytickfontsize = 6)
 
-p_h0_1234 = Plots.plot(p_h0_1, p_h0_2, p_h0_3, p_h0_4, layout = (2,2), size = (1000, 1000))
+p_h0_1234 = Plots.plot(p_h0_1, p_h0_2, p_h0_3, p_h0_4, layout = (2,2))
 
 Plots.savefig(p_h0_1234, pwd() * "\\plots_to_export\\results_stability_means.pdf")
+
+Label1 = "Żaden producent nie bada przekonań konsumentów"
+Label2 = "Tylko producent pierwszy bada przekonania konsumentów"
+Label3 = "Tylko producent drugi bada przekonania konsumentów"
+Label4 = "Obaj producenci badają przekonania konsumentów"
 
 ############################################################################################
 ######################################## HISTORIA ##########################################
@@ -26,12 +31,21 @@ Ryzyko poniesienia przez producenta straty jest uzależnione od uwzględnienia p
 
 # Czy zyski producentów prowadzących badania i nie się różnią?
 
-p_h2_1 = plot_ecdf(true, sum.(getindex.(ex3_v300_producer_surplus_singleton, 1)), "Żaden producent nie bada oczekiwań konsumentów", xlabel = "Zysk producenta pierwszego", ylabel = "Dystrybuanta empiryczna", xlim = (-300,1200))
-plot_ecdf(false, sum.(getindex.(ex3_v301_producer_surplus_singleton, 1)), "Producent pierwszy bada oczekiwania konsumentów jako jedyny")
-plot_ecdf(false, sum.(getindex.(ex3_v302_producer_surplus_singleton, 1)), "Producent nie bada oczekiwań konsumentów jako jedyny")
-plot_ecdf(false, sum.(getindex.(ex3_v303_producer_surplus_singleton, 1)), "Obaj producenci badają oczekiwania konsumentów")
+p_h2_1 = plot_ecdf(true, sum.(getindex.(ex3_v300_producer_surplus_singleton, 1)), Label1, xlabel = "Zysk producenta", ylabel = "Dystrybuanta empiryczna", xlim = (-300,1250), ylim = (0,1))
+plot_ecdf(false, sum.(getindex.(ex3_v301_producer_surplus_singleton, 1)), Label2)
+plot_ecdf(false, sum.(getindex.(ex3_v302_producer_surplus_singleton, 1)), Label3)
+plot_ecdf(false, sum.(getindex.(ex3_v303_producer_surplus_singleton, 1)), Label4)
 
-Plots.savefig(p_h2_1, pwd() * "\\plots\\h2\\ecdf_profit.svg")
+"""p_h2_1 = plot_ecdf(true, sum.(ex3_v300_consumer_surplus), Label1, xlabel = "Zysk producenta pierwszego", ylabel = "Dystrybuanta empiryczna")
+plot_ecdf(false, sum.(ex3_v301_consumer_surplus), Label2)
+plot_ecdf(false, sum.(ex3_v302_consumer_surplus), Label3)
+plot_ecdf(false, sum.(ex3_v303_consumer_surplus), Label4)
+
+p_h2_1 = plot_ecdf(true, sum.(getindex.(ex3_v300_quantity_sold, 1)), Label1, xlabel = "Zysk producenta pierwszego", ylabel = "Dystrybuanta empiryczna")
+plot_ecdf(false, sum.(getindex.(ex3_v301_quantity_sold, 1)), Label2)
+plot_ecdf(false, sum.(getindex.(ex3_v302_quantity_sold, 1)), Label3)
+plot_ecdf(false, sum.(getindex.(ex3_v303_quantity_sold, 1)), Label4)"""
+
 Plots.savefig(p_h2_1, pwd() * "\\plots_to_export\\ecdf_profit.pdf")
 
 # Barrett test for s-th order SD, H0: s1 SD s-th s2, H1: ~H0
@@ -47,16 +61,15 @@ pysdtest.test_sd_SR(sample1 = sum.(getindex.(ex3_v303_producer_surplus_singleton
     ngrid = 500, s = 1, resampling = "bootstrap").testing() 
 
 latexify(
-    DataFrame(Typ = [L"Żaden producent nie bada oczekiwań konsumentów", L"Producent pierwszy bada oczekiwania konsumentów jako jedyny", L"Producent drugi bada oczekiwania konsumentów jako jedyny", L"Obaj producenci badają oczekiwania konsumentów"],
-    Sredni_zysk = round.([mean(sum.(getindex.(ex3_v300_producer_surplus_singleton, 1))), 
-    mean(sum.(getindex.(ex3_v301_producer_surplus_singleton, 1))),
-    mean(sum.(getindex.(ex3_v302_producer_surplus_singleton, 1))),
-    mean(sum.(getindex.(ex3_v303_producer_surplus_singleton, 1)))], digits = 1),
+    DataFrame(Typ = [LLabel1, LLabel2, L"Producent drugi bada oczekiwania konsumentów jako jedyny", LLabel4]),
     Mediana_zysku = round.([median(sum.(getindex.(ex3_v300_producer_surplus_singleton, 1))), 
     median(sum.(getindex.(ex3_v301_producer_surplus_singleton, 1))),
     median(sum.(getindex.(ex3_v302_producer_surplus_singleton, 1))),
-    median(sum.(getindex.(ex3_v303_producer_surplus_singleton, 1)))], digits = 1))
+    median(sum.(getindex.(ex3_v303_producer_surplus_singleton, 1)))], digits = 1)
 , env = :table) |> print
+
+
+
 
 DataFrame(Typ = ["Producenci nie badają konsumentów", "Producent bada konsumentów jako jedyny", "Producent nie bada konsumentów jako jedyny", "Producenci badają konsumentów"], Zysk = round.([
     median(sum.(getindex.(ex3_v300_producer_surplus_singleton, 1))), 
@@ -66,23 +79,25 @@ DataFrame(Typ = ["Producenci nie badają konsumentów", "Producent bada konsumen
 
 # Tak, dlaczego?
 
-p_h2_q = Plots.plot(ecdf(mean.(getindex.(ex3_v300_quality, 1))), label = "Żaden producent nie bada oczekiwań konsumentów", xlabel = "Średnia jakość", ylabel = "Dystrybuanta empiryczna", legendfontsize = 6, xlim = (0,1))
-Plots.plot!(ecdf(mean.(getindex.(ex3_v301_quality, 1))), label = "Tylko producent pierwszy bada oczekiwania konsumentów")
-Plots.plot!(ecdf(mean.(getindex.(ex3_v302_quality, 1))), label = "Tylko producent pierwszy nie bada oczekiwań konsumentów")
-Plots.plot!(ecdf(mean.(getindex.(ex3_v303_quality, 1))), label = "Obaj producenci badają oczekiwania konsumentów", legend = :bottomright)
+p_h2_q01 = Plots.plot(ecdf(mean.(getindex.(ex3_v300_quality, 1))), label = "Żaden producent nie bada \n przekonań konsumentów", xlabel = "Średnia jakość", ylabel = "Dystrybuanta empiryczna", legendfontsize = 12, xlim = (0,1), xlabelfontsize = 14, ylabelfontsize = 14)
+Plots.plot!(ecdf(mean.(getindex.(ex3_v301_quality, 1))), label = "Tylko producent pierwszy bada \n przekonania konsumentów", legend = :bottomright)
 
-p_h2_d = Plots.plot(ecdf(mean.(getindex.(ex3_v300_durability, 1))), label = "Żaden producent nie bada oczekiwań konsumentów", xlabel = "Średnia trwałość", ylabel = "Dystrybuanta empiryczna", legendfontsize = 6)
-Plots.plot!(ecdf(mean.(getindex.(ex3_v301_durability, 1))), label = "Tylko producent pierwszy bada oczekiwania konsumentów")
-Plots.plot!(ecdf(mean.(getindex.(ex3_v302_durability, 1))), label = "Tylko producent pierwszy nie bada oczekiwań konsumentów")
-Plots.plot!(ecdf(mean.(getindex.(ex3_v303_durability, 1))), label = "Obaj producenci badają oczekiwania konsumentów", legend = :bottomright, xlim = (0,1))
+p_h2_q23 = Plots.plot(ecdf(mean.(getindex.(ex3_v302_quality, 1))), label = "Tylko producent drugi bada \n przekonania konsumentów", xlabel = "Średnia jakość", ylabel = "Dystrybuanta empiryczna", legendfontsize = 12, xlim = (0,1), color = get_color_palette(:auto, 1)[3], xlabelfontsize = 14, ylabelfontsize = 14)
+Plots.plot!(ecdf(mean.(getindex.(ex3_v303_quality, 1))), label = "Obaj producenci badają \n przekonania konsumentów", legend = :bottomright, color = get_color_palette(:auto, 1)[4])
 
-p_h2_qd = Plots.plot(p_h2_q, p_h2_d, size = (1200, 600), margin=5Plots.mm)
+p_h2_d01 = Plots.plot(ecdf(mean.(getindex.(ex3_v300_durability, 1))), label = "Żaden producent nie bada \n przekonań konsumentów", xlabel = "Średnia trwałość", ylabel = "Dystrybuanta empiryczna", legendfontsize = 12, xlim = (0,1), xlabelfontsize = 14, ylabelfontsize = 14)
+Plots.plot!(ecdf(mean.(getindex.(ex3_v301_durability, 1))), label = "Tylko producent pierwszy bada \n przekonania konsumentów", legend = :bottomright)
+
+p_h2_d23 = Plots.plot(ecdf(mean.(getindex.(ex3_v302_durability, 1))), label = "Tylko producent drugi bada \n przekonania konsumentów", legendfontsize = 12, xlim = (0,1), xlabel = "Średnia trwałość", ylabel = "Dystrybuanta empiryczna", color = get_color_palette(:auto, 1)[3], xlabelfontsize = 14, ylabelfontsize = 14)
+Plots.plot!(ecdf(mean.(getindex.(ex3_v303_durability, 1))), label = "Obaj producenci badają \n przekonania konsumentów", legend = :bottomright, xlim = (0,1), color = get_color_palette(:auto, 1)[4])
+
+p_h2_qd = Plots.plot(p_h2_q01, p_h2_q23, p_h2_d01, p_h2_d23, margin=5Plots.mm, layout = (2,2), size = (1600, 1200))
 Plots.savefig(p_h2_qd, pwd() *  "\\plots_to_export\\ecdf_quality_durability_w_wo_research.pdf")
 
-p_h2_m = Plots.plot(ecdf(mean.(getindex.(ex3_v300_margin, 1))), label = "Żaden producent nie bada oczekiwań konsumentów", xlabel = "Średnia marża [%]", ylabel = "Dystrybuanta empiryczna", legendfontsize = 6, xlim = (1, 1.5))
-Plots.plot!(ecdf(mean.(getindex.(ex3_v301_margin, 1))), label = "Tylko producent pierwszy bada oczekiwania konsumentów")
-Plots.plot!(ecdf(mean.(getindex.(ex3_v302_margin, 1))), label = "Tylko producent pierwszy nie bada oczekiwań konsumentów")
-Plots.plot!(ecdf(mean.(getindex.(ex3_v303_margin, 1))), label = "Obaj producenci badają oczekiwania konsumentów", legend = :bottomright)
+p_h2_m = Plots.plot(ecdf(mean.(getindex.(ex3_v300_margin, 1))), label = Label1, xlabel = "Średnia marża [%]", ylabel = "Dystrybuanta empiryczna", legendfontsize = 6, xlim = (1, 1.5))
+Plots.plot!(ecdf(mean.(getindex.(ex3_v301_margin, 1))), label = Label2)
+Plots.plot!(ecdf(mean.(getindex.(ex3_v302_margin, 1))), label = Label3)
+Plots.plot!(ecdf(mean.(getindex.(ex3_v303_margin, 1))), label = Label4, legend = :bottomright)
 
 function calculate_margin_abs(k,d,m,c,h)
     return k .* (1 .- d .^ h) ./ (1 .- d) .* c .* (m .- 1)
@@ -112,30 +127,30 @@ mean.(getindex.(ex3_v303_margin, 1)),
 ex3_v300301302303_cc,
 ex3_v300301302303_H)
 
-p_h2_ma = Plots.plot(ecdf(margin_abs_300), label = "Żaden producent nie bada oczekiwań konsumentów", xlabel = "Średnia marża", ylabel = "Dystrybuanta empiryczna", legendfontsize = 6, xlim = (0, 0.12))
-Plots.plot!(ecdf(margin_abs_301), label = "Tylko producent pierwszy bada oczekiwania konsumentów")
-Plots.plot!(ecdf(margin_abs_302), label = "Tylko producent pierwszy nie bada oczekiwań konsumentów")
-Plots.plot!(ecdf(margin_abs_303), label = "Obaj producenci badają oczekiwania konsumentów", legend = :bottomright)
+p_h2_ma = Plots.plot(ecdf(margin_abs_300), label = Label1, xlabel = "Średnia marża", ylabel = "Dystrybuanta empiryczna", legendfontsize = 6, xlim = (0, 0.12))
+Plots.plot!(ecdf(margin_abs_301), label = Label2)
+Plots.plot!(ecdf(margin_abs_302), label = Label3)
+Plots.plot!(ecdf(margin_abs_303), label = Label4, legend = :bottomright)
 
-p_h2_p = Plots.plot(ecdf(mean.(getindex.(ex3_v300_price, 1))), label = "Żaden producent nie bada oczekiwań konsumentów", xlabel = "Średnia cena", ylabel = "Dystrybuanta empiryczna", legendfontsize = 6, xlim = (0, 1.5))
-Plots.plot!(ecdf(mean.(getindex.(ex3_v301_price, 1))), label = "Tylko producent pierwszy bada oczekiwania konsumentów")
-Plots.plot!(ecdf(mean.(getindex.(ex3_v302_price, 1))), label = "Tylko producent pierwszy nie bada oczekiwań konsumentów")
-Plots.plot!(ecdf(mean.(getindex.(ex3_v303_price, 1))), label = "Obaj producenci badają oczekiwania konsumentów", legend = :bottomright)
+p_h2_p = Plots.plot(ecdf(mean.(getindex.(ex3_v300_price, 1))), label = Label1, xlabel = "Średnia cena", ylabel = "Dystrybuanta empiryczna", legendfontsize = 6, xlim = (0, 1.5))
+Plots.plot!(ecdf(mean.(getindex.(ex3_v301_price, 1))), label = Label2)
+Plots.plot!(ecdf(mean.(getindex.(ex3_v302_price, 1))), label = Label3)
+Plots.plot!(ecdf(mean.(getindex.(ex3_v303_price, 1))), label = Label4, legend = :bottomright)
 
 Plots.savefig(p_h2_m, pwd() *  "\\plots_to_export\\ecdf_margin_perc_w_wo_research.pdf")
 Plots.savefig(p_h2_ma, pwd() *  "\\plots_to_export\\ecdf_margin_abs_w_wo_research.pdf")
 Plots.savefig(p_h2_p, pwd() *  "\\plots_to_export\\ecdf_price_w_wo_research.pdf")
 
 
-p_h2_qs = Plots.plot(ecdf(mean.(getindex.(ex3_v300_quantity_sold, 1))), label = "Żaden producent nie bada oczekiwań konsumentów", xlabel = "Średni popyt", ylabel = "Dystrybuanta empiryczna", legendfontsize = 6, xlim = (0,30))
-Plots.plot!(ecdf(mean.(getindex.(ex3_v301_quantity_sold, 1))), label = "Tylko producent pierwszy bada oczekiwania konsumentów")
-Plots.plot!(ecdf(mean.(getindex.(ex3_v302_quantity_sold, 1))), label = "Tylko producent pierwszy nie bada oczekiwań konsumentów")
-Plots.plot!(ecdf(mean.(getindex.(ex3_v303_quantity_sold, 1))), label = "Obaj producenci badają oczekiwania konsumentów", legend = :bottomright)
+p_h2_qs = Plots.plot(ecdf(mean.(getindex.(ex3_v300_quantity_sold, 1))), label = Label1, xlabel = "Średni popyt", ylabel = "Dystrybuanta empiryczna", legendfontsize = 6, xlim = (0,30))
+Plots.plot!(ecdf(mean.(getindex.(ex3_v301_quantity_sold, 1))), label = Label2)
+Plots.plot!(ecdf(mean.(getindex.(ex3_v302_quantity_sold, 1))), label = Label3)
+Plots.plot!(ecdf(mean.(getindex.(ex3_v303_quantity_sold, 1))), label = Label4, legend = :bottomright)
 
-p_h2_ss = Plots.plot(ecdf(mean.(getindex.(ex3_v300_quantity_sold,1)) ./ mean.(getindex.(ex3_v300_quantity_produced,1))), xlabel = "Udział sprzedanych dóbr w całości produkcji", ylabel = "Dystrybuanta empiryczna", titlefontsize = 12, label = "Nikt nie bada oczekiwań konsumentów")
-Plots.plot!(ecdf(mean.(getindex.(ex3_v301_quantity_sold,1)) ./ mean.(getindex.(ex3_v301_quantity_produced,1))), label = "Producent bada oczekiwania konsumentów jako jedyny")
-Plots.plot!(ecdf(mean.(getindex.(ex3_v302_quantity_sold,1)) ./ mean.(getindex.(ex3_v302_quantity_produced,1))), label = "Producent nie bada oczekiwań konsumentów jako jedyny")
-Plots.plot!(ecdf(mean.(getindex.(ex3_v303_quantity_sold,1)) ./ mean.(getindex.(ex3_v303_quantity_produced,1))), label = "Obaj producenci badają oczekiwania konsumentów")
+p_h2_ss = Plots.plot(ecdf(mean.(getindex.(ex3_v300_quantity_sold,1)) ./ mean.(getindex.(ex3_v300_quantity_produced,1))), xlabel = "Udział sprzedanych dóbr w całości produkcji", ylabel = "Dystrybuanta empiryczna", titlefontsize = 12, label = Label1)
+Plots.plot!(ecdf(mean.(getindex.(ex3_v301_quantity_sold,1)) ./ mean.(getindex.(ex3_v301_quantity_produced,1))), label = Label2)
+Plots.plot!(ecdf(mean.(getindex.(ex3_v302_quantity_sold,1)) ./ mean.(getindex.(ex3_v302_quantity_produced,1))), label = Label3)
+Plots.plot!(ecdf(mean.(getindex.(ex3_v303_quantity_sold,1)) ./ mean.(getindex.(ex3_v303_quantity_produced,1))), label = Label4)
 
 Plots.savefig(p_h2_qs, pwd() *  "\\plots_to_export\\ecdf_quantity_sold.pdf")
 Plots.savefig(p_h2_ss, pwd() *  "\\plots_to_export\\ecdf_quantity_sold_share.pdf")
@@ -184,7 +199,7 @@ latexify(
     loss_percentiles_df
 , env = :table) |> print
 
-DataFrame(Typ = ["Producenci nie badają konsumentów", "Producent bada konsumentów jako jedyny", "Producent nie bada konsumentów jako jedyny", "Producenci badają konsumentów"], Zysk = round.([
+DataFrame(Typ = [Label1, Label2, Label3, Label4], Zysk = round.([
     mean(sum.(getindex.(ex3_v300_producer_surplus_singleton, 1))[sum.(getindex.(ex3_v300_producer_surplus_singleton, 1)) .<= 0]), 
     mean(sum.(getindex.(ex3_v301_producer_surplus_singleton, 1))[sum.(getindex.(ex3_v301_producer_surplus_singleton, 1)) .<= 0]), 
     mean(sum.(getindex.(ex3_v302_producer_surplus_singleton, 1))[sum.(getindex.(ex3_v302_producer_surplus_singleton, 1)) .<= 0]), 
@@ -219,23 +234,23 @@ ds300b = getindex.(ex3_v300_quality, 1) .- getindex.(ex3_v300_quality_exp_buyers
 ds301 = getindex.(ex3_v301_quality, 1) .- getindex.(ex3_v301_quality_exp, 1)
 ds301b = getindex.(ex3_v301_quality, 1) .- getindex.(ex3_v301_quality_exp_buyers, 1)
 
-p_h3_nl = Plots.scatter(sort(unique(ex3_v300301302303_nl)), [mean(mean.(ds300)[ex3_v300301302303_nl .== nl]) for nl in sort(unique(ex3_v300301302303_nl))], xlabel = "Liczba połączeń w sieci", ylabel = "Różnica między oczekiwaniami konsumentów \n a średnim poziomem jakości", label = "Brak badań konsumentów", titlefontsize = 10)
-Plots.scatter!(sort(unique(ex3_v300301302303_nl)), [mean(mean.(ds301)[ex3_v300301302303_nl .== nl]) for nl in sort(unique(ex3_v300301302303_nl))], label = "Wykonywanie badań konsumentów")
+p_h3_nl = Plots.scatter(sort(unique(ex3_v300301302303_nl)), [mean(mean.(ds300)[ex3_v300301302303_nl .== nl]) for nl in sort(unique(ex3_v300301302303_nl))], xlabel = "Liczba połączeń w sieci", ylabel = "Różnica między przekonaniami konsumentów \n a średnim poziomem jakości", label = Label1, titlefontsize = 10, ylim = (0.02, 0.09))
+Plots.scatter!(sort(unique(ex3_v300301302303_nl)), [mean(mean.(ds301)[ex3_v300301302303_nl .== nl]) for nl in sort(unique(ex3_v300301302303_nl))], label = Label2)
 
 Plots.savefig(p_h3_nl, pwd() * "\\plots_to_export\\nl vs quality.pdf")
 
-p_h3_l_nr = Plots.scatter(sort(unique(ex3_v300301302303_Li)), [mean(mean.(ds300)[(ex3_v300301302303_Li .== li) .& (ex3_v300301302303_Lw .== 0.0)]) for li in sort(unique(ex3_v300301302303_Li))], ylabel = "Różnica między oczekiwaniami konsumentów \n a średnim poziomem jakości", xlabel = L"\lambda_i", title = "Brak badań konsumentów", label = L"\theta_i = 0", ylim = (-0.15, 0.15))
-Plots.scatter!(sort(unique(ex3_v300301302303_Li)), [mean(mean.(ds300)[(ex3_v300301302303_Li .== li) .& (ex3_v300301302303_Lw .> 0.0)]) for li in sort(unique(ex3_v300301302303_Li))], label = L"\theta_i > 0")
+p_h3_l_nr = Plots.scatter(sort(unique(ex3_v300301302303_Li))[2:end], [mean(mean.(ds300)[(ex3_v300301302303_Li .== li) .& (ex3_v300301302303_Lw .== 0.0)]) for li in sort(unique(ex3_v300301302303_Li))][2:end], ylabel = "Różnica między przekonaniami konsumentów, \n a średnim poziomem jakości", xlabel = L"\lambda", label = L"\theta = 0", xlim = (0.09, 1.01), xlabelfontsize = 14, ylabelfontsize = 14, smooth = true, ylim = (0, 0.15), legend = :topleft, legendfontsize = 12)
+Plots.scatter!(sort(unique(ex3_v300301302303_Li))[2:end], [mean(mean.(ds300)[(ex3_v300301302303_Li .== li) .& (ex3_v300301302303_Lw .> 0.0)]) for li in sort(unique(ex3_v300301302303_Li))][2:end], label = L"\theta > 0", smooth = true)
 
-p_h3_l_rr = Plots.scatter(sort(unique(ex3_v300301302303_Li)), [mean(mean.(ds301)[(ex3_v300301302303_Li .== li) .& (ex3_v300301302303_Lw .== 0.0)]) for li in sort(unique(ex3_v300301302303_Li))], title = "Badania konsumentów",  label= L"\theta_i = 0", ylabel = "Różnica między oczekiwaniami konsumentów \n a średnim poziomem jakości", xlabel = L"\lambda_i",ylim = (-0.15, 0.15))
-Plots.scatter!(sort(unique(ex3_v300301302303_Li)), [mean(mean.(ds301)[(ex3_v300301302303_Li .== li) .& (ex3_v300301302303_Lw .> 0.0)]) for li in sort(unique(ex3_v300301302303_Li))], label = L"\theta_i > 0")
+p_h3_l_rr = Plots.scatter(sort(unique(ex3_v300301302303_Li))[2:end], [mean(mean.(ds301)[(ex3_v300301302303_Li .== li) .& (ex3_v300301302303_Lw .== 0.0)]) for li in sort(unique(ex3_v300301302303_Li))][2:end], label= L"\theta = 0", ylabel = "Różnica między przekonaniami konsumentów, \n a średnim poziomem jakości", xlabel = L"\lambda",xlim = (0.09, 1.01), smooth = true, ylim = (0, 0.15), legend = :topleft, legendfontsize = 12, xlabelfontsize = 14, ylabelfontsize = 14)
+Plots.scatter!(sort(unique(ex3_v300301302303_Li))[2:end], [mean(mean.(ds301)[(ex3_v300301302303_Li .== li) .& (ex3_v300301302303_Lw .> 0.0)]) for li in sort(unique(ex3_v300301302303_Li))][2:end], label = L"\theta > 0", smooth = true)
 
-p_h3_l = Plots.plot(p_h3_l_nr, p_h3_l_rr, size = (1000, 500))
+p_h3_l = Plots.plot(p_h3_l_nr, p_h3_l_rr, size = (1200, 600), margin=5Plots.mm)
 
 Plots.savefig(p_h3_l, pwd() * "\\plots_to_export\\lambda vs quality.pdf")
 
-p_h3_w = Plots.scatter(sort(unique(ex3_v300301302303_Lw)), [mean(mean.(ds300)[ex3_v300301302303_Lw .== lw]) for lw in sort(unique(ex3_v300301302303_Lw))], ylabel = "Różnica między oczekiwaniami konsumentów \n a średnim poziomem jakości", xlabel = L"\theta_i", label = "Brak badań konsumentów")
-Plots.scatter!(sort(unique(ex3_v300301302303_Lw)), [mean(mean.(ds301)[ex3_v300301302303_Lw .== lw]) for lw in sort(unique(ex3_v300301302303_Lw))], label = "Badania konsumentów")
+p_h3_w = Plots.scatter(sort(unique(ex3_v300301302303_Lw)), [mean(mean.(ds300)[ex3_v300301302303_Lw .== lw]) for lw in sort(unique(ex3_v300301302303_Lw))], ylabel = "Różnica między przekonaniami konsumentów \n a średnim poziomem jakości", xlabel = L"\theta", label = Label1, ylim = (0.02, 0.09))
+Plots.scatter!(sort(unique(ex3_v300301302303_Lw)), [mean(mean.(ds301)[ex3_v300301302303_Lw .== lw]) for lw in sort(unique(ex3_v300301302303_Lw))], label = Label2)
 
 Plots.savefig(p_h3_w, pwd() * "\\plots_to_export\\theta vs quality.pdf")
 
@@ -260,10 +275,14 @@ Plots.scatter!(sort(unique(ex3_v300301302303_nl)), [mean(mean.(getindex.(ex3_v30
 
 π303_hat2 = fitted(GLM.lm(@formula(y~x), DataFrame(x = sort(unique(ex3_v300301302303_nl)), y = [mean(sum.(getindex.(ex3_v303_producer_surplus_singleton, 2))[ex3_v300301302303_nl .== nl]) for nl in sort(unique(ex3_v300301302303_nl))])))
 
-p_h3_3 = Plots.plot(sort(unique(ex3_v300301302303_nl)), π301_hat1 .- π300_hat1, xlabel = "Liczba połączeń w sieci", ylabel = "Dodatkowy zysk firmy z tytułu \n prowadzenia badań konsumenckich", label = "Wdrożenie badań, gdy konkurent ich nie wykonuje",marker = :circle, markerstrokewidth = 0)
-Plots.plot!(sort(unique(ex3_v300301302303_nl)), π303_hat1 .- π302_hat1, label = "Wdrożenie badań, gdy konkurent też je wykonuje", widen = true, marker = :square, markerstrokewidth = 0)
+slope(x,y) = (y[end] - y[1]) / (x[end] - x[1])
 
-Plots.savefig(p_h3_3, pwd() * "\\plots\\h3\\incremental profit vs connection number.svg")
+slope(sort(unique(ex3_v300301302303_nl)), (π301_hat1 .- π300_hat1)) * 100 / (π301_hat1 .- π300_hat1)[1]
+slope(sort(unique(ex3_v300301302303_nl)), (π303_hat1 .- π302_hat1)) * 100 / (π303_hat1 .- π302_hat1)[1]
+
+p_h3_3 = Plots.plot(sort(unique(ex3_v300301302303_nl)), π301_hat1 .- π300_hat1, xlabel = "Liczba połączeń w sieci", ylabel = "Dodatkowy zysk firmy z tytułu \n prowadzenia badań konsumenckich", label = "Wdrożenie badań konsumenckich, gdy konkurent ich nie wykonuje",marker = :circle, markerstrokewidth = 0, ylim = (0, 100))
+Plots.plot!(sort(unique(ex3_v300301302303_nl)), π303_hat1 .- π302_hat1, label = "Wdrożenie badań konsumenckich, gdy konkurent też je wykonuje", widen = true, marker = :square, markerstrokewidth = 0)
+
 Plots.savefig(p_h3_3, pwd() * "\\plots_to_export\\incremental profit vs connection number.pdf")
 
 # Średnia liczba sygnałów a liczba połączeń
@@ -293,9 +312,9 @@ model_t = GLM.lm(@formula(yt~x), lt_df)
 fit_l = GLM.predict(model_l, lt_df_pred)
 fit_t = GLM.predict(model_t, lt_df_pred)
 
-p_h3_lt = Plots.scatter(sort(unique(ex3_v300301302303_Li)), incr_profit_l, markerstrokewidth = 0, label = "Dodatkowy zysk, sygnały indywidualne, " * L"\lambda", color = :blue)
+p_h3_lt = Plots.scatter(sort(unique(ex3_v300301302303_Li)), incr_profit_l, markerstrokewidth = 0, label = "Dodatkowy zysk, sygnały indywidualne, " * L"(\lambda)", color = :blue)
 Plots.plot!(0.00:0.01:0.99, fit_l, color = "blue", label = "")
-Plots.scatter!(sort(unique(ex3_v300301302303_Lw)), incr_profit_t, legend = :topleft, markerstrokewidth = 0, label = "Dodatkowy zysk, sygnały od innych konsumentów, " * L"\theta", color = :green)
+Plots.scatter!(sort(unique(ex3_v300301302303_Lw)), incr_profit_t, legend = :topleft, markerstrokewidth = 0, label = "Dodatkowy zysk, sygnały od innych konsumentów, " * L"(\theta)", color = :green)
 Plots.plot!(0.00:0.01:0.99, fit_t, color = "green", legend = :topright, xlabel = "Wagi sygnałów " * L"\lambda, \theta", ylabel = "Dodatkowy zysk firmy z tytułu \n prowadzenia badań konsumenckich", label = "")
 
 Plots.savefig(p_h3_lt, pwd() * "\\plots_to_export\\incremental profit vs lambda and theta.pdf")
@@ -334,6 +353,22 @@ payoff1_high_nl = [mean(
             [median(sum.(getindex.(ex3_v303_producer_surplus_singleton, 1))[.!low_nl]), median(sum.(getindex.(ex3_v303_producer_surplus_singleton, 2))[.!low_nl])
 ])]
 
+payoff1 = [mean(
+        [median(sum.(getindex.(ex3_v300_producer_surplus_singleton, 1))), median(sum.(getindex.(ex3_v300_producer_surplus_singleton, 2)))
+]),
+        mean(
+            [median(sum.(getindex.(ex3_v301_producer_surplus_singleton, 1))), median(sum.(getindex.(ex3_v302_producer_surplus_singleton, 2)))
+]),
+        mean(
+            [median(sum.(getindex.(ex3_v302_producer_surplus_singleton, 1))), median(sum.(getindex.(ex3_v301_producer_surplus_singleton, 2)))
+]),
+        mean(
+            [median(sum.(getindex.(ex3_v303_producer_surplus_singleton, 1))), median(sum.(getindex.(ex3_v303_producer_surplus_singleton, 2)))
+])]
+
+
+KruskalWallisTest(sum.(getindex.(ex3_v300_producer_surplus_singleton, 1))[low_nl], sum.(getindex.(ex3_v302_producer_surplus_singleton, 1))[low_nl])
+
 payoff2_low_nl = payoff1_low_nl[[1,3,2,4]]
 payoff2_high_nl = payoff1_high_nl[[1,3,2,4]]
 
@@ -346,7 +381,7 @@ nash_equilibriums_PD_high_nl = simulate_ne_for_costs(payoff1_high_nl, payoff2_hi
 mixedNE_high_nl = simulate_ne_for_costs(payoff1_high_nl, payoff2_high_nl, costs, "mNE")
 valid_mixed_NE_high_nl = [all((x .>= 0) .& (x .<= 1)) for x in mixedNE_high_nl]
 
-plot_NE = Plots.plot(costs, true_or_missing.(4 .∈ nash_equilibriums_int_high_nl, k=2), markershape = :square, markerstrokewidth = 0, markersize = 4, xlabel = "Koszt pomiaru oczekiwań konsumentów",  markercolor = "black", linecolor = "black", label = "Strategia równowagi, strategie czyste")
+plot_NE = Plots.plot(costs, true_or_missing.(4 .∈ nash_equilibriums_int_high_nl, k=2), markershape = :square, markerstrokewidth = 0, markersize = 4, xlabel = "Koszt pomiaru przekonań konsumentów",  markercolor = "black", linecolor = "black", label = "Strategia równowagi, strategie czyste")
 #Plots.plot!(costs, true_or_missing.(3 .∈ nash_equilibriums_int; k = 3), markershape = :square, markerstrokewidth = 0, markersize = 4, xlabel = "Koszt pomiaru oczekiwań konsumentów", label = "", markercolor = "black", linecolor = "black")
 #Plots.plot!(costs, true_or_missing.(2 .∈ nash_equilibriums_int; k = 2), markershape = :square, markerstrokewidth = 0, markersize = 4, xlabel = "Koszt pomiaru oczekiwań konsumentów", label = "", markercolor = "black", linecolor = "black")
 Plots.plot!(costs, true_or_missing.(1 .∈ nash_equilibriums_int_high_nl; k = 1), markershape = :square, markerstrokewidth = 0, markersize = 4, xlabel = "Koszt pomiaru oczekiwań konsumentów", label = "", markercolor = "black", linecolor = "black")
@@ -379,7 +414,7 @@ nash_equilibriums_PD_low_nl = simulate_ne_for_costs(payoff1_low_nl, payoff2_low_
 mixedNE_low_nl = simulate_ne_for_costs(payoff1_low_nl, payoff2_low_nl, costs, "mNE")
 valid_mixed_NE_low_nl = [all((x .>= 0) .& (x .<= 1)) for x in mixedNE_low_nl]
 
-plot_NE = Plots.plot(costs, true_or_missing.(4 .∈ nash_equilibriums_int_low_nl, k=2), markershape = :square, markerstrokewidth = 0, markersize = 4, xlabel = "Koszt pomiaru oczekiwań konsumentów",  markercolor = "black", linecolor = "black", label = "Strategia równowagi, strategie czyste")
+plot_NE = Plots.plot(costs, true_or_missing.(4 .∈ nash_equilibriums_int_low_nl, k=2), markershape = :square, markerstrokewidth = 0, markersize = 4, xlabel = "Koszt pomiaru przekonań konsumentów",  markercolor = "black", linecolor = "black", label = "Strategia równowagi, strategie czyste")
 #Plots.plot!(costs, true_or_missing.(3 .∈ nash_equilibriums_int; k = 3), markershape = :square, markerstrokewidth = 0, markersize = 4, xlabel = "Koszt pomiaru oczekiwań konsumentów", label = "", markercolor = "black", linecolor = "black")
 #Plots.plot!(costs, true_or_missing.(2 .∈ nash_equilibriums_int; k = 2), markershape = :square, markerstrokewidth = 0, markersize = 4, xlabel = "Koszt pomiaru oczekiwań konsumentów", label = "", markercolor = "black", linecolor = "black")
 Plots.plot!(costs, true_or_missing.(1 .∈ nash_equilibriums_int_low_nl; k = 1), markershape = :square, markerstrokewidth = 0, markersize = 4, xlabel = "Koszt pomiaru oczekiwań konsumentów", label = "", markercolor = "black", linecolor = "black")
@@ -405,6 +440,23 @@ p_low_nl
 
 Plots.savefig(p_low_nl, pwd() * "\\plots_to_export\\nash_equilibriums_l.pdf")
 Plots.savefig(p_low_nl, pwd() * "\\plots\\h4\\nash_equilibriums_l.svg")
+
+############## Additional analysis for H3, new DF
+
+@load "C:\\Users\\User\\Documents\\PhDWorkspace_more_nl_varianteps.jld2"
+
+minimum(profit_diff_302303)
+argmin(profit_diff_302303)
+ex3_v300301302303_ϵq[argmin(profit_diff_302303)]
+
+profit_diff_300301 = sum.(getindex.(ex3_v301_producer_surplus_singleton, 2)) .- sum.(getindex.(ex3_v300_producer_surplus_singleton, 2))
+
+profit_diff_302303 = sum.(getindex.(ex3_v303_producer_surplus_singleton, 2)) .- sum.(getindex.(ex3_v302_producer_surplus_singleton, 2))
+
+p_3_add = Plots.scatter(sort(unique(ex3_v300301302303_ϵq)), [mean(profit_diff_300301[ex3_v300301302303_ϵq .== eq]) for eq in sort(unique(ex3_v300301302303_ϵq))], xlabel = "Wariancja jakości produktów", ylabel = "Dodatkowy zysk \n z prowadzenia badań konsumenckich", label = "Firma konkurencyjna nie prowadzi badań", smooth = true, xlim = (0,0.21))
+Plots.scatter!(sort(unique(ex3_v300301302303_ϵq)), [mean(profit_diff_302303[ex3_v300301302303_ϵq .== eq]) for eq in sort(unique(ex3_v300301302303_ϵq))], label = "Firma konkurencyjna prowadzi badania", smooth = true)
+
+Plots.savefig(p_3_add, pwd() * "\\plots_to_export\\quality_variance_profit.pdf")
 
 ######## EXPORT PLOTS ##############
 
