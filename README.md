@@ -1,9 +1,5 @@
-# PhD-Model
+# Repository with ACE model for PhD
 
-TODO
-
-[] UNIT TESTS
-[] EXPERIMENT 1
-[] EXPERIMENT 2
-[] EXPERIMENT 3
-[] EXPERIMENT 4
+Methods stored in \methods\methods.jl, source from \methods_aux.jl.
+Built and tested in Visual Studio Code, Julia 1.8.3.
+All dependencies listed in \methods\methods.jl:9-30.
